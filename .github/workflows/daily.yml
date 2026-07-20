@@ -1,14 +1,17 @@
 # ============================================================================
-# 每日自動更新 + 部署 GitHub Pages
+# 每日自動更新 + 部署 GitHub Pages(gh-pages 分支)
 # ----------------------------------------------------------------------------
 # 做的事:
-#   1) 每天定時(和每次 push / 手動觸發)重跑 build_site.py:
+#   1) 每天定時(+ 每次 push main / 手動)重跑 build_site.py:
 #      抓最新 FinMind 財報/股價 + yfinance 共識,重算四指標、河流圖、FCF 品質、訊號。
 #   2) 把更新後的「每日狀態檔」(scan_state.json / signal_log.csv / consensus/*.csv)
-#      commit 回 repo —— 這樣隔天才能比出「共識上修/下修、燈號變色、估值門檻跨越」。
-#   3) 把 public/ 部署到 GitHub Pages(手機瀏覽器可連,永遠是最新)。
+#      commit 回 main —— 這樣隔天才能比出「共識上修/下修、燈號變色、估值門檻跨越」。
+#   3) 把 public/ 強推到 gh-pages 分支 → GitHub Pages 自動部署(手機可連,永遠最新)。
 #
-# 首次使用:到 repo 的 Settings → Pages → Build and deployment → Source 選「GitHub Actions」。
+# 採「gh-pages 分支」而非 Pages Actions artifact:只需 contents:write,
+# 不依賴 github-pages 環境,較單純、也和本機初次部署一致。
+#
+# 首次使用:Settings → Pages → Source 選「Deploy from a branch」→ 分支 gh-pages、資料夾 /(root)。
 # (選填)Settings → Secrets and variables → Actions 新增 FINMIND_TOKEN 提高抓取額度。
 # ============================================================================
 name: daily-dashboard
@@ -17,22 +20,18 @@ on:
   schedule:
     - cron: "0 10 * * *"      # 每天 UTC 10:00 = 台灣 18:00(收盤後,資料已更新)
   push:
-    branches: [main]          # 每次推更新也重建一次
-  workflow_dispatch: {}       # 允許在 Actions 頁面手動按「Run workflow」
+    branches: [main]
+  workflow_dispatch: {}
 
-# GITHUB_TOKEN 權限:commit 狀態回 repo 需要 contents:write;部署 Pages 需要 pages/id-token
 permissions:
-  contents: write
-  pages: write
-  id-token: write
+  contents: write             # commit 狀態回 main + 推 gh-pages 都靠這個
 
-# 避免多個部署同時進行
 concurrency:
-  group: "pages"
+  group: "deploy"
   cancel-in-progress: false
 
 jobs:
-  build:
+  build-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -54,11 +53,11 @@ jobs:
           FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}   # 沒設就是空字串 → 匿名模式
         run: python build_site.py --out public
 
-      - name: Commit updated daily state
+      - name: Commit updated daily state to main
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/          # 只會納入未被 .gitignore 排除的狀態檔
+          git add data/
           if git diff --cached --quiet; then
             echo "沒有狀態變化,略過 commit。"
           else
@@ -66,18 +65,16 @@ jobs:
             git push
           fi
 
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: public
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Deploy public/ to gh-pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd public
+          touch .nojekyll                       # 別讓 Jekyll 處理(我們是純靜態)
+          git init -q
+          git checkout -q -b gh-pages
+          git add -A
+          git -c user.name="github-actions[bot]" \
+              -c user.email="github-actions[bot]@users.noreply.github.com" \
+              commit -q -m "deploy: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          git push -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" gh-pages
