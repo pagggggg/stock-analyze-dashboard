@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# 密鑰 / 環境變數(絕不進版控)—— FinMind token 等
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+secrets.*
+credentials.*
+
+# API 快取(FinMind / TWSE),可安全刪除,刪了下次會重抓
+cache/
+
+# 自動抓取的暫存輸出(單股報告用;想保留可自行移除這幾行)
+data/financials_auto.csv
+data/pe_history_auto.csv
+
+# 產生的網站(由 GitHub Actions 建置後直接部署到 Pages,不進版控)
+public/
+
+# 單股報告輸出(可選;想版控就移除)
+reports/dashboard.html
+
+# macOS
+.DS_Store
+
+# ─────────────────────────────────────────────────────────────────────
+# 注意:以下「每日狀態檔」要進版控(GitHub Actions 每天 commit 回來,
+#       隔天才能比出共識上修/下修、燈號變色),請勿加入忽略清單:
+#   data/scan_state.json      每檔上次快照
+#   data/signal_log.csv       訊號事件日誌
+#   data/consensus/*.csv      每檔共識EPS歷史

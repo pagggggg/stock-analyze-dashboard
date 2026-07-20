@@ -1,0 +1,10 @@
+# API 快取(可安全刪除,刪了下次會重抓)
+cache/
+# FinMind API token(祕密,勿進版控)
+.finmind_token
+# 執行 log
+*.log
+# Python
+__pycache__/
+*.py[cod]
+.DS_Store

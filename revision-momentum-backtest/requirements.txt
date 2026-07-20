@@ -1,0 +1,8 @@
+# 盈餘修正動能回測 — 相依套件
+# 只用到資料抓取 + 標準函式庫;分析/回測全部純 Python,不需 pandas。
+FinMind>=2.0        # 台股資料(月營收/EPS/股價/股票池)
+pandas>=2.0         # FinMind 相依(回傳 DataFrame)
+
+# 安裝:pip install -r requirements.txt
+# Homebrew Python / PEP 668 若報 externally-managed:
+#   pip install --user --break-system-packages -r requirements.txt

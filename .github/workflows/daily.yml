@@ -1,0 +1,83 @@
+# ============================================================================
+# 每日自動更新 + 部署 GitHub Pages
+# ----------------------------------------------------------------------------
+# 做的事:
+#   1) 每天定時(和每次 push / 手動觸發)重跑 build_site.py:
+#      抓最新 FinMind 財報/股價 + yfinance 共識,重算四指標、河流圖、FCF 品質、訊號。
+#   2) 把更新後的「每日狀態檔」(scan_state.json / signal_log.csv / consensus/*.csv)
+#      commit 回 repo —— 這樣隔天才能比出「共識上修/下修、燈號變色、估值門檻跨越」。
+#   3) 把 public/ 部署到 GitHub Pages(手機瀏覽器可連,永遠是最新)。
+#
+# 首次使用:到 repo 的 Settings → Pages → Build and deployment → Source 選「GitHub Actions」。
+# (選填)Settings → Secrets and variables → Actions 新增 FINMIND_TOKEN 提高抓取額度。
+# ============================================================================
+name: daily-dashboard
+
+on:
+  schedule:
+    - cron: "0 10 * * *"      # 每天 UTC 10:00 = 台灣 18:00(收盤後,資料已更新)
+  push:
+    branches: [main]          # 每次推更新也重建一次
+  workflow_dispatch: {}       # 允許在 Actions 頁面手動按「Run workflow」
+
+# GITHUB_TOKEN 權限:commit 狀態回 repo 需要 contents:write;部署 Pages 需要 pages/id-token
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+# 避免多個部署同時進行
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build dashboard site
+        env:
+          FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}   # 沒設就是空字串 → 匿名模式
+        run: python build_site.py --out public
+
+      - name: Commit updated daily state
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/          # 只會納入未被 .gitignore 排除的狀態檔
+          if git diff --cached --quiet; then
+            echo "沒有狀態變化,略過 commit。"
+          else
+            git commit -m "chore(data): 每日狀態更新 $(date -u +%Y-%m-%d)"
+            git push
+          fi
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

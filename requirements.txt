@@ -1,0 +1,28 @@
+# ── 手動模式(先跑通這個就夠):只需要讀 YAML ──────────────────────────
+PyYAML>=6.0
+
+# ── 自動抓取模式(--data-mode auto 才需要)────────────────────────────
+# 近8季財務數據:FinMind(免費 API,免token)
+FinMind>=2.0
+# 近10年本益比:TWSE 個股日本益比,直接用 requests 打
+requests>=2.28
+# FinMind / 資料處理相依
+pandas>=2.0
+lxml>=5.0        # 註:Python 3.14 請用 lxml>=6(FinMind 官方雖釘 <5,但 6.x 實測可用)
+loguru>=0.7
+
+# 估值儀表板(前瞻PE/PEG/FCF Yield/EV·EBITDA):分析師共識EPS、現金流、EV 元件
+yfinance>=0.2
+
+# ── 視覺化儀表板(--html 才需要)──────────────────────────────────────
+# 單一 HTML 檔(離線可開):plotly.js 內嵌到 reports/dashboard.html,免架 server
+plotly>=5.20
+
+# ─────────────────────────────────────────────────────────────────────
+# 安裝提示:
+#   一般環境: pip install -r requirements.txt
+#   若為 Homebrew Python 且遇 PEP 668「externally-managed」錯誤:
+#       pip install --user --break-system-packages -r requirements.txt
+#   Python 3.14 若 FinMind 卡在 lxml 編譯:先單獨裝新版 lxml
+#       pip install --user --break-system-packages "lxml>=6" loguru
+#       pip install --user --break-system-packages --no-deps FinMind

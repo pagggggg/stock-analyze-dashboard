@@ -1,0 +1,4 @@
+quarter,revenue_twd_bn,gross_margin_pct,opex_ratio_pct,tax_rate_pct,shares_bn,non_op_ratio_pct,reported_eps,source
+# 補充檔:放「已公布、但 FinMind 尚未收錄」的最新季度,讓年化(TTM)能用到最新一季。
+# FinMind 收錄後可刪掉這一列(同季度會以此檔覆蓋 API 值,記得移除以免蓋掉正式財報)。
+2026Q2,1270.32,67.7,7.4,16.2,25.93,2.7,25.86,"TSMC 2026Q2 法說實際數(營收40.2B美元×匯率31.6;毛利率67.7%;營業淨利率60.3%→營業費用率7.4%)+稅16.2%/業外2.7%推算,EPS≈25.9"
