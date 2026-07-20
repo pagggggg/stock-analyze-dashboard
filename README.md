@@ -72,6 +72,39 @@ python main.py --data-mode auto --html
 - **資料需求**:河流圖與 FCF 品質需 `--data-mode auto`(FinMind 長區間財報 + 日股價);手動模式仍會產出其餘圖,缺的以「資料不足」佔位。
 - 安裝提醒:此功能需 `plotly`(見 requirements.txt);若遇 PEP 668 錯誤,加 `--break-system-packages`。
 
+## 多股個人選股分析儀表板(可遠端存取)
+
+> 只用**公開市場數據**做估值研究,**無任何持倉或個人交易紀錄**。掃描總表僅供縮小研究範圍,非買進清單。
+
+把一份觀察清單掃成一個靜態網站(多頁,離線也能開,可部署到 GitHub Pages 手機連線):
+
+```bash
+# 1) 編輯觀察清單
+#    config/watchlist.yaml —— 填 stock_id / name;有法說指引檔的股票可加 guidance
+
+# 2) 產生網站到 public/
+python build_site.py
+open public/index.html            # 本機預覽
+```
+
+**三層哲學**:
+
+| 層 | 內容 |
+| --- | --- |
+| 第一層 · 狀態燈 | 🟢 無訊號級變化／🟡 有共識異動或 FCF 燈變色／🔴 有股票跨越估值門檻(前瞻PE 判讀等級改變) |
+| 第二層 · 訊號流水 | 只列**共識EPS 上下修 / FCF 品質燈變色 / 估值門檻跨越**;**股價漲跌屬雜訊,刻意不列** |
+| 第三層 · 個股詳情 | 點名稱展開:四指標卡 + 本益比河流圖 + FCF 品質三燈 + FCF 雙線 + EPS 走勢 + 共識折線 |
+
+- **掃描總表**:所有股票四指標一覽、**點欄位可排序**、依判讀著色(便宜綠/合理灰/偏貴橘/貴紅)、**盈餘修正動能欄**(僅標記近期共識被上/下修,**依原則等回測驗證後才加權重,目前不評分**)。
+- **跨日比對**:每次執行把每檔快照寫進 `data/scan_state.json`、事件寫進 `data/signal_log.csv`、共識歷史寫進 `data/consensus/<代號>.csv`;**隔次執行才能比出「上修/下修/燈變色」**。這些狀態檔要進版控。
+- **資料來源**:FinMind(財報/資產負債/現金流/日股價)+ yfinance(共識EPS/FCF/EV 元件),不依賴 TWSE 逐月抓,故可套用任意台股代號。
+
+### 每日自動更新 + 部署 GitHub Pages
+
+`.github/workflows/daily.yml` 已設定好:每天定時(+ 每次 push / 手動)重跑 `build_site.py`,把更新後的狀態檔 commit 回 repo,並部署 `public/` 到 GitHub Pages。首次啟用步驟見本文件結尾或對話說明。
+
+- **選填**:設 GitHub Secret `FINMIND_TOKEN`(至 finmindtrade.com 免費註冊)可提高抓取額度;本機可放 `.env`(已 gitignore)。
+
 ### 進階:自動抓取(免費 API,取代手動 CSV)
 
 ```bash
