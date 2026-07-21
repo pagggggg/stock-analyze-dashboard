@@ -8,7 +8,11 @@ FinMind>=2.0
 requests>=2.28
 # FinMind / 資料處理相依
 pandas>=2.0
-lxml>=5.0        # 註:Python 3.14 請用 lxml>=6(FinMind 官方雖釘 <5,但 6.x 實測可用)
+# lxml:FinMind 需要 <5。用版本標記分流,避免 CI 解析衝突:
+#   - Python < 3.14(如 CI 的 3.12):裝 lxml<5,和 FinMind 相容,pip 可正常解析。
+#   - Python >= 3.14:沒有 <5 的 wheel,需 lxml>=6;此時 FinMind 請用 --no-deps 安裝(見末段)。
+lxml<5.0 ; python_version < "3.14"
+lxml>=6.0 ; python_version >= "3.14"
 loguru>=0.7
 
 # 估值儀表板(前瞻PE/PEG/FCF Yield/EV·EBITDA):分析師共識EPS、現金流、EV 元件
