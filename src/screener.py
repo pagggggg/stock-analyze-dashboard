@@ -32,6 +32,12 @@ _LIAB = "Liabilities"
 _ASSETS = "TotalAssets"
 _NCI = "NoncontrollingInterests"
 _OCF = "CashFlowsFromOperatingActivities"           # 現金流:營運活動(YTD 累計)
+# 有息負債科目(資產負債表)+ 現金 + 股東權益
+_SHORT_BORROW = "ShorttermBorrowings"               # 短期借款
+_LONG_BORROW = "LongtermBorrowings"                 # 長期借款
+_BONDS = "BondsPayable"                             # 應付公司債
+_CASH = "CashAndCashEquivalents"                    # 現金及約當現金
+_EQUITY = "Equity"                                  # 股東權益總額
 
 
 # ======================================================================
@@ -96,13 +102,29 @@ def extract_metrics(income: dict, balance: dict, cashflow: dict) -> dict:
             "nci": _year_end(balance, y, _NCI) or 0.0,
         }
 
-    # 最新一季資產負債(負債比用最新,不是年底)
+    # 最新一季資產負債(負債比用最新,不是年底);含有息負債科目 + 現金 + 權益
     latest_bs = None
     if balance:
         d = max(balance)
         t = balance[d]
-        if _LIAB in t and _ASSETS in t:
-            latest_bs = {"date": d, "liabilities": t[_LIAB], "total_assets": t[_ASSETS]}
+        if _ASSETS in t:
+            latest_bs = {
+                "date": d,
+                "liabilities": t.get(_LIAB),
+                "total_assets": t.get(_ASSETS),
+                "short_borrow": t.get(_SHORT_BORROW),
+                "long_borrow": t.get(_LONG_BORROW),
+                "bonds": t.get(_BONDS),
+                "cash": t.get(_CASH),
+                "equity": t.get(_EQUITY),
+            }
+
+    # 全年 OCF(現金流量表為 YTD 累計,故『年底 12-31』那筆即全年值)
+    annual_ocf: dict[str, float] = {}
+    for y in sorted({int(d[:4]) for d in cashflow}):
+        v = _year_end(cashflow, y, _OCF)
+        if v is not None:
+            annual_ocf[str(y)] = v
 
     inc_dates = sorted(income)
     return {
@@ -111,7 +133,8 @@ def extract_metrics(income: dict, balance: dict, cashflow: dict) -> dict:
         "annual": annual,
         "annual_bs": annual_bs,
         "latest_bs": latest_bs,
-        "ocf_q": _single_quarter_ocf(cashflow)[-8:],
+        "annual_ocf": annual_ocf,
+        "ocf_q": _single_quarter_ocf(cashflow)[-12:],
     }
 
 
@@ -172,30 +195,60 @@ def c2_eps_positive(rec: dict, cfg: dict) -> Cond:
 
 
 def c3_ocf_positive(rec: dict, cfg: dict) -> Cond:
+    """近 N 年(≈12季)累積 OCF 為正,且近 N 年至少 M 年全年 OCF 為正。看長期,濾單季波動。"""
     conf = cfg["layer1"]["ocf_positive"]
-    q = rec.get("ocf_q") or []
-    if len(q) < conf["quarters"]:
-        return Cond("na", f"僅 {len(q)} 季 OCF(需 {conf['quarters']}）")
-    last = q[-conf["quarters"]:]
-    vals = [v for _, v in last]
-    if conf["mode"] == "each_positive":
-        ok = all(v > 0 for v in vals)
-        return Cond("pass" if ok else "fail", f"近{conf['quarters']}季各季OCF {'皆正' if ok else '有負值'}")
-    ttm = sum(vals)
-    return Cond("pass" if ttm > 0 else "fail", f"近{conf['quarters']}季OCF加總 {ttm/1e8:,.1f}億")
+    n = conf["years"]
+    annual = rec.get("annual_ocf") or {}
+    yrs = sorted(int(y) for y in annual)
+    window = yrs[-n:]
+    if len(window) < n:
+        return Cond("na", f"僅 {len(window)} 個完整年度 OCF(需 {n}）")
+    vals = [annual[str(y)] for y in window]
+    cum = sum(vals)
+    pos = sum(1 for v in vals if v > 0)
+    cum_ok = (cum > 0) if conf.get("require_cumulative_positive", True) else True
+    ok = cum_ok and pos >= conf["min_positive_years"]
+    return Cond("pass" if ok else "fail",
+                f"近{n}年累積OCF {cum/1e8:,.0f}億、{pos}/{n}年為正")
+
+
+def _industry_threshold(industry: str, conf: dict) -> float:
+    """依產業取有息負債比門檻(找不到用 default)。"""
+    return (conf.get("industry_overrides") or {}).get(industry, conf.get("default_max_pct", 40))
 
 
 def c4_debt_ratio(rec: dict, cfg: dict, stock_id: str) -> Cond:
+    """有息負債比 =(短期借款+長期借款+應付公司債)÷總資產,門檻依產業;
+    缺總資產時退回『淨負債/權益』。金融股依設定排除此條。"""
     conf = cfg["layer1"]["debt_ratio"]
     sid = int(stock_id) if stock_id.isdigit() else -1
-    if conf["exclude_financial"] and conf["financial_id_min"] <= sid <= conf["financial_id_max"]:
+    if conf.get("exclude_financial") and conf["financial_id_min"] <= sid <= conf["financial_id_max"]:
         return Cond("pass", "金融股,依設定排除此條")
+
     bs = rec.get("latest_bs")
-    if not bs or not bs.get("total_assets"):
+    if not bs:
         return Cond("na", "無最新資產負債資料")
-    ratio = bs["liabilities"] / bs["total_assets"] * 100
-    return Cond("pass" if ratio < conf["max_pct"] else "fail",
-                f"負債比 {ratio:.1f}%(門檻 <{conf['max_pct']}%)")
+    sb, lb, bp = bs.get("short_borrow"), bs.get("long_borrow"), bs.get("bonds")
+    has_ib = any(x is not None for x in (sb, lb, bp))
+    ib = (sb or 0) + (lb or 0) + (bp or 0)
+    ta = bs.get("total_assets")
+    thr = _industry_threshold(rec.get("industry", ""), conf)
+    total_ratio = (bs["liabilities"] / ta * 100) if (ta and bs.get("liabilities")) else None
+    old_txt = f",原總負債比 {total_ratio:.1f}%" if total_ratio is not None else ""
+
+    if ta:  # 主口徑:有息負債比 / 總資產
+        ratio = ib / ta * 100
+        note = "" if has_ib else "(無借款科目,視為0)"
+        return Cond("pass" if ratio < thr else "fail",
+                    f"有息負債比 {ratio:.1f}%{note}(門檻<{thr:.0f}%{old_txt})")
+
+    eq = bs.get("equity")     # 退回口徑:淨負債/權益
+    if eq:
+        thr2 = conf.get("net_debt_equity_max_pct", 40)
+        nde = (ib - (bs.get("cash") or 0)) / eq * 100
+        return Cond("pass" if nde < thr2 else "fail",
+                    f"淨負債/權益 {nde:.1f}%(退回口徑,門檻<{thr2:.0f}%)")
+    return Cond("na", "無總資產與權益,無法判斷")
 
 
 def c5_liquidity(rec: dict, cfg: dict) -> Cond:
@@ -317,8 +370,8 @@ class ScreenResult:
 
 
 L1_LABELS = {
-    "c1": "① 上市滿5年", "c2": "② 近5年≥4年EPS正", "c3": "③ 近4季OCF正",
-    "c4": "④ 負債比<60%", "c5": "⑤ 流動性達標", "c6": "⑥ 有最新財報",
+    "c1": "① 上市滿5年", "c2": "② 近5年≥4年EPS正", "c3": "③ 近3年OCF(累積+≥2年正)",
+    "c4": "④ 有息負債比達標", "c5": "⑤ 流動性達標", "c6": "⑥ 有最新財報",
 }
 L2_LABELS = {
     "q7": "⑦ 營收CAGR", "q8": "⑧ 毛利率趨勢", "q9": "⑨ ROE", "q10": "⑩ 修正動能",
@@ -354,6 +407,17 @@ def evaluate(rec: dict, cfg: dict) -> ScreenResult:
     if cfg["layer2"]["momentum"].get("gating", False):
         gate.append("q10")
     r.gate_keys = tuple(gate)
+
+    # 負債口徑對照(給報告顯示:新有息負債比 vs 舊總負債比)
+    bs = rec.get("latest_bs") or {}
+    ta = bs.get("total_assets")
+    if ta:
+        ib = (bs.get("short_borrow") or 0) + (bs.get("long_borrow") or 0) + (bs.get("bonds") or 0)
+        r.metrics["ib_ratio"] = ib / ta * 100
+        r.metrics["total_ratio"] = (bs["liabilities"] / ta * 100) if bs.get("liabilities") else None
+        r.metrics["has_ib_items"] = any(
+            bs.get(k) is not None for k in ("short_borrow", "long_borrow", "bonds"))
+    r.metrics["debt_thr"] = _industry_threshold(rec.get("industry", ""), cfg["layer1"]["debt_ratio"])
     return r
 
 

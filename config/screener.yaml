@@ -33,12 +33,25 @@ layer1:
     years: 5                  # 看近 5 年
     min_positive_years: 4     # 至少 4 年 EPS 為正
   ocf_positive:
-    quarters: 4               # 近 4 季
-    mode: "ttm_positive"      # ttm_positive=近4季OCF加總為正;each_positive=每季皆為正
+    years: 3                   # 看近 3 年(≈12 季)——改看長期,濾掉擴張期單季波動
+    min_positive_years: 2      # 近 3 年至少 2 年『全年 OCF』為正
+    require_cumulative_positive: true  # 且近 3 年『累積 OCF』為正(長期真的收得到現金)
   debt_ratio:
-    max_pct: 60               # 負債比 < 60%
-    exclude_financial: true   # 金融股排除此條(不以負債比刷掉)
-    financial_id_min: 2800    # 金融股代號區間(含),此區間套用排除
+    # 口徑:有息負債比 =(短期借款+長期借款+應付公司債)÷ 總資產。
+    #   (FinMind 未單獨列「一年內到期長期負債」,多已含在短期借款,故以此三項加總。)
+    #   總資產抓不到時,退回「淨負債/權益 =(有息負債−現金)÷ 股東權益」,報告會註明口徑。
+    basis: "interest_bearing"
+    default_max_pct: 40         # 預設有息負債比門檻(真正的財務槓桿警戒線)
+    # 產業別門檻覆寫(FinMind industry_category 字串 → 門檻%),方便調整:
+    industry_overrides:
+      "半導體業": 40            # 半導體製造 / IC 設計(台積電、聯發科、瑞昱、日月光…)
+      "其他電子業": 50          # 電子代工 / 組裝(鴻海…)
+      "電子工業": 50            # 含系統組裝 / 電源(廣達、台達電…)
+      "電腦及週邊設備業": 50    # ODM / NB 組裝(仁寶、緯創…)
+      "電子零組件業": 50
+    net_debt_equity_max_pct: 40  # 退回口徑(淨負債/權益)門檻%
+    exclude_financial: true     # 金融股排除此條
+    financial_id_min: 2800
     financial_id_max: 2890
   liquidity:
     days: 60                  # 近 60 個交易日

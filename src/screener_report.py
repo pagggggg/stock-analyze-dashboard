@@ -62,9 +62,13 @@ def build_screener_report(results, funnel, cfg, generated: str, universe_desc: s
     w("")
     w(f"1. 上市滿 **{L1['listed_years']['min']}** 年")
     w(f"2. 近 **{L1['eps_positive']['years']}** 年至少 **{L1['eps_positive']['min_positive_years']}** 年 EPS 為正")
-    w(f"3. 近 **{L1['ocf_positive']['quarters']}** 季營業現金流為正({L1['ocf_positive']['mode']})")
+    w(f"3. 近 **{L1['ocf_positive']['years']}** 年(≈12季)**累積 OCF 為正**,且至少 "
+      f"**{L1['ocf_positive']['min_positive_years']}** 年全年 OCF 為正(看長期,濾單季波動)")
     fin = "(金融股 %d–%d 排除此條)" % (L1['debt_ratio']['financial_id_min'], L1['debt_ratio']['financial_id_max']) if L1['debt_ratio']['exclude_financial'] else ""
-    w(f"4. 負債比 < **{L1['debt_ratio']['max_pct']}%** {fin}")
+    dov = L1['debt_ratio'].get('industry_overrides') or {}
+    ov_txt = "、".join(f"{k} <{v:.0f}%" for k, v in dov.items())
+    w(f"4. **有息負債比**(短期借款+長期借款+應付公司債 ÷ 總資產)< **{L1['debt_ratio']['default_max_pct']:.0f}%**"
+      f"(預設);產業覆寫:{ov_txt} {fin}")
     w(f"5. 近 **{L1['liquidity']['days']}** 日日均成交金額 > **{L1['liquidity']['min_avg_value']/1e8:.2f} 億**")
     w(f"6. 有最新財報(距今 ≤ **{L1['latest_report']['max_age_days']}** 天)")
     w("")
@@ -92,6 +96,31 @@ def build_screener_report(results, funnel, cfg, generated: str, universe_desc: s
     w("")
     w("> 註:各條為**獨立評估**(一檔可能同時卡多條);「通過第一層」才是 6 條同時成立。"
       "「資料不足」代表該條缺資料無法判斷,**一律不當通過**。")
+    w("")
+
+    # 負債比新舊口徑對照(驗證修正1/2)
+    w("### 負債比口徑對照(新:有息負債比 vs 舊:總負債比)")
+    w("")
+    dr = [r for r in results if r.metrics.get("ib_ratio") is not None]
+    dr.sort(key=lambda r: r.stock_id)
+    if dr:
+        w("| 代號 | 名稱 | 產業 | 有息負債比(新) | 產業門檻 | ④判定 | 原總負債比(舊) | 差 |")
+        w("| --- | --- | --- | ---: | ---: | :--: | ---: | ---: |")
+        for r in dr:
+            ib = r.metrics["ib_ratio"]
+            tot = r.metrics.get("total_ratio")
+            thr = r.metrics.get("debt_thr")
+            mk = {"pass": "✅", "fail": "❌", "na": "⚠️"}[r.layer1["c4"].status]
+            star = "" if r.metrics.get("has_ib_items", True) else "＊"
+            tot_s = f"{tot:.1f}%" if tot is not None else "—"
+            diff_s = f"−{tot - ib:.1f}pp" if tot is not None else "—"
+            w(f"| {r.stock_id} | {r.name} | {r.industry} | {ib:.1f}%{star} | <{thr:.0f}% | {mk} | {tot_s} | {diff_s} |")
+        w("")
+        w("> 有息負債比 =(短期借款+長期借款+應付公司債)÷ 總資產(FinMind 未單列「一年內到期長期負債」,"
+          "多已含在短期借款);`＊`=該公司查無借款科目,視為 0。"
+          "對照可見:**代工/fabless 因『應付帳款』被舊口徑(總負債比)灌水**,新口徑才反映真實財務槓桿。")
+    else:
+        w("_(尚無可計算負債比的資料。)_")
     w("")
 
     # 三、第一層通過清單
