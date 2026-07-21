@@ -794,3 +794,34 @@ def fetch_price_daily_finmind(
         raise RuntimeError("FinMind 日股價解析不到有效收盤價")
     obj = cache_set(key, rows)
     return rows, obj["fetched_date"]
+
+
+def fetch_daily_price_value(
+    stock_id: str = "2330", start_date: str = "2024-01-01"
+) -> tuple[list[dict], str]:
+    """FinMind 日收盤 + 成交金額(選股流動性條件用)。回傳 ([{date, close, value}], 抓取日期)。
+
+    value = Trading_money(當日成交金額,新台幣)。快取 12 小時。
+    """
+    key = f"finmind_pxv_{stock_id}"
+    cached = cache_get(key, ttl_seconds=12 * 3600)
+    if cached is not None:
+        return cached["data"], cached["fetched_date"]
+
+    dl = _finmind_loader()
+    df = dl.taiwan_stock_daily(stock_id=stock_id, start_date=start_date)
+    if df is None or len(df) == 0:
+        raise RuntimeError("FinMind 未回傳日股價")
+    rows: list[dict] = []
+    for _, r in df.iterrows():
+        try:
+            c = float(r["close"])
+            v = float(r.get("Trading_money", 0) or 0)
+        except (TypeError, ValueError, KeyError):
+            continue
+        if c == c and c > 0:  # 濾 NaN
+            rows.append({"date": str(r["date"]), "close": round(c, 2), "value": v})
+    if not rows:
+        raise RuntimeError("FinMind 日股價/成交金額解析不到有效資料")
+    obj = cache_set(key, rows)
+    return rows, obj["fetched_date"]

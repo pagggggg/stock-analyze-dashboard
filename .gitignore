@@ -16,6 +16,9 @@ credentials.*
 # API 快取(FinMind / TWSE),可安全刪除,刪了下次會重抓
 cache/
 
+# 全市場選股資料(fetch_universe.py 逐檔抓存本地,量大且可重建,不進版控)
+data/universe/
+
 # 自動抓取的暫存輸出(單股報告用;想保留可自行移除這幾行)
 data/financials_auto.csv
 data/pe_history_auto.csv
