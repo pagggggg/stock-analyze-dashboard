@@ -292,7 +292,7 @@ def build_detail_html(a, generated: str) -> str:
   <section>
     <h2>本益比河流圖</h2>
     {river_div}
-    {_note('河道 =「當時近四季實際EPS」×(低/中/高本益比 P10/P50/P90)。'
+    {_note('河道 =「當時近四季實際EPS」×(近10年低/中/高本益比,必要時擴張以含括現價)。'
            '股價貼近<b style="color:'+C_CHEAP+'">綠</b>相對便宜、貼近<b style="color:'+C_EXP+'">紅</b>相對貴。' + river_zone)}
   </section>
 

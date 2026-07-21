@@ -96,34 +96,51 @@ def build_pe_river(
     if not ttm or not price_rows:
         raise ValueError("河流圖資料不足(缺 EPS 或股價序列)")
 
+    # 第一遍:算每月 TTM EPS 與「當月隱含本益比」= 月收盤 / TTM EPS
     monthly = _monthly_price(price_rows)
+    pts: list[tuple[str, float, float]] = []   # (date, close, ttm_eps)
+    implied: list[float] = []
+    for dstr, close in monthly:
+        e = _ttm_asof(ttm, date.fromisoformat(dstr))
+        if e is None or e <= 0:                    # 早於第一份 TTM 的月份跳過
+            continue
+        pts.append((dstr, close, e))
+        implied.append(close / e)
+
+    if not pts:
+        raise ValueError("河流圖:股價與 EPS 沒有重疊區間")
+
+    last_ttm = ttm[-1][1]
+    cp = float(current_price) if current_price else pts[-1][1]
+    cd = current_date or pts[-1][0]
+    cpe = cp / last_ttm if last_ttm else None
+
+    # 河道邊界:以「近N年本益比區間(pe_band,如 P10/P50/P90)」為底,
+    # 但必要時往外擴張,確保『所有畫出來的股價點 + 現價』都落在河道內——
+    # 這樣股價線永遠貼著河道跑,不會像先前那樣衝出上緣(現價 PE 超過 P90 時)。
+    pool = implied + ([cpe] if cpe else [])
+    pe_lo = min(pe_band.pe_low, min(pool))
+    pe_hi = max(pe_band.pe_high, max(pool))
+    pe_mid = min(max(pe_band.pe_mid, pe_lo), pe_hi)   # 中線夾在上下緣之間
+
+    # 第二遍:用(可能擴張後的)本益比畫河道三線
     dates: list[str] = []
     price: list[float] = []
     lo: list[float] = []
     mid: list[float] = []
     hi: list[float] = []
-    for dstr, close in monthly:
-        e = _ttm_asof(ttm, date.fromisoformat(dstr))
-        if e is None or e <= 0:                    # 早於第一份 TTM 的月份跳過
-            continue
+    for dstr, close, e in pts:
         dates.append(dstr)
-        price.append(close)
-        lo.append(round(e * pe_band.pe_low, 1))
-        mid.append(round(e * pe_band.pe_mid, 1))
-        hi.append(round(e * pe_band.pe_high, 1))
-
-    if not dates:
-        raise ValueError("河流圖:股價與 EPS 沒有重疊區間")
-
-    last_ttm = ttm[-1][1]
-    cp = float(current_price) if current_price else monthly[-1][1]
-    cd = current_date or monthly[-1][0]
-    cpe = round(cp / last_ttm, 1) if last_ttm else None
+        price.append(round(close, 1))
+        lo.append(round(e * pe_lo, 1))
+        mid.append(round(e * pe_mid, 1))
+        hi.append(round(e * pe_hi, 1))
 
     return RiverSeries(
         dates=dates, price=price, band_low=lo, band_mid=mid, band_high=hi,
-        pe_low=pe_band.pe_low, pe_mid=pe_band.pe_mid, pe_high=pe_band.pe_high,
-        current_date=cd, current_price=cp, current_pe=cpe, source=pe_band.source,
+        pe_low=round(pe_lo, 1), pe_mid=round(pe_mid, 1), pe_high=round(pe_hi, 1),
+        current_date=cd, current_price=round(cp, 1),
+        current_pe=round(cpe, 1) if cpe else None, source=pe_band.source,
     )
 
 
