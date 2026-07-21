@@ -1,7 +1,7 @@
 {
   "2330": {
-    "eps_y0": 107.27477,
-    "eps_y1": 135.1194,
+    "eps_y0": 106.35105,
+    "eps_y1": 136.06284,
     "forward_pe_verdict": "合理",
     "peg_verdict": "便宜",
     "fcf_lights": {
@@ -11,8 +11,8 @@
     }
   },
   "2454": {
-    "eps_y0": 66.20488,
-    "eps_y1": 128.37953,
+    "eps_y0": 66.67579,
+    "eps_y1": 130.66603,
     "forward_pe_verdict": "貴",
     "peg_verdict": "便宜",
     "fcf_lights": {
@@ -24,7 +24,7 @@
   "2317": {
     "eps_y0": 17.52946,
     "eps_y1": 21.47227,
-    "forward_pe_verdict": "合理",
+    "forward_pe_verdict": "貴",
     "peg_verdict": "便宜",
     "fcf_lights": {
       "dio": "yellow",
@@ -68,7 +68,7 @@
   "2379": {
     "eps_y0": 32.44083,
     "eps_y1": 36.58019,
-    "forward_pe_verdict": "合理",
+    "forward_pe_verdict": "貴",
     "peg_verdict": "偏貴",
     "fcf_lights": {
       "dio": "red",
