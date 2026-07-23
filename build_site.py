@@ -24,6 +24,8 @@ import yaml
 
 from src.analysis import analyze_stock
 from src.scan_state import compute_signals, load_signal_log
+from src.screener import load_config as load_screener_config, load_records, screen_all
+from src.screener_html import build_screener_page
 from src.site_html import write_site
 
 ROOT = Path(__file__).resolve().parent
@@ -89,7 +91,24 @@ def run(args) -> None:
     out = Path(args.out)
     if not out.is_absolute():
         out = ROOT / out
-    stats = write_site(analyses, status, events, first_run, log_rows, out)
+
+    # 選股篩選頁(有本地全市場資料 data/universe/ 才產生;沒有就略過)
+    screener_html = screener_info = None
+    try:
+        recs = load_records(ROOT / "data/universe")
+        if recs:
+            from datetime import datetime as _dt
+            scfg = load_screener_config(ROOT / "config/screener.yaml")
+            sres, sfun = screen_all(recs, scfg)
+            screener_html = build_screener_page(sres, sfun, scfg, _dt.now().strftime("%Y-%m-%d %H:%M"))
+            screener_info = {"layer1_pass": sfun["layer1_pass"], "both_pass": sfun["both_pass"]}
+            print(f"[screener] screener.html:評估 {len(recs)} 檔,通過第一層 {sfun['layer1_pass']}、"
+                  f"兩層全過 {sfun['both_pass']}")
+    except Exception as e:  # noqa: BLE001
+        print(f"[screener] 略過(無本地資料或錯誤):{e}")
+
+    stats = write_site(analyses, status, events, first_run, log_rows, out,
+                       screener_html=screener_html, screener_info=screener_info)
 
     light = {"green": "🟢綠", "yellow": "🟡黃", "red": "🔴紅"}.get(status, status)
     print("─" * 56)

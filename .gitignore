@@ -16,8 +16,9 @@ credentials.*
 # API 快取(FinMind / TWSE),可安全刪除,刪了下次會重抓
 cache/
 
-# 全市場選股資料(fetch_universe.py 逐檔抓存本地,量大且可重建,不進版控)
-data/universe/
+# 注意:data/universe/(全市場選股資料)刻意「不」忽略,讓 GitHub Actions 也能重建
+#   screener.html。全市場放大(約 2,300 檔)後若不想版控大量檔案,可改成只留精華或
+#   在此加回 `data/universe/` 忽略,並改由本機 build_site.py 產生 screener.html。
 
 # 自動抓取的暫存輸出(單股報告用;想保留可自行移除這幾行)
 data/financials_auto.csv

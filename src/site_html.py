@@ -181,6 +181,7 @@ def build_index_html(
     first_run: bool,
     log_rows: list[dict],
     generated: str,
+    screener_info: dict | None = None,
 ) -> str:
     scolor, stitle, sdesc = _STATUS.get(status, _STATUS["green"])
     n_red = sum(1 for e in events if e.level == "red")
@@ -196,6 +197,17 @@ def build_index_html(
         "</div>"
     )
 
+    screener_cta = ""
+    if screener_info:
+        screener_cta = (
+            '<a class="screener-cta" href="screener.html">'
+            '<span class="arrow">→</span>'
+            '🔎 <b>兩層選股篩選器</b>(台股)　'
+            f'通過第一層 <b>{screener_info.get("layer1_pass", 0)}</b> 檔・'
+            f'兩層全過 <b>{screener_info.get("both_pass", 0)}</b> 檔'
+            '　<span style="opacity:.85">點此看完整篩選結果 →</span></a>'
+        )
+
     table = _scan_table(rows)
     stream = _signal_stream(log_rows, first_run)
 
@@ -206,6 +218,8 @@ def build_index_html(
     <div class="meta">更新時間 {generated}　|　觀察清單 {len(rows)} 檔　|　資料:FinMind + yfinance(公開市場數據)</div>
     <div class="warn">⚠️ 全站僅為<b>公開數據估值研究</b>,無任何持倉或交易紀錄;所有數字請回原始來源核實,<b>不構成投資建議</b>。</div>
   </header>
+
+  {screener_cta}
 
   <div class="layer-tag">第一層 · 狀態燈</div>
   {banner}
@@ -325,7 +339,8 @@ def build_detail_html(a, generated: str) -> str:
 # 寫出整個網站
 # ======================================================================
 def write_site(analyses: list, status: str, events: list, first_run: bool,
-               log_rows: list[dict], out_dir: str | Path) -> dict:
+               log_rows: list[dict], out_dir: str | Path,
+               screener_html: str | None = None, screener_info: dict | None = None) -> dict:
     """把 index / 各詳情頁 / plotly.min.js / style.css 全部寫到 out_dir。回傳統計。"""
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -344,9 +359,12 @@ def write_site(analyses: list, status: str, events: list, first_run: bool,
 
     # 首頁
     (out / "index.html").write_text(
-        build_index_html(rows, status, events, first_run, log_rows, generated),
+        build_index_html(rows, status, events, first_run, log_rows, generated, screener_info),
         encoding="utf-8",
     )
+    # 選股篩選頁(有資料才寫)
+    if screener_html:
+        (out / "screener.html").write_text(screener_html, encoding="utf-8")
     # 各詳情頁(只為成功的股票產生)
     n_detail = 0
     for a in analyses:
@@ -355,7 +373,8 @@ def write_site(analyses: list, status: str, events: list, first_run: bool,
                 build_detail_html(a, generated), encoding="utf-8")
             n_detail += 1
 
-    return {"stocks": len(analyses), "details": n_detail, "out": str(out)}
+    return {"stocks": len(analyses), "details": n_detail, "out": str(out),
+            "screener": bool(screener_html)}
 
 
 # ======================================================================
@@ -421,4 +440,15 @@ table#scan td.name a { color: #2563eb; text-decoration: none; font-weight: 600; 
 table#scan tbody tr:hover { background: #f8fafc; }
 .verdict { font-size: .72rem; color: #64748b; margin-left: 6px; }
 a.back { color: #2563eb; text-decoration: none; font-size: .9rem; }
+table.tbl { border-collapse: collapse; width: 100%; font-size: .9rem; min-width: 560px; }
+table.tbl th { background: #f1f5f9; padding: 9px 8px; text-align: left; white-space: nowrap; }
+table.tbl td { padding: 9px 8px; border-bottom: 1px solid #eef2f7; }
+table.tbl td.num { text-align: right; font-variant-numeric: tabular-nums; }
+table.tbl tbody tr:hover { background: #f8fafc; }
+code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: .85em; }
+.screener-cta { display: block; background: linear-gradient(135deg,#065f46,#047857); color: #fff;
+  border-radius: 14px; padding: 16px 18px; margin: 14px 0; text-decoration: none;
+  box-shadow: 0 6px 18px rgba(4,120,87,.20); }
+.screener-cta b { color: #fff; }
+.screener-cta .arrow { float: right; opacity: .8; font-size: 1.3rem; }
 """
