@@ -8,10 +8,14 @@
 from __future__ import annotations
 
 from .dashboard_html import C_CHEAP, C_EXP, C_FAIR, _esc, _note
-from .screener import L1_LABELS, ScreenResult
+from .screener import L1_LABELS, L2_LABELS, ScreenResult
 from .site_html import _page
 
 _SYM = {"pass": "✅", "fail": "❌", "na": "⚠️"}
+
+
+def _fv(v, unit: str = "", dp: int = 1) -> str:
+    return "—" if v is None else f"{v:,.{dp}f}{unit}"
 
 
 def _q(cond) -> str:
@@ -120,7 +124,69 @@ def build_screener_page(results, funnel, cfg, generated: str) -> str:
         w('<div class="stream-empty">目前沒有股票通過第一層。</div>')
     w("</section>")
 
+    # 估值檢查(僅供參考)
+    val = [r for r in results
+           if any(r.metrics.get(k) is not None for k in ("forward_pe", "peg", "fcf_yield"))]
+    val.sort(key=lambda r: (r.market != "us", r.stock_id))
+    w("<section>")
+    w("<h2>估值檢查(僅供參考,不以估值淘汰)</h2>")
+    if val:
+        w('<div class="table-scroll"><table class="tbl"><thead><tr>'
+          "<th>代號</th><th>名稱</th><th>市場</th><th>前瞻PE</th><th>PEG</th>"
+          "<th>FCF Yield</th></tr></thead><tbody>")
+        for r in val:
+            m = "美股" if r.market == "us" else "台股"
+            w(f"<tr><td>{_esc(r.stock_id)}</td><td>{_esc(r.name)}</td><td>{m}</td>"
+              f"<td class='num'>{_fv(r.metrics.get('forward_pe'), 'x')}</td>"
+              f"<td class='num'>{_fv(r.metrics.get('peg'), '', 2)}</td>"
+              f"<td class='num'>{_fv(r.metrics.get('fcf_yield'), '%')}</td></tr>")
+        w("</tbody></table></div>")
+    w(_note("兩層篩選<b>不以估值淘汰</b>;此欄僅供『買點』參考。"
+            "前瞻PE=現價÷今年共識EPS、PEG=前瞻PE÷成長率、FCF Yield=近4季自由現金流÷市值(yfinance)。"))
+    w("</section>")
+
+    # 美股測試標的:逐條 + 估值評語
+    us_res = [r for r in results if r.market == "us"]
+    if us_res:
+        w("<section>")
+        w("<h2>美股測試標的:逐條檢視 + 估值評語</h2>")
+        for r in us_res:
+            l1pass = sum(1 for c in r.layer1.values() if c.status == "pass")
+            w(f"<h3 style='margin:8px 0 4px'>{_esc(r.stock_id)}（{_esc(r.industry)}）</h3>")
+            w(f"<p><b>第一層 6 條:通過 {l1pass}/6</b>"
+              f"{'　✅ 全數通過' if r.layer1_pass else ''}</p><ul>")
+            for k, label in L1_LABELS.items():
+                c = r.layer1[k]
+                w(f"<li>{_esc(label)}:{_SYM[c.status]}　{_esc(c.detail)}</li>")
+            w("</ul>")
+            w(f"<p><b>第二層品質(⑦⑧⑨):</b>{'✅ 全達標' if r.layer2_pass else '未全達標'}</p><ul>")
+            for k in ("q7", "q8", "q9"):
+                c = r.layer2[k]
+                w(f"<li>{_esc(L2_LABELS[k])}:{_SYM[c.status]}　{_esc(c.detail)}</li>")
+            w(f"<li>{_esc(L2_LABELS['q10'])}(僅標記):{_esc(r.layer2['q10'].detail)}</li></ul>")
+            fpe = r.metrics.get("forward_pe")
+            peg = r.metrics.get("peg")
+            fy = r.metrics.get("fcf_yield")
+            w(f"<p><b>估值檢查(僅參考):</b> 前瞻PE {_fv(fpe, 'x')}、PEG {_fv(peg, '', 2)}、"
+              f"FCF Yield {_fv(fy, '%')}</p>")
+            verd = []
+            if fpe is not None:
+                verd.append("前瞻PE 極高" if fpe > 40 else "前瞻PE 偏高" if fpe > 25 else "前瞻PE 尚屬合理")
+            if fy is not None:
+                verd.append("FCF殖利率偏低" if fy < 2 else "FCF殖利率尚可")
+            if peg is not None:
+                verd.append(f"PEG {peg:.2f}(>2 偏貴)" if peg > 2 else f"PEG {peg:.2f}")
+            vtxt = "、".join(verd) if verd else "估值資料不足"
+            block = [L1_LABELS[k].split(" ")[0] for k, c in r.layer1.items() if c.status != "pass"]
+            btxt = f"(卡 {'、'.join(block)})" if block else ""
+            passtxt = "通過第一層資格" if r.layer1_pass else f"未通過第一層{btxt}"
+            qual = "、品質 ⑦⑧⑨ 全達標" if r.layer2_pass else "、品質 ⑦⑧⑨ 未全達標"
+            w(_note(f"<b>結論</b>:{_esc(r.name)} {passtxt}{qual}。<b>若加入估值判斷</b>:{vtxt}"
+                    "——成長預期多已反映在股價。篩選器<b>刻意不以估值淘汰</b>,"
+                    "是否買進需自行結合估值與成長延續性。"))
+        w("</section>")
+
     w('<footer><div><a class="back" href="index.html">← 回總表</a>　|　'
-      "資料:FinMind;門檻見 config/screener.yaml,不構成投資建議。</div></footer>")
+      "資料:FinMind(台股)+ yfinance(美股/估值);門檻見 config/screener.yaml,不構成投資建議。</div></footer>")
     w("</div>")
     return _page("兩層選股篩選器", "\n".join(A), plotly=False)

@@ -257,9 +257,13 @@ def c5_liquidity(rec: dict, cfg: dict) -> Cond:
     days = rec.get("liq_days") or 0
     if avg is None or days < conf["days"]:
         return Cond("na", f"成交資料不足({days} 日)")
-    ok = avg > conf["min_avg_value"]
+    if rec.get("market") == "us":
+        thr, div, unit = conf.get("min_avg_value_us", conf["min_avg_value"]), 1e6, "百萬美元"
+    else:
+        thr, div, unit = conf["min_avg_value"], 1e8, "億"
+    ok = avg > thr
     return Cond("pass" if ok else "fail",
-                f"近{conf['days']}日均額 {avg/1e8:,.2f}億(門檻 {conf['min_avg_value']/1e8:.2f}億)")
+                f"近{conf['days']}日均額 {avg/div:,.1f}{unit}(門檻 {thr/div:.1f}{unit})")
 
 
 def c6_latest_report(rec: dict, cfg: dict) -> Cond:
@@ -350,9 +354,10 @@ class ScreenResult:
     stock_id: str
     name: str
     industry: str
+    market: str = "twse"                          # twse / us
     layer1: dict = field(default_factory=dict)   # key -> Cond
     layer2: dict = field(default_factory=dict)
-    metrics: dict = field(default_factory=dict)  # 顯示用:rev_cagr / gm_slope / roe / momentum
+    metrics: dict = field(default_factory=dict)  # 顯示用 + 估值檢查
     gate_keys: tuple = ("q7", "q8", "q9")         # 列入「兩層全過」判定的第二層條件
 
     @property
@@ -380,7 +385,8 @@ L2_LABELS = {
 
 def evaluate(rec: dict, cfg: dict) -> ScreenResult:
     sid = rec["stock_id"]
-    r = ScreenResult(stock_id=sid, name=rec.get("name", sid), industry=rec.get("industry", ""))
+    r = ScreenResult(stock_id=sid, name=rec.get("name", sid), industry=rec.get("industry", ""),
+                     market=rec.get("market", "twse"))
     r.layer1 = {
         "c1": c1_listed_years(rec, cfg),
         "c2": c2_eps_positive(rec, cfg),
@@ -418,6 +424,12 @@ def evaluate(rec: dict, cfg: dict) -> ScreenResult:
         r.metrics["has_ib_items"] = any(
             bs.get(k) is not None for k in ("short_borrow", "long_borrow", "bonds"))
     r.metrics["debt_thr"] = _industry_threshold(rec.get("industry", ""), cfg["layer1"]["debt_ratio"])
+
+    # 估值檢查(僅供參考,不用於淘汰):前瞻PE / PEG / FCF Yield
+    v = rec.get("valuation") or {}
+    r.metrics["forward_pe"] = v.get("forward_pe")
+    r.metrics["peg"] = v.get("peg")
+    r.metrics["fcf_yield"] = v.get("fcf_yield")
     return r
 
 

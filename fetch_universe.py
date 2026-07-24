@@ -36,6 +36,7 @@ from src.data_layer import (
     fetch_income_pivot,
 )
 from src.screener import extract_metrics, load_config
+from src.us_data import build_us_record, compute_valuation
 
 ROOT = Path(__file__).resolve().parent
 UNIVERSE_DIR = ROOT / "data/universe"
@@ -110,6 +111,7 @@ def _retry(fn, cfg, tag, errors):
 def build_and_save(stock: dict, cfg: dict) -> dict:
     sid = stock["stock_id"]
     rec: dict = {"stock_id": sid, "name": stock["name"], "industry": stock["industry"],
+                 "market": cfg["universe"]["market"], "currency": "TWD",
                  "fetched": date.today().isoformat(), "errors": []}
     errors = rec["errors"]
 
@@ -137,13 +139,20 @@ def build_and_save(stock: dict, cfg: dict) -> dict:
         cf = _retry(lambda: fetch_cashflow_pivot(sid, start_date=start), cfg, "cashflow", errors)
         if inc:
             rec.update(extract_metrics(inc[0], bal[0] if bal else {}, cf[0] if cf else {}))
+        # 估值檢查(僅參考;yfinance,best-effort)
+        if cfg["fetch"].get("valuation", True):
+            rec["valuation"] = compute_valuation(f"{sid}.TW", rec.get("price_last"))
     else:
         rec["skipped_financials"] = True
 
-    UNIVERSE_DIR.mkdir(parents=True, exist_ok=True)
-    (UNIVERSE_DIR / f"{sid}.json").write_text(
-        json.dumps(rec, ensure_ascii=False), encoding="utf-8")
+    _save(rec)
     return rec
+
+
+def _save(rec: dict) -> None:
+    UNIVERSE_DIR.mkdir(parents=True, exist_ok=True)
+    (UNIVERSE_DIR / f"{rec['stock_id']}.json").write_text(
+        json.dumps(rec, ensure_ascii=False), encoding="utf-8")
 
 
 def run(args) -> None:
@@ -182,6 +191,23 @@ def run(args) -> None:
     print("─" * 56)
     print(f"完成:新抓 {done}、沿用本地 {skipped}、其中深抓財報 {liquid_deep};"
           f"本地資料夾 {UNIVERSE_DIR}")
+
+    # ---- 額外美股(yfinance,測試用)----
+    us = cfg["universe"].get("extra_us") or []
+    if us:
+        print(f"美股測試({len(us)} 檔,yfinance):")
+        for j, ticker in enumerate(us, 1):
+            path = UNIVERSE_DIR / f"{ticker}.json"
+            if _fresh(path, refetch_days):
+                print(f"  [{j}/{len(us)}] {ticker} 沿用本地")
+                continue
+            rec = build_us_record(str(ticker), str(ticker), cfg)
+            _save(rec)
+            val = (rec.get("valuation") or {}).get("forward_pe")
+            print(f"  [{j}/{len(us)}] {ticker}（{rec.get('industry','')}）"
+                  + (f"　前瞻PE {val:.0f}x" if val else "")
+                  + (f"　! {len(rec['errors'])} err" if rec["errors"] else ""))
+            time.sleep(sleep_s)
 
 
 def main() -> None:

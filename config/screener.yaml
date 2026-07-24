@@ -11,10 +11,11 @@
 # ============================================================================
 
 universe:
-  market: "twse"              # 先做上市(twse);tpex=上櫃
+  market: "twse"              # 台股上市(FinMind);tpex=上櫃
   only_common_stock: true     # 只留 4 碼普通股(排除 ETF 00xx、權證、存託憑證等)
-  stock_ids: []               # 指定代號清單(測試用);空 = 全市場
+  stock_ids: []               # 指定台股代號清單(測試用);空 = 全市場
   limit: 0                    # 0=不限;>0 只取前 N 檔(測試用)
+  extra_us: ["TSLA"]          # 額外美股(yfinance,測試用);和台股並存,跑同一套兩層篩選
 
 fetch:
   financial_start: "2018-01-01"  # 財報起抓日(要 ≥ 需要的最長年窗 + 緩衝)
@@ -22,6 +23,7 @@ fetch:
   sleep_seconds: 0.6             # 每次 API 之間睡秒數(禮貌 + 降低限流機率)
   refetch_after_days: 3          # 本地檔 ≤ N 天就跳過不重抓(可續跑 resumable)
   deep_fetch_only_liquid: true   # 只對「通過流動性」的股票深抓財報(大幅省請求)
+  valuation: true                # 額外抓估值(前瞻PE/PEG/FCF Yield,yfinance)。全市場放大想省請求可設 false
 
 # ---------------------------------------------------------------------------
 # 第一層:資格篩選(6 條全過才進池)
@@ -49,13 +51,17 @@ layer1:
       "電子工業": 50            # 含系統組裝 / 電源(廣達、台達電…)
       "電腦及週邊設備業": 50    # ODM / NB 組裝(仁寶、緯創…)
       "電子零組件業": 50
+      # 美股(yfinance industry 字串)——資本密集業別可放寬,其餘用 default:
+      "Auto Manufacturers": 50  # 汽車製造(TSLA…)
+      "Semiconductors": 40
     net_debt_equity_max_pct: 40  # 退回口徑(淨負債/權益)門檻%
     exclude_financial: true     # 金融股排除此條
     financial_id_min: 2800
     financial_id_max: 2890
   liquidity:
-    days: 60                  # 近 60 個交易日
-    min_avg_value: 50000000   # 日均成交金額 > 5000 萬(新台幣)
+    days: 60                    # 近 60 個交易日
+    min_avg_value: 50000000     # 台股:日均成交金額 > 5000 萬(新台幣)
+    min_avg_value_us: 10000000  # 美股:日均成交額 > 1000 萬(美元)
   latest_report:
     max_age_days: 200         # 最新財報須在近 N 天內(排除財報難產)
 

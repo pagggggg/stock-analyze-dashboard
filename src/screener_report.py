@@ -30,6 +30,11 @@ def _cell_momentum(cond) -> str:
     return cond.detail
 
 
+def _fv(v, unit: str = "", dp: int = 1) -> str:
+    """估值數字格式化(None→—)。"""
+    return "—" if v is None else f"{v:,.{dp}f}{unit}"
+
+
 def _rows(results: list[ScreenResult]) -> str:
     out = []
     for r in results:
@@ -159,8 +164,76 @@ def build_screener_report(results, funnel, cfg, generated: str, universe_desc: s
           "仍須看產業循環、估值(見主儀表板河流圖/四指標)與最新財報再判斷。")
     w("")
 
-    # 五、誠實說明
-    w("## 五、誠實說明")
+    # 五、估值檢查(僅供參考)
+    w("## 五、估值檢查(僅供參考,篩選器不以估值淘汰)")
+    w("")
+    w("> ⚠️ **此欄僅供參考**:兩層篩選只看資格與品質,**不以估值高低淘汰任何標的**。"
+      "估值貴/便宜是「買點」問題,請自行結合下列指標與主儀表板判斷。")
+    w("")
+    val = [r for r in results
+           if any(r.metrics.get(k) is not None for k in ("forward_pe", "peg", "fcf_yield"))]
+    val.sort(key=lambda r: (r.market != "us", r.stock_id))
+    if val:
+        w("| 代號 | 名稱 | 市場 | 前瞻PE | PEG | FCF Yield |")
+        w("| --- | --- | --- | ---: | ---: | ---: |")
+        for r in val:
+            m = "美股" if r.market == "us" else "台股"
+            w(f"| {r.stock_id} | {r.name} | {m} | {_fv(r.metrics.get('forward_pe'), 'x')} | "
+              f"{_fv(r.metrics.get('peg'), '', 2)} | {_fv(r.metrics.get('fcf_yield'), '%')} |")
+        w("")
+        w("> 前瞻PE=現價÷今年共識EPS;PEG=前瞻PE÷盈餘成長率;FCF Yield=近4季自由現金流÷市值。"
+          "來源 yfinance;台股分析師共識覆蓋率較低,缺者顯示「—」。")
+    else:
+        w("_(尚無估值資料。)_")
+    w("")
+
+    # 六、美股測試標的:逐條 + 估值評語
+    us_res = [r for r in results if r.market == "us"]
+    if us_res:
+        w("## 六、美股測試標的:逐條檢視 + 估值評語")
+        w("")
+        for r in us_res:
+            l1pass = sum(1 for c in r.layer1.values() if c.status == "pass")
+            w(f"### {r.stock_id}（{r.industry}）")
+            w("")
+            w(f"**第一層 6 條:通過 {l1pass}/6**" + ("　✅ 全數通過" if r.layer1_pass else ""))
+            w("")
+            for k, label in L1_LABELS.items():
+                c = r.layer1[k]
+                w(f"- {label}:{c.mark}　{c.detail}")
+            w("")
+            w(f"**第二層品質(⑦⑧⑨):**{'✅ 全達標' if r.layer2_pass else '未全達標'}")
+            w("")
+            for k in ("q7", "q8", "q9"):
+                c = r.layer2[k]
+                w(f"- {L2_LABELS[k]}:{c.mark}　{c.detail}")
+            w(f"- {L2_LABELS['q10']}(僅標記):{r.layer2['q10'].detail}")
+            w("")
+            fpe = r.metrics.get("forward_pe")
+            peg = r.metrics.get("peg")
+            fy = r.metrics.get("fcf_yield")
+            w(f"**估值檢查(僅參考):** 前瞻PE {_fv(fpe, 'x')}、PEG {_fv(peg, '', 2)}、"
+              f"FCF Yield {_fv(fy, '%')}")
+            w("")
+            verd = []
+            if fpe is not None:
+                verd.append("前瞻PE 極高" if fpe > 40 else "前瞻PE 偏高" if fpe > 25 else "前瞻PE 尚屬合理")
+            if fy is not None:
+                verd.append("FCF殖利率偏低" if fy < 2 else "FCF殖利率尚可")
+            if peg is not None:
+                verd.append(f"PEG {peg:.2f}(>2 偏貴)" if peg > 2 else f"PEG {peg:.2f}")
+            vtxt = "、".join(verd) if verd else "估值資料不足"
+            l1_block = [L1_LABELS[k].split(" ")[0] for k, c in r.layer1.items() if c.status != "pass"]
+            block_txt = f"(卡 {'、'.join(l1_block)})" if l1_block else ""
+            pass_txt = "**通過第一層資格**" if r.layer1_pass else f"**未通過第一層**{block_txt}"
+            qual_txt = "、品質 ⑦⑧⑨ 全達標" if r.layer2_pass else "、品質 ⑦⑧⑨ 未全達標"
+            w(f"> **結論**:{r.name} {pass_txt}{qual_txt}。**若加入估值判斷**:{vtxt}"
+              "——成長預期多已反映在股價。本篩選器**刻意不以估值淘汰**,故仍照資格/品質列出;"
+              "是否買進需自行結合估值與成長延續性(可回主儀表板看河流圖/四指標)。")
+            w("")
+
+    # 七、誠實說明
+    w("## 七、誠實說明")
     w("")
     w("- **資料不足不當通過**:任一條件缺資料(如財報年數不夠、無成交資料)標「⚠️資料不足」,不計為通過。")
     w("- **修正動能**多為「資料不足」屬正常:共識EPS 目前只對觀察清單(`data/consensus/`)累積,"
