@@ -34,9 +34,12 @@ from src.data_layer import (
     fetch_cashflow_pivot,
     fetch_daily_price_value,
     fetch_income_pivot,
+    fetch_price_daily_finmind,
 )
+from src.river import daily_pe_series
 from src.screener import extract_metrics, load_config
 from src.us_data import build_us_record, compute_valuation
+from src.valuation_flag import pe_history_stats
 
 ROOT = Path(__file__).resolve().parent
 UNIVERSE_DIR = ROOT / "data/universe"
@@ -139,9 +142,18 @@ def build_and_save(stock: dict, cfg: dict) -> dict:
         cf = _retry(lambda: fetch_cashflow_pivot(sid, start_date=start), cfg, "cashflow", errors)
         if inc:
             rec.update(extract_metrics(inc[0], bal[0] if bal else {}, cf[0] if cf else {}))
-        # 估值檢查(僅參考;yfinance,best-effort)
+        # 估值檢查(僅參考;yfinance,best-effort)+ 估值旗標用的個股近N年PE分布
         if cfg["fetch"].get("valuation", True):
             rec["valuation"] = compute_valuation(f"{sid}.TW", rec.get("price_last"))
+            if inc:
+                try:
+                    px_long = fetch_price_daily_finmind(sid)[0]      # ~10 年日收盤(有快取)
+                    pe_ser = daily_pe_series(px_long, inc[0])
+                    fpe = (rec.get("valuation") or {}).get("forward_pe")
+                    rec["pe_hist"] = pe_history_stats(
+                        pe_ser, fpe, years=cfg["valuation_flag"]["pe_history_years"])
+                except Exception as e:  # noqa: BLE001
+                    errors.append(f"pe_hist:{e}")
     else:
         rec["skipped_financials"] = True
 

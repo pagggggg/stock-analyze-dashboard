@@ -12,8 +12,31 @@
 from __future__ import annotations
 
 from .screener import L1_LABELS, L2_LABELS, ScreenResult
+from .valuation_flag import FLAG, RED_WARNING
 
 _SYM = {"pass": "✅", "fail": "❌", "na": "⚠️"}
+
+
+def _flag(r) -> str:
+    em, lab = FLAG.get(r.metrics.get("flag", "na"), FLAG["na"])
+    return f"{em}{lab}"
+
+
+def _val_rows(results: list[ScreenResult], with_market: bool = True) -> str:
+    """估值明細列:代號|名稱|(市場)|🚩旗標|前瞻PE|近5年中位|近5年P90|PE百分位|PEG。"""
+    out = []
+    for r in results:
+        m = r.metrics
+        mkt = ("台股" if r.market != "us" else "美股")
+        mcell = f" {mkt} |" if with_market else ""
+        pct = m.get("pe_pct")
+        out.append(
+            f"| {r.stock_id} | {r.name} |{mcell} {_flag(r)} | "
+            f"{_fv(m.get('forward_pe'), 'x')} | {_fv(m.get('pe_median'), 'x')} | "
+            f"{_fv(m.get('pe_p90'), 'x')} | {(str(int(pct)) + '%') if pct is not None else '—'} | "
+            f"{_fv(m.get('peg'), '', 2)} |"
+        )
+    return "\n".join(out)
 
 
 def _cell(cond) -> str:
@@ -39,7 +62,7 @@ def _rows(results: list[ScreenResult]) -> str:
     out = []
     for r in results:
         out.append(
-            f"| {r.stock_id} | {r.name} | {r.industry} | "
+            f"| {r.stock_id} | {r.name} | {r.industry} | {_flag(r)} | "
             f"{_cell(r.layer2['q7'])} | {_cell(r.layer2['q8'])} | "
             f"{_cell(r.layer2['q9'])} | {_cell_momentum(r.layer2['q10'])} |"
         )
@@ -83,6 +106,16 @@ def build_screener_report(results, funnel, cfg, generated: str, universe_desc: s
     w(f"8. 近 **{L2['gross_margin_trend']['years']}** 年毛利率斜率 ≥ **{L2['gross_margin_trend']['min_slope']}**(持平或上升)")
     w(f"9. 近 **{L2['roe']['years']}** 年 ROE 平均 > **{L2['roe']['min_avg_pct']}%**")
     w(f"10. 盈餘修正動能:近期共識EPS 上修(僅標記,來源 {L2['momentum']['source']})")
+    w("")
+    vf = cfg.get("valuation_flag", {})
+    w("**估值旗標層(只加旗標,不淘汰任何標的):**")
+    w("")
+    w(f"- 🟢 合理偏低:PEG < **{vf.get('green_peg_below', 1)}** 且 前瞻PE < 該股近{vf.get('pe_history_years', 5)}年PE中位數")
+    w(f"- 🔴 高估值警戒:前瞻PE > 該股近{vf.get('pe_history_years', 5)}年PE的90百分位,"
+      f"或 PEG > **{vf.get('red_peg_above', 2)}**,或 前瞻PE > **{vf.get('red_pe_above', 60)}x**")
+    w("- 🟡 一般:其餘;⚪ 估值資料不足:無共識前瞻PE")
+    w("")
+    w("> ★ PE 百分位一律用**個股自己的歷史**,不用全市場平均(不同產業 PE 水準天生不同)。")
     w("")
 
     # 二、漏斗統計
@@ -128,61 +161,78 @@ def build_screener_report(results, funnel, cfg, generated: str, universe_desc: s
         w("_(尚無可計算負債比的資料。)_")
     w("")
 
-    # 三、第一層通過清單
+    # 三、第一層通過清單(加 🚩估值旗標欄)
     passers = [r for r in results if r.layer1_pass]
     passers.sort(key=lambda r: (not r.both_pass, r.stock_id))  # 兩層全過的排前面
-    w(f"## 三、通過第一層清單({len(passers)} 檔,附第二層四項達標與否)")
+    w(f"## 三、通過第一層清單({len(passers)} 檔,附估值旗標 + 第二層四項)")
     w("")
     if not passers:
         w("_(目前沒有股票通過第一層。可能是本地資料尚少,或門檻較嚴。)_")
     else:
-        w("| 代號 | 名稱 | 產業 | ⑦營收CAGR | ⑧毛利率趨勢 | ⑨ROE | ⑩修正動能 |")
-        w("| --- | --- | --- | --- | --- | --- | --- |")
+        w("| 代號 | 名稱 | 產業 | 🚩旗標 | ⑦營收CAGR | ⑧毛利率趨勢 | ⑨ROE | ⑩修正動能 |")
+        w("| --- | --- | --- | --- | --- | --- | --- | --- |")
         w(_rows(passers))
         w("")
-        w("> ⑦⑧⑨ 為品質門檻:✅ 達標 / ❌ 未達標 / ⚠️資料不足。"
-          "⑩ 修正動能**僅標記方向**(不列入「兩層全過」判定,依原則等回測驗證後才加權)。"
-          "第二層一律**只標記不淘汰**。")
+        w("> 🚩估值旗標**只加註、不淘汰**(見第五節門檻)。⑦⑧⑨ 品質門檻:✅達標/❌未達標/⚠️資料不足;"
+          "⑩修正動能僅標記。第二層一律**只標記不淘汰**。")
     w("")
 
-    # 四、精華清單
+    # 四、精華清單:依估值旗標分組
     essence = [r for r in results if r.both_pass]
-    essence.sort(key=lambda r: r.stock_id)
-    w(f"## 四、精華清單:兩層全過({len(essence)} 檔)")
+    green = [r for r in essence if r.metrics.get("flag") == "green"]
+    yellow = [r for r in essence if r.metrics.get("flag") == "yellow"]
+    red = [r for r in essence if r.metrics.get("flag") == "red"]
+    na = [r for r in essence if r.metrics.get("flag") in (None, "na")]
+    w(f"## 四、精華清單:兩層全過 + 估值旗標分組({len(essence)} 檔)")
     w("")
-    w("> 「兩層全過」= 第一層 6 條 **＋** 第二層 ⑦⑧⑨ 三項品質門檻全達標;"
-      "⑩修正動能**不列入**此判定(僅標記)。")
+    w("> 「兩層全過」= 第一層6條 ＋ 第二層⑦⑧⑨ 全達標(⑩不列入)。"
+      "**估值旗標只加註、不淘汰**;紅旗=「好公司但貴」,仍列出並附警語。")
     w("")
     if not essence:
-        w("_(目前沒有股票兩層全過。第二層 ⑦⑧⑨ 任一項為 ❌ 或 ⚠️資料不足 都不算全過——刻意從嚴。)_")
+        w("_(目前沒有股票兩層全過。)_")
     else:
-        w("| 代號 | 名稱 | 產業 | ⑦營收CAGR | ⑧毛利率趨勢 | ⑨ROE | ⑩修正動能 |")
-        w("| --- | --- | --- | --- | --- | --- | --- |")
-        w(_rows(essence))
-        w("")
-        w("> ⚠️ 兩層全過 ≠ 買進訊號;僅代表「資格乾淨且品質指標同時達標」,"
-          "仍須看產業循環、估值(見主儀表板河流圖/四指標)與最新財報再判斷。")
-    w("")
+        def _grp(title, rows):
+            w(f"### {title}({len(rows)} 檔)")
+            w("")
+            if rows:
+                w("| 代號 | 名稱 | 市場 | 🚩旗標 | 前瞻PE | 近5年PE中位 | 近5年P90 | PE百分位 | PEG |")
+                w("| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: |")
+                w(_val_rows(rows))
+            else:
+                w("_(無)_")
+            w("")
+        _grp("🟢 精華 + 綠旗(合理偏低,優先研究)", green)
+        _grp("🟡 精華 + 黃旗", yellow)
+        _grp("🔴 精華 + 紅旗(好公司但貴,列出並附警語)", red)
+        if red:
+            w(f"> 🔴 **紅旗警語**:{RED_WARNING}")
+            w("")
+        if na:
+            _grp("⚪ 精華 + 估值資料不足", na)
 
-    # 五、估值檢查(僅供參考)
-    w("## 五、估值檢查(僅供參考,篩選器不以估值淘汰)")
+    # 五、估值旗標明細(通過第一層者;只加旗標、不淘汰)
+    w("## 五、估值旗標明細(通過第一層者;只加旗標、不淘汰)")
     w("")
-    w("> ⚠️ **此欄僅供參考**:兩層篩選只看資格與品質,**不以估值高低淘汰任何標的**。"
-      "估值貴/便宜是「買點」問題,請自行結合下列指標與主儀表板判斷。")
+    w("> ⚠️ 兩層篩選只看資格與品質,**不以估值高低淘汰任何標的**。此處每檔給一個估值旗標與明細,"
+      "供『買點』參考。**PE 百分位用個股自己近5年歷史**(不用全市場平均——不同產業 PE 水準天生不同)。")
     w("")
-    val = [r for r in results
-           if any(r.metrics.get(k) is not None for k in ("forward_pe", "peg", "fcf_yield"))]
-    val.sort(key=lambda r: (r.market != "us", r.stock_id))
-    if val:
-        w("| 代號 | 名稱 | 市場 | 前瞻PE | PEG | FCF Yield |")
-        w("| --- | --- | --- | ---: | ---: | ---: |")
-        for r in val:
-            m = "美股" if r.market == "us" else "台股"
-            w(f"| {r.stock_id} | {r.name} | {m} | {_fv(r.metrics.get('forward_pe'), 'x')} | "
-              f"{_fv(r.metrics.get('peg'), '', 2)} | {_fv(r.metrics.get('fcf_yield'), '%')} |")
+    show = [r for r in passers]
+    us_extra = [r for r in results if r.market == "us" and not r.layer1_pass
+                and r.metrics.get("forward_pe") is not None]
+    show += us_extra
+    show.sort(key=lambda r: (r.metrics.get("flag") != "red", r.market != "us", r.stock_id))
+    if show:
+        w("| 代號 | 名稱 | 市場 | 🚩旗標 | 前瞻PE | 近5年PE中位 | 近5年P90 | PE百分位 | PEG |")
+        w("| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: |")
+        w(_val_rows(show))
         w("")
-        w("> 前瞻PE=現價÷今年共識EPS;PEG=前瞻PE÷盈餘成長率;FCF Yield=近4季自由現金流÷市值。"
-          "來源 yfinance;台股分析師共識覆蓋率較低,缺者顯示「—」。")
+        w("> 旗標門檻:🟢=PEG<1 且 前瞻PE<個股近5年PE中位;"
+          "🔴=前瞻PE>近5年P90 或 PEG>2 或 前瞻PE>60;🟡=其餘;⚪=無共識前瞻PE。"
+          "前瞻PE=現價÷今年共識EPS;PE百分位=前瞻PE 落在個股近5年每日PE分布的第幾百分位。")
+        reds = [r for r in show if r.metrics.get("flag") == "red"]
+        if reds:
+            w("")
+            w(f"> 🔴 **紅旗警語(適用上表所有紅旗:{'、'.join(r.name for r in reds)})**:{RED_WARNING}")
     else:
         w("_(尚無估值資料。)_")
     w("")
@@ -212,8 +262,11 @@ def build_screener_report(results, funnel, cfg, generated: str, universe_desc: s
             fpe = r.metrics.get("forward_pe")
             peg = r.metrics.get("peg")
             fy = r.metrics.get("fcf_yield")
-            w(f"**估值檢查(僅參考):** 前瞻PE {_fv(fpe, 'x')}、PEG {_fv(peg, '', 2)}、"
-              f"FCF Yield {_fv(fy, '%')}")
+            pct = r.metrics.get("pe_pct")
+            pct_txt = (f"、現價位於個股近5年PE第 {int(pct)} 百分位" if pct is not None else "")
+            w(f"**估值旗標:{_flag(r)}** — 前瞻PE {_fv(fpe, 'x')}(近5年中位 "
+              f"{_fv(r.metrics.get('pe_median'), 'x')} / P90 {_fv(r.metrics.get('pe_p90'), 'x')})、"
+              f"PEG {_fv(peg, '', 2)}、FCF Yield {_fv(fy, '%')}{pct_txt}")
             w("")
             verd = []
             if fpe is not None:

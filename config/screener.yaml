@@ -83,3 +83,18 @@ layer2:
     source: "history"         # history=讀 data/consensus/<代號>.csv;off=一律資料不足
     min_pct: 0.5              # 共識今年EPS 相對前值變動 ≥ 此% 才算「上修/下修」
     gating: false             # false=僅標記不列入「兩層全過」判定(依原則,等回測驗證後才加權)
+
+# ---------------------------------------------------------------------------
+# 估值旗標層(只加旗標、不淘汰任何標的)
+#   在「通過第一層」的清單上,每檔給一個估值旗標:
+#     🟢 合理偏低:PEG < green_peg_below 且 前瞻PE < 該股近N年PE中位數
+#     🔴 高估值警戒:前瞻PE > 該股近N年PE的90百分位,或 PEG > red_peg_above,或 前瞻PE > red_pe_above
+#     🟡 一般:其餘
+#   ★ PE 百分位用「個股自己的歷史」,不用全市場平均(不同產業 PE 水準天生不同)。
+# ---------------------------------------------------------------------------
+valuation_flag:
+  pe_history_years: 5         # 用個股近 N 年『每日本益比』分布(中位數 / 90百分位)
+  green_peg_below: 1.0        # 🟢 需 PEG < 此值(且前瞻PE < 個股近N年PE中位數)
+  red_peg_above: 2.0          # 🔴 PEG > 此值
+  red_pe_above: 60            # 🔴 前瞻PE > 此值
+  red_pe_above_p90: true      # 🔴 前瞻PE > 個股近N年PE的90百分位

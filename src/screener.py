@@ -430,6 +430,14 @@ def evaluate(rec: dict, cfg: dict) -> ScreenResult:
     r.metrics["forward_pe"] = v.get("forward_pe")
     r.metrics["peg"] = v.get("peg")
     r.metrics["fcf_yield"] = v.get("fcf_yield")
+    # 估值旗標(只加旗標、不淘汰):用個股近N年PE分布
+    ph = rec.get("pe_hist") or {}
+    r.metrics["pe_median"] = ph.get("median")
+    r.metrics["pe_p90"] = ph.get("p90")
+    r.metrics["pe_pct"] = ph.get("percentile")
+    from .valuation_flag import compute_flag
+    r.metrics["flag"] = compute_flag(v.get("forward_pe"), v.get("peg"),
+                                     ph.get("median"), ph.get("p90"), cfg)
     return r
 
 

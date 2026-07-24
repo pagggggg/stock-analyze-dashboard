@@ -7,15 +7,24 @@
 
 from __future__ import annotations
 
-from .dashboard_html import C_CHEAP, C_EXP, C_FAIR, _esc, _note
+from .dashboard_html import C_CHEAP, C_EXP, C_FAIR, C_NA, _esc, _note
 from .screener import L1_LABELS, L2_LABELS, ScreenResult
 from .site_html import _page
+from .valuation_flag import FLAG, RED_WARNING
 
 _SYM = {"pass": "✅", "fail": "❌", "na": "⚠️"}
+_FLAG_COLOR = {"green": C_CHEAP, "yellow": "#eab308", "red": C_EXP, "na": C_NA}
 
 
 def _fv(v, unit: str = "", dp: int = 1) -> str:
     return "—" if v is None else f"{v:,.{dp}f}{unit}"
+
+
+def _flag_html(r) -> str:
+    fl = r.metrics.get("flag", "na")
+    em, lab = FLAG.get(fl, FLAG["na"])
+    col = _FLAG_COLOR.get(fl, C_NA)
+    return f'<span style="color:{col};font-weight:700;white-space:nowrap">{em}{_esc(lab)}</span>'
 
 
 def _q(cond) -> str:
@@ -34,14 +43,40 @@ def _l2_table(rows: list[ScreenResult]) -> str:
         body.append(
             "<tr>"
             f"<td>{_esc(r.stock_id)}</td><td>{_esc(r.name)}</td><td>{_esc(r.industry)}</td>"
+            f"<td>{_flag_html(r)}</td>"
             f"<td>{_q(r.layer2['q7'])}</td><td>{_q(r.layer2['q8'])}</td>"
             f"<td>{_q(r.layer2['q9'])}</td><td>{_mom(r.layer2['q10'])}</td></tr>"
         )
     return (
         '<div class="table-scroll"><table class="tbl"><thead><tr>'
-        "<th>代號</th><th>名稱</th><th>產業</th><th>⑦營收CAGR</th><th>⑧毛利率趨勢</th>"
+        "<th>代號</th><th>名稱</th><th>產業</th><th>🚩旗標</th><th>⑦營收CAGR</th><th>⑧毛利率趨勢</th>"
         "<th>⑨ROE</th><th>⑩修正動能</th></tr></thead><tbody>"
         + "".join(body) + "</tbody></table></div>"
+    )
+
+
+def _val_tbl(rows: list[ScreenResult]) -> str:
+    """估值旗標明細表:代號|名稱|市場|旗標|前瞻PE|近5年中位|近5年P90|PE百分位|PEG。"""
+    body = []
+    for r in rows:
+        m = r.metrics
+        mkt = "美股" if r.market == "us" else "台股"
+        pct = m.get("pe_pct")
+        pct_s = f"{int(pct)}%" if pct is not None else "—"
+        body.append(
+            f"<tr><td>{_esc(r.stock_id)}</td><td>{_esc(r.name)}</td><td>{mkt}</td>"
+            f"<td>{_flag_html(r)}</td>"
+            f"<td class='num'>{_fv(m.get('forward_pe'), 'x')}</td>"
+            f"<td class='num'>{_fv(m.get('pe_median'), 'x')}</td>"
+            f"<td class='num'>{_fv(m.get('pe_p90'), 'x')}</td>"
+            f"<td class='num'>{pct_s}</td>"
+            f"<td class='num'>{_fv(m.get('peg'), '', 2)}</td></tr>"
+        )
+    return (
+        '<div class="table-scroll"><table class="tbl"><thead><tr>'
+        "<th>代號</th><th>名稱</th><th>市場</th><th>🚩旗標</th><th>前瞻PE</th>"
+        "<th>近5年PE中位</th><th>近5年P90</th><th>PE百分位</th><th>PEG</th>"
+        "</tr></thead><tbody>" + "".join(body) + "</tbody></table></div>"
     )
 
 
@@ -61,16 +96,29 @@ def build_screener_page(results, funnel, cfg, generated: str) -> str:
       '本表僅供<b>縮小研究範圍,非買進清單</b>。門檻全在 <code>config/screener.yaml</code>。</div>')
     w("</header>")
 
-    # 精華清單(置頂 highlight)
-    essence = sorted([r for r in results if r.both_pass], key=lambda r: r.stock_id)
+    # 精華清單:依估值旗標分組(置頂)
+    essence = [r for r in results if r.both_pass]
+    egreen = [r for r in essence if r.metrics.get("flag") == "green"]
+    eyellow = [r for r in essence if r.metrics.get("flag") == "yellow"]
+    ered = [r for r in essence if r.metrics.get("flag") == "red"]
+    ena = [r for r in essence if r.metrics.get("flag") in (None, "na")]
     w("<section>")
-    w(f"<h2>★ 精華清單:兩層全過（{len(essence)} 檔）</h2>")
-    if essence:
-        w(_l2_table(essence))
-        w(_note("「兩層全過」= 第一層 6 條 ＋ 第二層 ⑦⑧⑨ 三項品質門檻全達標;"
-                "⑩修正動能僅標記、不列入判定。<b>兩層全過 ≠ 買進訊號</b>,仍須看估值與最新財報。"))
-    else:
+    w(f"<h2>★ 精華清單:兩層全過 + 估值旗標分組（{len(essence)} 檔）</h2>")
+    if not essence:
         w('<div class="stream-empty">目前沒有股票兩層全過(⑦⑧⑨ 任一未達標或資料不足都不算)。</div>')
+    else:
+        def _egrp(title, rows):
+            w(f"<h3 style='margin:12px 0 4px'>{title}（{len(rows)} 檔）</h3>")
+            w(_val_tbl(rows) if rows else '<div class="stream-empty" style="padding:10px">無</div>')
+        _egrp("🟢 精華 + 綠旗(合理偏低,優先研究)", egreen)
+        _egrp("🟡 精華 + 黃旗", eyellow)
+        _egrp("🔴 精華 + 紅旗(好公司但貴,附警語)", ered)
+        if ered:
+            w(f'<div class="warn">🔴 <b>紅旗警語</b>:{_esc(RED_WARNING)}</div>')
+        if ena:
+            _egrp("⚪ 精華 + 估值資料不足", ena)
+        w(_note("「兩層全過」= 第一層6條 ＋ 第二層⑦⑧⑨ 全達標(⑩不列入)。"
+                "<b>估值旗標只加註、不淘汰</b>;綠旗優先研究,紅旗=好公司但貴。"))
     w("</section>")
 
     # 漏斗
@@ -116,33 +164,34 @@ def build_screener_page(results, funnel, cfg, generated: str) -> str:
     passers = [r for r in results if r.layer1_pass]
     passers.sort(key=lambda r: (not r.both_pass, r.stock_id))
     w("<section>")
-    w(f"<h2>通過第一層清單({len(passers)} 檔,附第二層四項)</h2>")
+    w(f"<h2>通過第一層清單({len(passers)} 檔,附旗標 + 第二層四項)</h2>")
     if passers:
         w(_l2_table(passers))
-        w(_note("⑦⑧⑨:✅達標／❌未達標／⚠️資料不足;⑩僅標記方向。第二層<b>只標記不淘汰</b>。"))
+        w(_note("🚩估值旗標只加註、不淘汰(見下方明細)。⑦⑧⑨:✅達標／❌未達標／⚠️資料不足;"
+                "⑩僅標記方向。第二層<b>只標記不淘汰</b>。"))
     else:
         w('<div class="stream-empty">目前沒有股票通過第一層。</div>')
     w("</section>")
 
-    # 估值檢查(僅供參考)
-    val = [r for r in results
-           if any(r.metrics.get(k) is not None for k in ("forward_pe", "peg", "fcf_yield"))]
-    val.sort(key=lambda r: (r.market != "us", r.stock_id))
+    # 估值旗標明細(通過第一層者 + 美股)
+    passers2 = [r for r in results if r.layer1_pass]
+    us_extra = [r for r in results if r.market == "us" and not r.layer1_pass
+                and r.metrics.get("forward_pe") is not None]
+    show = passers2 + us_extra
+    show.sort(key=lambda r: (r.metrics.get("flag") != "red", r.market != "us", r.stock_id))
     w("<section>")
-    w("<h2>估值檢查(僅供參考,不以估值淘汰)</h2>")
-    if val:
-        w('<div class="table-scroll"><table class="tbl"><thead><tr>'
-          "<th>代號</th><th>名稱</th><th>市場</th><th>前瞻PE</th><th>PEG</th>"
-          "<th>FCF Yield</th></tr></thead><tbody>")
-        for r in val:
-            m = "美股" if r.market == "us" else "台股"
-            w(f"<tr><td>{_esc(r.stock_id)}</td><td>{_esc(r.name)}</td><td>{m}</td>"
-              f"<td class='num'>{_fv(r.metrics.get('forward_pe'), 'x')}</td>"
-              f"<td class='num'>{_fv(r.metrics.get('peg'), '', 2)}</td>"
-              f"<td class='num'>{_fv(r.metrics.get('fcf_yield'), '%')}</td></tr>")
-        w("</tbody></table></div>")
-    w(_note("兩層篩選<b>不以估值淘汰</b>;此欄僅供『買點』參考。"
-            "前瞻PE=現價÷今年共識EPS、PEG=前瞻PE÷成長率、FCF Yield=近4季自由現金流÷市值(yfinance)。"))
+    w("<h2>估值旗標明細(只加旗標、不淘汰)</h2>")
+    if show:
+        w(_val_tbl(show))
+        reds = [r for r in show if r.metrics.get("flag") == "red"]
+        if reds:
+            names = "、".join(_esc(r.name) for r in reds)
+            w(f'<div class="warn">🔴 <b>紅旗警語(適用:{names})</b>:{_esc(RED_WARNING)}</div>')
+    else:
+        w('<div class="stream-empty">尚無估值資料。</div>')
+    w(_note("旗標門檻:🟢=PEG<1 且 前瞻PE<個股近5年PE中位;"
+            "🔴=前瞻PE>近5年P90 或 PEG>2 或 前瞻PE>60;🟡=其餘;⚪=無共識前瞻PE。"
+            "<b>PE 百分位一律用個股自己近5年歷史</b>(不用全市場平均——不同產業 PE 水準天生不同)。"))
     w("</section>")
 
     # 美股測試標的:逐條 + 估值評語
@@ -167,8 +216,11 @@ def build_screener_page(results, funnel, cfg, generated: str) -> str:
             fpe = r.metrics.get("forward_pe")
             peg = r.metrics.get("peg")
             fy = r.metrics.get("fcf_yield")
-            w(f"<p><b>估值檢查(僅參考):</b> 前瞻PE {_fv(fpe, 'x')}、PEG {_fv(peg, '', 2)}、"
-              f"FCF Yield {_fv(fy, '%')}</p>")
+            pct = r.metrics.get("pe_pct")
+            pct_txt = (f",現價位於個股近5年PE第 {int(pct)} 百分位" if pct is not None else "")
+            w(f"<p><b>估值旗標:</b>{_flag_html(r)} — 前瞻PE {_fv(fpe, 'x')}"
+              f"(近5年中位 {_fv(r.metrics.get('pe_median'), 'x')} / P90 {_fv(r.metrics.get('pe_p90'), 'x')})、"
+              f"PEG {_fv(peg, '', 2)}、FCF Yield {_fv(fy, '%')}{pct_txt}</p>")
             verd = []
             if fpe is not None:
                 verd.append("前瞻PE 極高" if fpe > 40 else "前瞻PE 偏高" if fpe > 25 else "前瞻PE 尚屬合理")
