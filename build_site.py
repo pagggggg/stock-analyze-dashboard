@@ -56,12 +56,35 @@ def load_watchlist(path: str | Path) -> tuple[list[dict], dict]:
     return (raw.get("stocks") or []), (raw.get("settings") or {})
 
 
+def load_universe_stocks() -> list[dict]:
+    """讀 config/universe.yaml(可分析母體)的台股清單,並沿用 watchlist 的法說指引對應。"""
+    p = ROOT / "config/universe.yaml"
+    if not p.exists():
+        raise SystemExit("找不到 config/universe.yaml,請先執行 python build_universe.py --market tw")
+    doc = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+    items = doc.get("twse") or []
+    gmap: dict[str, str] = {}
+    try:
+        wl, _ = load_watchlist(ROOT / "config/watchlist.yaml")
+        gmap = {str(s["stock_id"]): s["guidance"] for s in wl if s.get("guidance")}
+    except Exception:  # noqa: BLE001
+        pass
+    return [{"stock_id": str(s["stock_id"]), "name": s.get("name", str(s["stock_id"])),
+             "guidance": gmap.get(str(s["stock_id"]))} for s in items]
+
+
 def run(args) -> None:
     _load_dotenv(ROOT / ".env")
-    stocks, settings = load_watchlist(args.watchlist)
-    pe_years = int(settings.get("pe_years", 10))
+    if args.from_universe:
+        stocks, settings = load_universe_stocks(), {}
+        src = f"母體 universe.yaml({len(stocks)} 檔)"
+    else:
+        stocks, settings = load_watchlist(args.watchlist)
+        src = f"watchlist({len(stocks)} 檔)"
+    pe_years = int((settings or {}).get("pe_years", 10))
     if not stocks:
-        raise SystemExit("watchlist.yaml 沒有任何股票,請先在 config/watchlist.yaml 填入 stocks。")
+        raise SystemExit("沒有任何股票可分析(檢查 watchlist.yaml 或 universe.yaml)。")
+    print(f"儀表板來源:{src}")
 
     analyses = []
     for i, s in enumerate(stocks, 1):
@@ -124,6 +147,8 @@ def main() -> None:
     p = argparse.ArgumentParser(description="多股個人選股分析儀表板網站產生器")
     p.add_argument("--watchlist", default="config/watchlist.yaml", help="觀察清單 YAML")
     p.add_argument("--out", default="public", help="網站輸出資料夾")
+    p.add_argument("--from-universe", action="store_true",
+                   help="改吃 config/universe.yaml(可分析母體)當儀表板清單,而非 watchlist")
     p.add_argument("--no-record", action="store_true",
                    help="不寫入狀態/共識歷史(本機測試用,避免污染每日狀態)")
     run(p.parse_args())

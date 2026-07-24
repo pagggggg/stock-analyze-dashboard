@@ -39,3 +39,5 @@ reports/dashboard.html
 #   data/scan_state.json      每檔上次快照
 #   data/signal_log.csv       訊號事件日誌
 #   data/consensus/*.csv      每檔共識EPS歷史
+logs/
+*.log

@@ -1,34 +1,30 @@
 # ============================================================================
-# 每日自動更新 + 部署 GitHub Pages(gh-pages 分支)
+# 輕量重建 + 部署(GitHub Actions)—— 只在「你 push 程式碼 / 手動」時跑
 # ----------------------------------------------------------------------------
-# 做的事:
-#   1) 每天定時(+ 每次 push main / 手動)重跑 build_site.py:
-#      抓最新 FinMind 財報/股價 + yfinance 共識,重算四指標、河流圖、FCF 品質、訊號。
-#   2) 把更新後的「每日狀態檔」(scan_state.json / signal_log.csv / consensus/*.csv)
-#      commit 回 main —— 這樣隔天才能比出「共識上修/下修、燈號變色、估值門檻跨越」。
-#   3) 把 public/ 強推到 gh-pages 分支 → GitHub Pages 自動部署(手機可連,永遠最新)。
+# 分工(和 Mac mini launchd 不重複):
+#   • Mac mini(scripts/*.sh + launchd)負責「重活」:每日股價、每週財報/共識、
+#     每月重建母體、以及部署;其資料 commit 都帶 [skip ci],故【不會】觸發本 workflow。
+#   • 本 CI 只負責:你從別台電腦 push 程式碼、或手動按 Run 時,重建網站 + 部署一次。
+#     ★ 已移除每日 schedule → 不再和 Mac mini 每天重複抓取。
 #
-# 採「gh-pages 分支」而非 Pages Actions artifact:只需 contents:write,
-# 不依賴 github-pages 環境,較單純、也和本機初次部署一致。
-#
-# 首次使用:Settings → Pages → Source 選「Deploy from a branch」→ 分支 gh-pages、資料夾 /(root)。
-# (選填)Settings → Secrets and variables → Actions 新增 FINMIND_TOKEN 提高抓取額度。
+# 注意:本 CI 會 build --from-universe(讀 config/universe.yaml)。母體很大時這步會較久,
+#       屆時可改成手動(把下方 push 觸發拿掉,只留 workflow_dispatch)。
+# 首次:Settings → Pages → Source 選「Deploy from a branch」→ gh-pages /(root)。
+# (選填)Secrets 新增 FINMIND_TOKEN 提高抓取額度。
 # ============================================================================
-name: daily-dashboard
+name: rebuild-deploy
 
 on:
-  schedule:
-    - cron: "0 10 * * *"      # 每天 UTC 10:00 = 台灣 18:00(收盤後,資料已更新)
   push:
-    branches: [main]
-  workflow_dispatch: {}
+    branches: [main]          # 你 push 程式碼時重建部署(Mac mini 的資料 commit 帶 [skip ci],不觸發)
+  workflow_dispatch: {}       # 手動:Mac mini 沒開時的備援部署
 
 permissions:
-  contents: write             # commit 狀態回 main + 推 gh-pages 都靠這個
+  contents: write             # 只用來推 gh-pages(不 commit 資料回 main —— 資料由 Mac mini 主管)
 
 concurrency:
   group: "deploy"
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build-deploy:
@@ -48,33 +44,21 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Build dashboard site
+      - name: Build site (母體;--no-record 不動資料狀態,狀態由 Mac mini 主管)
         env:
-          FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}   # 沒設就是空字串 → 匿名模式
-        run: python build_site.py --out public
-
-      - name: Commit updated daily state to main
-        run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/
-          if git diff --cached --quiet; then
-            echo "沒有狀態變化,略過 commit。"
-          else
-            git commit -m "chore(data): 每日狀態更新 $(date -u +%Y-%m-%d)"
-            git push
-          fi
+          FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
+        run: python build_site.py --from-universe --no-record --out public
 
       - name: Deploy public/ to gh-pages
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           cd public
-          touch .nojekyll                       # 別讓 Jekyll 處理(我們是純靜態)
+          touch .nojekyll
           git init -q
           git checkout -q -b gh-pages
           git add -A
           git -c user.name="github-actions[bot]" \
               -c user.email="github-actions[bot]@users.noreply.github.com" \
-              commit -q -m "deploy: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+              commit -q -m "deploy(ci): $(date -u +%Y-%m-%dT%H:%M:%SZ)"
           git push -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" gh-pages

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- 每月 1 號 04:00 重建可分析母體(全上市)+ 全量更新。最重的一支,需 FINMIND_TOKEN。 -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>          <string>com.stockanalyze.monthly</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/kaochihping/Stock_analyze/scripts/run_monthly.sh</string>
+  </array>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Day</key>    <integer>1</integer>
+    <key>Hour</key>   <integer>4</integer>
+    <key>Minute</key> <integer>0</integer>
+  </dict>
+  <key>RunAtLoad</key>          <false/>
+  <key>StandardOutPath</key>    <string>/Users/kaochihping/Stock_analyze/logs/launchd.monthly.out</string>
+  <key>StandardErrorPath</key>  <string>/Users/kaochihping/Stock_analyze/logs/launchd.monthly.err</string>
+  <key>WorkingDirectory</key>   <string>/Users/kaochihping/Stock_analyze</string>
+</dict>
+</plist>

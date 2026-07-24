@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- 每週六 03:00 重抓母體財報+共識,重跑完整兩層篩選。 -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>          <string>com.stockanalyze.weekly</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/kaochihping/Stock_analyze/scripts/run_weekly.sh</string>
+  </array>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Weekday</key> <integer>6</integer>
+    <key>Hour</key>    <integer>3</integer>
+    <key>Minute</key>  <integer>0</integer>
+  </dict>
+  <key>RunAtLoad</key>          <false/>
+  <key>StandardOutPath</key>    <string>/Users/kaochihping/Stock_analyze/logs/launchd.weekly.out</string>
+  <key>StandardErrorPath</key>  <string>/Users/kaochihping/Stock_analyze/logs/launchd.weekly.err</string>
+  <key>WorkingDirectory</key>   <string>/Users/kaochihping/Stock_analyze</string>
+</dict>
+</plist>

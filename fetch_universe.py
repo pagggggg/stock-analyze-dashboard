@@ -46,6 +46,24 @@ UNIVERSE_DIR = ROOT / "data/universe"
 _RATE_HINTS = ("limit", "402", "free", "requests", "request", "402")
 
 
+def _bust_cache(stock_id: str, mode: str) -> None:
+    """依 refresh 模式刪掉相關快取,強制重抓。
+    prices=只刪股價/yfinance(日更新);all=連財報都刪(週更新)。"""
+    from src.cache import CACHE_DIR
+    price_keys = [f"finmind_price_{stock_id}", f"finmind_pxv_{stock_id}",
+                  f"yf_metrics_{stock_id}.TW", f"yf_cov_{stock_id}.TW",
+                  f"yf_metrics_{stock_id}", f"yf_cov_{stock_id}"]  # 後兩個給美股 ticker
+    fin_keys = [f"finmind_fs_long_{stock_id}", f"finmind_bs_{stock_id}", f"finmind_cf_{stock_id}"]
+    keys = price_keys if mode == "prices" else price_keys + fin_keys
+    for k in keys:
+        f = CACHE_DIR / f"{k}.json"
+        if f.exists():
+            try:
+                f.unlink()
+            except OSError:
+                pass
+
+
 def _load_dotenv(path: Path) -> None:
     if not path.exists():
         return
@@ -206,8 +224,11 @@ def run(args) -> None:
 
     done = skipped = liquid_deep = 0
     for i, s in enumerate(stocks, 1):
-        path = UNIVERSE_DIR / f"{s['stock_id']}.json"
-        if _fresh(path, refetch_days):
+        sid = s["stock_id"]
+        path = UNIVERSE_DIR / f"{sid}.json"
+        if args.refresh:
+            _bust_cache(sid, args.refresh)          # 強制重抓(日=只股價/yf,週=連財報)
+        elif _fresh(path, refetch_days):
             skipped += 1
             continue
         rec = build_and_save(s, cfg)
@@ -232,7 +253,9 @@ def run(args) -> None:
         print(f"美股測試({len(us)} 檔,yfinance):")
         for j, ticker in enumerate(us, 1):
             path = UNIVERSE_DIR / f"{ticker}.json"
-            if _fresh(path, refetch_days):
+            if args.refresh:
+                _bust_cache(str(ticker), args.refresh)
+            elif _fresh(path, refetch_days):
                 print(f"  [{j}/{len(us)}] {ticker} 沿用本地")
                 continue
             rec = build_us_record(str(ticker), str(ticker), cfg)
@@ -251,6 +274,8 @@ def main() -> None:
     p.add_argument("--stock-ids", default="", help="只抓指定代號,逗號分隔(測試)")
     p.add_argument("--from-universe", action="store_true",
                    help="改讀 config/universe.yaml(可分析母體)當清單,而非全市場")
+    p.add_argument("--refresh", choices=["", "prices", "all"], default="",
+                   help="強制重抓:prices=只股價+yfinance(日更新);all=連財報(週更新)")
     run(p.parse_args())
 
 
