@@ -1,0 +1,91 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>兩層選股篩選器</title><link rel="stylesheet" href="style.css"></head><body><div class="wrap">
+<header>
+<div><a class="back" href="index.html">← 回總表</a></div>
+<h1>兩層選股篩選器(台股全市場)</h1>
+<div class="meta">更新時間 2026-07-24 22:25　|　評估 23 檔　|　通過第一層 <b>18</b>　兩層全過 <b>2</b></div>
+<div class="table-warn">📌 只用公開數據做資格/品質研究,<b>無持倉/交易紀錄</b>;本表僅供<b>縮小研究範圍,非買進清單</b>。門檻全在 <code>config/screener.yaml</code>。</div>
+</header>
+<section>
+<h2>★ 精華清單:兩層全過 + 估值旗標分組（2 檔）</h2>
+<h3 style='margin:12px 0 4px'>🟢 精華 + 綠旗(合理偏低,優先研究)（0 檔）</h3>
+<div class="stream-empty" style="padding:10px">無</div>
+<h3 style='margin:12px 0 4px'>🟡 精華 + 黃旗（2 檔）</h3>
+<div class="table-scroll"><table class="tbl"><thead><tr><th>代號</th><th>名稱</th><th>市場</th><th>🚩旗標</th><th>前瞻PE</th><th>近5年PE中位</th><th>近5年P90</th><th>PE百分位</th><th>PEG</th><th>共識覆蓋</th></tr></thead><tbody><tr><td>2308</td><td>台達電</td><td>台股</td><td><span style="color:#eab308;font-weight:700;white-space:nowrap">🟡一般</span></td><td class='num'>46.3x</td><td class='num'>26.6x</td><td class='num'>60.5x</td><td class='num'>81%</td><td class='num'>0.74</td><td class='num'>19</td></tr><tr><td>2330</td><td>台積電</td><td>台股</td><td><span style="color:#eab308;font-weight:700;white-space:nowrap">🟡一般</span></td><td class='num'>22.6x</td><td class='num'>22.2x</td><td class='num'>29.6x</td><td class='num'>51%</td><td class='num'>0.81</td><td class='num'>32</td></tr></tbody></table></div>
+<h3 style='margin:12px 0 4px'>🔴 精華 + 紅旗(好公司但貴,附警語)（0 檔）</h3>
+<div class="stream-empty" style="padding:10px">無</div>
+<p class="note">「兩層全過」= 第一層6條 ＋ 第二層⑦⑧⑨ 全達標(⑩不列入)。<b>估值旗標只加註、不淘汰</b>;綠旗優先研究,紅旗=好公司但貴。</p>
+</section>
+<section>
+<h2>第一層漏斗統計(每條各刷掉多少)</h2>
+<div class="table-scroll"><table class="tbl"><thead><tr><th>第一層條件</th><th>通過</th><th>未通過</th><th>資料不足</th></tr></thead><tbody>
+<tr><td>① 上市滿5年</td><td class='num'>23</td><td class='num'>0</td><td class='num'>0</td></tr>
+<tr><td>② 近5年≥4年EPS正</td><td class='num'>21</td><td class='num'>1</td><td class='num'>1</td></tr>
+<tr><td>③ 近3年OCF(累積+≥2年正)</td><td class='num'>20</td><td class='num'>3</td><td class='num'>0</td></tr>
+<tr><td>④ 有息負債比達標</td><td class='num'>23</td><td class='num'>0</td><td class='num'>0</td></tr>
+<tr><td>⑤ 流動性達標</td><td class='num'>23</td><td class='num'>0</td><td class='num'>0</td></tr>
+<tr><td>⑥ 有最新財報</td><td class='num'>23</td><td class='num'>0</td><td class='num'>0</td></tr>
+</tbody></table></div>
+<p class="note">各條為<b>獨立評估</b>(一檔可能同時卡多條);「通過第一層」才是 6 條同時成立。「資料不足」一律<b>不當通過</b>。</p>
+</section>
+<section>
+<h2>負債比口徑對照(新:有息負債比 vs 舊:總負債比)</h2>
+<div class="table-scroll"><table class="tbl"><thead><tr><th>代號</th><th>名稱</th><th>產業</th><th>有息負債比(新)</th><th>門檻</th><th>④</th><th>原總負債比(舊)</th><th>差</th></tr></thead><tbody>
+<tr><td>1301</td><td>台塑</td><td>塑膠工業</td><td class='num'>15.7%</td><td class='num'>&lt;40%</td><td>✅</td><td class='num'>34.3%</td><td class='num'>−18.5pp</td></tr>
+<tr><td>1476</td><td>儒鴻</td><td>紡織纖維</td><td class='num'>0.8%</td><td class='num'>&lt;40%</td><td>✅</td><td class='num'>25.4%</td><td class='num'>−24.6pp</td></tr>
+<tr><td>2002</td><td>中鋼</td><td>鋼鐵工業</td><td class='num'>27.2%</td><td class='num'>&lt;40%</td><td>✅</td><td class='num'>50.9%</td><td class='num'>−23.7pp</td></tr>
+<tr><td>2049</td><td>上銀</td><td>電機機械</td><td class='num'>15.6%</td><td class='num'>&lt;40%</td><td>✅</td><td class='num'>31.3%</td><td class='num'>−15.7pp</td></tr>
+<tr><td>2303</td><td>聯電</td><td>電子工業</td><td class='num'>8.5%</td><td class='num'>&lt;50%</td><td>✅</td><td class='num'>32.2%</td><td class='num'>−23.7pp</td></tr>
+<tr><td>2308</td><td>台達電</td><td>電子工業</td><td class='num'>8.2%</td><td class='num'>&lt;50%</td><td>✅</td><td class='num'>47.8%</td><td class='num'>−39.6pp</td></tr>
+<tr><td>2317</td><td>鴻海</td><td>其他電子業</td><td class='num'>20.9%</td><td class='num'>&lt;50%</td><td>✅</td><td class='num'>62.0%</td><td class='num'>−41.1pp</td></tr>
+<tr><td>2330</td><td>台積電</td><td>半導體業</td><td class='num'>10.4%</td><td class='num'>&lt;40%</td><td>✅</td><td class='num'>31.5%</td><td class='num'>−21.1pp</td></tr>
+<tr><td>2357</td><td>華碩</td><td>電腦及週邊設備業</td><td class='num'>6.2%</td><td class='num'>&lt;50%</td><td>✅</td><td class='num'>52.8%</td><td class='num'>−46.6pp</td></tr>
+<tr><td>2379</td><td>瑞昱</td><td>半導體業</td><td class='num'>6.8%</td><td class='num'>&lt;40%</td><td>✅</td><td class='num'>68.4%</td><td class='num'>−61.6pp</td></tr>
+<tr><td>2382</td><td>廣達</td><td>電子工業</td><td class='num'>25.7%</td><td class='num'>&lt;50%</td><td>✅</td><td class='num'>87.4%</td><td class='num'>−61.7pp</td></tr>
+<tr><td>2412</td><td>中華電</td><td>通信網路業</td><td class='num'>4.3%</td><td class='num'>&lt;40%</td><td>✅</td><td class='num'>24.9%</td><td class='num'>−20.5pp</td></tr>
+<tr><td>2454</td><td>聯發科</td><td>半導體業</td><td class='num'>2.2%</td><td class='num'>&lt;40%</td><td>✅</td><td class='num'>46.1%</td><td class='num'>−43.8pp</td></tr>
+<tr><td>2882</td><td>國泰金</td><td>金融保險</td><td class='num'>0.0%＊</td><td class='num'>&lt;40%</td><td>✅</td><td class='num'>94.3%</td><td class='num'>−94.3pp</td></tr>
+<tr><td>2891</td><td>中信金</td><td>金融保險</td><td class='num'>0.0%＊</td><td class='num'>&lt;40%</td><td>✅</td><td class='num'>93.8%</td><td class='num'>−93.8pp</td></tr>
+<tr><td>3008</td><td>大立光</td><td>電子工業</td><td class='num'>0.0%</td><td class='num'>&lt;50%</td><td>✅</td><td class='num'>17.6%</td><td class='num'>−17.6pp</td></tr>
+<tr><td>3034</td><td>聯詠</td><td>電子工業</td><td class='num'>0.0%＊</td><td class='num'>&lt;50%</td><td>✅</td><td class='num'>30.6%</td><td class='num'>−30.6pp</td></tr>
+<tr><td>3711</td><td>日月光投控</td><td>半導體業</td><td class='num'>25.2%</td><td class='num'>&lt;40%</td><td>✅</td><td class='num'>60.2%</td><td class='num'>−35.0pp</td></tr>
+<tr><td>4938</td><td>和碩</td><td>電腦及週邊設備業</td><td class='num'>9.8%</td><td class='num'>&lt;50%</td><td>✅</td><td class='num'>60.1%</td><td class='num'>−50.3pp</td></tr>
+<tr><td>6415</td><td>矽力*-KY</td><td>電子工業</td><td class='num'>7.8%</td><td class='num'>&lt;50%</td><td>✅</td><td class='num'>16.2%</td><td class='num'>−8.4pp</td></tr>
+<tr><td>8454</td><td>富邦媒</td><td>數位雲端</td><td class='num'>0.0%＊</td><td class='num'>&lt;40%</td><td>✅</td><td class='num'>61.1%</td><td class='num'>−61.1pp</td></tr>
+<tr><td>9910</td><td>豐泰</td><td>運動休閒</td><td class='num'>10.9%</td><td class='num'>&lt;40%</td><td>✅</td><td class='num'>45.2%</td><td class='num'>−34.3pp</td></tr>
+<tr><td>TSLA</td><td>TSLA</td><td>Auto Manufacturers</td><td class='num'>10.7%</td><td class='num'>&lt;50%</td><td>✅</td><td class='num'>39.9%</td><td class='num'>−29.2pp</td></tr>
+</tbody></table></div>
+<p class="note">有息負債比 =(短期借款+長期借款+應付公司債)÷ 總資產。<b>代工/fabless 因『應付帳款』被舊口徑灌水</b>,新口徑才反映真實財務槓桿。</p>
+</section>
+<section>
+<h2>通過第一層清單(18 檔,附旗標 + 第二層四項)</h2>
+<div class="table-scroll"><table class="tbl"><thead><tr><th>代號</th><th>名稱</th><th>產業</th><th>🚩旗標</th><th>⑦營收CAGR</th><th>⑧毛利率趨勢</th><th>⑨ROE</th><th>⑩修正動能</th></tr></thead><tbody><tr><td>2308</td><td>台達電</td><td>電子工業</td><td><span style="color:#eab308;font-weight:700;white-space:nowrap">🟡一般</span></td><td>13.0% ✅</td><td>斜率 +2.53pp/年(29.2%→34.3%) ✅</td><td>近3年均 18.2% ✅</td><td>共識持平</td></tr><tr><td>2330</td><td>台積電</td><td>半導體業</td><td><span style="color:#eab308;font-weight:700;white-space:nowrap">🟡一般</span></td><td>18.9% ✅</td><td>斜率 +2.77pp/年(54.4%→59.9%) ✅</td><td>近3年均 27.8% ✅</td><td>共識持平</td></tr><tr><td>1476</td><td>儒鴻</td><td>紡織纖維</td><td><span style="color:#eab308;font-weight:700;white-space:nowrap">🟡一般</span></td><td>-1.5% ❌</td><td>斜率 -1.40pp/年(31.4%→28.6%) ❌</td><td>近3年均 20.6% ✅</td><td>共識持平</td></tr><tr><td>2002</td><td>中鋼</td><td>鋼鐵工業</td><td><span style="color:#dc2626;font-weight:700;white-space:nowrap">🔴高估值警戒</span></td><td>-11.0% ❌</td><td>斜率 -0.89pp/年(4.6%→2.8%) ❌</td><td>近3年均 -0.1% ❌</td><td>共識持平</td></tr><tr><td>2049</td><td>上銀</td><td>電機機械</td><td><span style="color:#eab308;font-weight:700;white-space:nowrap">🟡一般</span></td><td>-6.1% ❌</td><td>斜率 -1.16pp/年(31.1%→28.8%) ❌</td><td>近3年均 5.1% ❌</td><td>共識持平</td></tr><tr><td>2303</td><td>聯電</td><td>電子工業</td><td><span style="color:#dc2626;font-weight:700;white-space:nowrap">🔴高估值警戒</span></td><td>-5.2% ❌</td><td>斜率 -2.96pp/年(34.9%→29.0%) ❌</td><td>近3年均 13.5% ❌</td><td>共識持平</td></tr><tr><td>2317</td><td>鴻海</td><td>其他電子業</td><td><span style="color:#eab308;font-weight:700;white-space:nowrap">🟡一般</span></td><td>6.9% ❌</td><td>斜率 -0.07pp/年(6.3%→6.1%) ❌</td><td>近3年均 9.8% ❌</td><td>共識持平</td></tr><tr><td>2357</td><td>華碩</td><td>電腦及週邊設備業</td><td><span style="color:#dc2626;font-weight:700;white-space:nowrap">🔴高估值警戒</span></td><td>11.2% ✅</td><td>斜率 +0.05pp/年(15.0%→15.1%) ✅</td><td>近3年均 11.6% ❌</td><td>共識持平</td></tr><tr><td>2379</td><td>瑞昱</td><td>半導體業</td><td><span style="color:#eab308;font-weight:700;white-space:nowrap">🟡一般</span></td><td>3.2% ❌</td><td>斜率 +3.60pp/年(42.8%→50.0%) ✅</td><td>近3年均 26.3% ✅</td><td>共識持平</td></tr><tr><td>2412</td><td>中華電</td><td>通信網路業</td><td><span style="color:#dc2626;font-weight:700;white-space:nowrap">🔴高估值警戒</span></td><td>2.9% ❌</td><td>斜率 +0.17pp/年(36.5%→36.8%) ✅</td><td>近3年均 9.8% ❌</td><td>共識持平</td></tr><tr><td>2454</td><td>聯發科</td><td>半導體業</td><td><span style="color:#dc2626;font-weight:700;white-space:nowrap">🔴高估值警戒</span></td><td>2.8% ❌</td><td>斜率 -0.17pp/年(47.8%→47.5%) ❌</td><td>近3年均 24.7% ✅</td><td>共識持平</td></tr><tr><td>3008</td><td>大立光</td><td>電子工業</td><td><span style="color:#dc2626;font-weight:700;white-space:nowrap">🔴高估值警戒</span></td><td>8.6% ❌</td><td>斜率 +0.85pp/年(48.7%→50.4%) ✅</td><td>近3年均 12.1% ❌</td><td>共識持平</td></tr><tr><td>3034</td><td>聯詠</td><td>電子工業</td><td><span style="color:#dc2626;font-weight:700;white-space:nowrap">🔴高估值警戒</span></td><td>-2.9% ❌</td><td>斜率 -2.09pp/年(41.8%→37.7%) ❌</td><td>近3年均 29.6% ✅</td><td>共識持平</td></tr><tr><td>3711</td><td>日月光投控</td><td>半導體業</td><td><span style="color:#dc2626;font-weight:700;white-space:nowrap">🔴高估值警戒</span></td><td>-1.3% ❌</td><td>斜率 +0.96pp/年(15.8%→17.7%) ✅</td><td>近3年均 10.8% ❌</td><td>共識持平</td></tr><tr><td>4938</td><td>和碩</td><td>電腦及週邊設備業</td><td><span style="color:#eab308;font-weight:700;white-space:nowrap">🟡一般</span></td><td>-5.4% ❌</td><td>斜率 +0.07pp/年(3.7%→3.8%) ✅</td><td>近3年均 7.8% ❌</td><td>共識持平 ⚠低覆蓋</td></tr><tr><td>6415</td><td>矽力*-KY</td><td>電子工業</td><td><span style="color:#16a34a;font-weight:700;white-space:nowrap">🟢合理偏低</span></td><td>-7.2% ❌</td><td>斜率 +4.48pp/年(42.6%→51.6%) ✅</td><td>近3年均 5.2% ❌</td><td>共識持平</td></tr><tr><td>8454</td><td>富邦媒</td><td>數位雲端</td><td><span style="color:#eab308;font-weight:700;white-space:nowrap">🟡一般</span></td><td>1.7% ❌</td><td>斜率 -0.26pp/年(9.7%→9.1%) ❌</td><td>近3年均 33.8% ✅</td><td>共識持平 ⚠低覆蓋</td></tr><tr><td>9910</td><td>豐泰</td><td>運動休閒</td><td><span style="color:#eab308;font-weight:700;white-space:nowrap">🟡一般</span></td><td>-4.5% ❌</td><td>斜率 +0.86pp/年(20.7%→22.4%) ✅</td><td>近3年均 21.0% ✅</td><td>共識持平</td></tr></tbody></table></div>
+<p class="note">🚩估值旗標只加註、不淘汰(見下方明細)。⑦⑧⑨:✅達標／❌未達標／⚠️資料不足;⑩僅標記方向。第二層<b>只標記不淘汰</b>。</p>
+</section>
+<section>
+<h2>估值旗標明細(只加旗標、不淘汰)</h2>
+<div class="table-scroll"><table class="tbl"><thead><tr><th>代號</th><th>名稱</th><th>市場</th><th>🚩旗標</th><th>前瞻PE</th><th>近5年PE中位</th><th>近5年P90</th><th>PE百分位</th><th>PEG</th><th>共識覆蓋</th></tr></thead><tbody><tr><td>TSLA</td><td>TSLA</td><td>美股</td><td><span style="color:#dc2626;font-weight:700;white-space:nowrap">🔴高估值警戒</span></td><td class='num'>149.7x</td><td class='num'>94.1x</td><td class='num'>386.2x</td><td class='num'>63%</td><td class='num'>7.75</td><td class='num'>35</td></tr><tr><td>2002</td><td>中鋼</td><td>台股</td><td><span style="color:#dc2626;font-weight:700;white-space:nowrap">🔴高估值警戒</span></td><td class='num'>88.4x</td><td class='num'>73.2x</td><td class='num'>174.5x</td><td class='num'>64%</td><td class='num'>1.04</td><td class='num'>5</td></tr><tr><td>2303</td><td>聯電</td><td>台股</td><td><span style="color:#dc2626;font-weight:700;white-space:nowrap">🔴高估值警戒</span></td><td class='num'>26.9x</td><td class='num'>10.7x</td><td class='num'>17.8x</td><td class='num'>95%</td><td class='num'>1.03</td><td class='num'>21</td></tr><tr><td>2357</td><td>華碩</td><td>台股</td><td><span style="color:#dc2626;font-weight:700;white-space:nowrap">🔴高估值警戒</span></td><td class='num'>14.3x</td><td class='num'>13.3x</td><td class='num'>80.5x</td><td class='num'>66%</td><td class='num'>2.15</td><td class='num'>10</td></tr><tr><td>2412</td><td>中華電</td><td>台股</td><td><span style="color:#dc2626;font-weight:700;white-space:nowrap">🔴高估值警戒</span></td><td class='num'>26.6x</td><td class='num'>26.4x</td><td class='num'>27.5x</td><td class='num'>60%</td><td class='num'>6.80</td><td class='num'>5</td></tr><tr><td>2454</td><td>聯發科</td><td>台股</td><td><span style="color:#dc2626;font-weight:700;white-space:nowrap">🔴高估值警戒</span></td><td class='num'>58.1x</td><td class='num'>19.5x</td><td class='num'>25.0x</td><td class='num'>96%</td><td class='num'>0.58</td><td class='num'>21</td></tr><tr><td>3008</td><td>大立光</td><td>台股</td><td><span style="color:#dc2626;font-weight:700;white-space:nowrap">🔴高估值警戒</span></td><td class='num'>21.1x</td><td class='num'>14.1x</td><td class='num'>18.9x</td><td class='num'>95%</td><td class='num'>2.14</td><td class='num'>18</td></tr><tr><td>3034</td><td>聯詠</td><td>台股</td><td><span style="color:#dc2626;font-weight:700;white-space:nowrap">🔴高估值警戒</span></td><td class='num'>17.5x</td><td class='num'>13.6x</td><td class='num'>16.0x</td><td class='num'>95%</td><td class='num'>1.96</td><td class='num'>15</td></tr><tr><td>3711</td><td>日月光投控</td><td>台股</td><td><span style="color:#dc2626;font-weight:700;white-space:nowrap">🔴高估值警戒</span></td><td class='num'>37.8x</td><td class='num'>18.2x</td><td class='num'>36.4x</td><td class='num'>92%</td><td class='num'>0.77</td><td class='num'>16</td></tr><tr><td>1476</td><td>儒鴻</td><td>台股</td><td><span style="color:#eab308;font-weight:700;white-space:nowrap">🟡一般</span></td><td class='num'>13.4x</td><td class='num'>21.9x</td><td class='num'>29.4x</td><td class='num'>0%</td><td class='num'>1.66</td><td class='num'>13</td></tr><tr><td>2049</td><td>上銀</td><td>台股</td><td><span style="color:#eab308;font-weight:700;white-space:nowrap">🟡一般</span></td><td class='num'>38.2x</td><td class='num'>36.9x</td><td class='num'>57.2x</td><td class='num'>57%</td><td class='num'>1.47</td><td class='num'>16</td></tr><tr><td>2308</td><td>台達電</td><td>台股</td><td><span style="color:#eab308;font-weight:700;white-space:nowrap">🟡一般</span></td><td class='num'>46.3x</td><td class='num'>26.6x</td><td class='num'>60.5x</td><td class='num'>81%</td><td class='num'>0.74</td><td class='num'>19</td></tr><tr><td>2317</td><td>鴻海</td><td>台股</td><td><span style="color:#eab308;font-weight:700;white-space:nowrap">🟡一般</span></td><td class='num'>14.7x</td><td class='num'>12.5x</td><td class='num'>17.8x</td><td class='num'>58%</td><td class='num'>0.65</td><td class='num'>17</td></tr><tr><td>2330</td><td>台積電</td><td>台股</td><td><span style="color:#eab308;font-weight:700;white-space:nowrap">🟡一般</span></td><td class='num'>22.6x</td><td class='num'>22.2x</td><td class='num'>29.6x</td><td class='num'>51%</td><td class='num'>0.81</td><td class='num'>32</td></tr><tr><td>2379</td><td>瑞昱</td><td>台股</td><td><span style="color:#eab308;font-weight:700;white-space:nowrap">🟡一般</span></td><td class='num'>23.0x</td><td class='num'>17.1x</td><td class='num'>26.5x</td><td class='num'>81%</td><td class='num'>1.80</td><td class='num'>15</td></tr><tr><td>4938</td><td>和碩</td><td>台股</td><td><span style="color:#eab308;font-weight:700;white-space:nowrap">🟡一般</span></td><td class='num'>16.3x</td><td class='num'>13.4x</td><td class='num'>17.0x</td><td class='num'>87%</td><td class='num'>0.73 ⚠</td><td class='num'>1 ⚠低覆蓋</td></tr><tr><td>6415</td><td>矽力*-KY</td><td>台股</td><td><span style="color:#16a34a;font-weight:700;white-space:nowrap">🟢合理偏低</span></td><td class='num'>45.2x</td><td class='num'>46.4x</td><td class='num'>112.5x</td><td class='num'>48%</td><td class='num'>0.72</td><td class='num'>14</td></tr><tr><td>8454</td><td>富邦媒</td><td>台股</td><td><span style="color:#eab308;font-weight:700;white-space:nowrap">🟡一般</span></td><td class='num'>22.5x</td><td class='num'>27.6x</td><td class='num'>47.1x</td><td class='num'>23%</td><td class='num'>—</td><td class='num'>1 ⚠低覆蓋</td></tr><tr><td>9910</td><td>豐泰</td><td>台股</td><td><span style="color:#eab308;font-weight:700;white-space:nowrap">🟡一般</span></td><td class='num'>14.6x</td><td class='num'>23.8x</td><td class='num'>32.5x</td><td class='num'>2%</td><td class='num'>1.12</td><td class='num'>10</td></tr></tbody></table></div>
+<div class="warn">🔴 <b>紅旗警語(適用:TSLA、中鋼、聯電、華碩、中華電、聯發科、大立光、聯詠、日月光投控)</b>:此標的基本面通過篩選,但現價已隱含極高成長預期。買進前請書面回答:①你相信的成長劇本是什麼 ②什麼證據會證明它失敗 ③若劇本完全兌現,現價對應PE是多少。</div>
+<p class="note">旗標門檻:🟢=PEG<1 且 前瞻PE<個股近5年PE中位;🔴=前瞻PE>近5年P90 或 PEG>2 或 前瞻PE>60;🟡=其餘;⚪=無共識前瞻PE。<b>PE 百分位一律用個股自己近5年歷史</b>(不用全市場平均——不同產業 PE 水準天生不同)。</p>
+<div class="warn">⚠️ <b>共識覆蓋 &lt; 3 家(標「⚠低覆蓋」)者:PEG 與修正動能僅供參考,不得作為判斷依據</b>——這兩個訊號全靠分析師共識,覆蓋薄時不可信(母體不因此刪股,由資料自我標記)。</div>
+</section>
+<section>
+<h2>美股測試標的:逐條檢視 + 估值評語</h2>
+<h3 style='margin:8px 0 4px'>TSLA（Auto Manufacturers）</h3>
+<p><b>第一層 6 條:通過 5/6</b></p><ul>
+<li>① 上市滿5年:✅　約 16.1 年(門檻 5）</li>
+<li>② 近5年≥4年EPS正:⚠️　僅 4 個完整年度 EPS(需 5）</li>
+<li>③ 近3年OCF(累積+≥2年正):✅　近3年累積OCF 429億、3/3年為正</li>
+<li>④ 有息負債比達標:✅　有息負債比 10.7%(門檻&lt;50%,原總負債比 39.9%)</li>
+<li>⑤ 流動性達標:✅　近60日均額 19,316.1百萬美元(門檻 10.0百萬美元)</li>
+<li>⑥ 有最新財報:✅　最新財報 2026-06-30(距今 24 天,門檻 ≤200）</li>
+</ul>
+<p><b>第二層品質(⑦⑧⑨):</b>未全達標</p><ul>
+<li>⑦ 營收CAGR:❌　5.2%</li>
+<li>⑧ 毛利率趨勢:❌　斜率 -0.11pp/年(18.2%→18.0%)</li>
+<li>⑨ ROE:❌　近3年均 12.8%</li>
+<li>⑩ 修正動能(僅標記):無足夠共識歷史</li></ul>
+<p><b>估值旗標:</b><span style="color:#dc2626;font-weight:700;white-space:nowrap">🔴高估值警戒</span> — 前瞻PE 149.7x(近5年中位 94.1x / P90 386.2x)、PEG 7.75、FCF Yield 0.6%,現價位於個股近5年PE第 63 百分位</p>
+<p class="note"><b>結論</b>:TSLA 未通過第一層(卡 ②)、品質 ⑦⑧⑨ 未全達標。<b>若加入估值判斷</b>:前瞻PE 極高、FCF殖利率偏低、PEG 7.75(>2 偏貴)——成長預期多已反映在股價。篩選器<b>刻意不以估值淘汰</b>,是否買進需自行結合估值與成長延續性。</p>
+</section>
+<footer><div><a class="back" href="index.html">← 回總表</a>　|　資料:FinMind(台股)+ yfinance(美股/估值);門檻見 config/screener.yaml,不構成投資建議。</div></footer>
+</div></body></html>
