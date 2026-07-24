@@ -172,6 +172,51 @@ def _signal_stream(log_rows: list[dict], first_run: bool) -> str:
 
 
 # ======================================================================
+# 個股查詢框(輸入代號/名稱 → 跳到該股詳情頁,並即時過濾掃描總表)
+# ======================================================================
+_SEARCH_JS = """
+function _osSug(show){var s=document.getElementById('os-sug');if(s)s.style.display=show?'block':'none';}
+function osQuery(){
+  var q=(document.getElementById('os-q').value||'').trim().toLowerCase();
+  var t=document.getElementById('scan');
+  if(t){Array.prototype.forEach.call(t.tBodies[0].rows,function(r){
+    var txt=(r.cells[0].innerText+' '+r.cells[1].innerText).toLowerCase();
+    r.style.display=(!q||txt.indexOf(q)>=0)?'':'none';});}
+  var sug=document.getElementById('os-sug');sug.innerHTML='';
+  if(!q){_osSug(false);return;}
+  var m=OS_STOCKS.filter(function(s){return (s.id+' '+s.name).toLowerCase().indexOf(q)>=0;}).slice(0,8);
+  if(!m.length){sug.innerHTML='<div class="os-none">找不到「'+q+'」——此代號可能不在觀察範圍。'
+    +'可加入 watchlist / 母體後重建;或到<a href=\\"screener.html\\">篩選器</a>看更多。</div>';_osSug(true);return;}
+  m.forEach(function(s){var d=document.createElement('div');d.className='os-item';
+    d.innerHTML='<b>'+s.id+'</b> '+s.name+'<span class=\\"os-go\\">→ 看詳情</span>';
+    d.onmousedown=function(){location.href='stock_'+s.id+'.html';};sug.appendChild(d);});
+  _osSug(true);
+}
+function osKey(e){if(e.key==='Enter'){var q=(document.getElementById('os-q').value||'').trim().toLowerCase();
+  var s=OS_STOCKS.filter(function(x){return x.id.toLowerCase()===q||x.name.toLowerCase()===q;})[0]
+      ||OS_STOCKS.filter(function(x){return (x.id+' '+x.name).toLowerCase().indexOf(q)>=0;})[0];
+  if(s)location.href='stock_'+s.id+'.html';}}
+"""
+
+
+def _search_box(rows: list[tuple]) -> str:
+    import json
+    stocks = [{"id": a.stock_id, "name": a.name} for a, _, _ in rows if a.ok]
+    data = json.dumps(stocks, ensure_ascii=False)
+    n = len(stocks)
+    return (
+        '<div class="search-box">'
+        '<input id="os-q" type="search" autocomplete="off" '
+        f'placeholder="🔍 輸入代號或名稱查詢個股(目前可查 {n} 檔有詳情頁的股票)…" '
+        'oninput="osQuery()" onkeydown="osKey(event)" onblur="setTimeout(function(){_osSug(false)},200)" '
+        'onfocus="osQuery()">'
+        '<div id="os-sug" class="os-suggest"></div>'
+        '</div>'
+        f'<script>var OS_STOCKS={data};{_SEARCH_JS}</script>'
+    )
+
+
+# ======================================================================
 # 首頁 index.html
 # ======================================================================
 def build_index_html(
@@ -210,6 +255,7 @@ def build_index_html(
 
     table = _scan_table(rows)
     stream = _signal_stream(log_rows, first_run)
+    search = _search_box(rows)
 
     body = f"""
 <div class="wrap">
@@ -218,6 +264,8 @@ def build_index_html(
     <div class="meta">更新時間 {generated}　|　觀察清單 {len(rows)} 檔　|　資料:FinMind + yfinance(公開市場數據)</div>
     <div class="warn">⚠️ 全站僅為<b>公開數據估值研究</b>,無任何持倉或交易紀錄;所有數字請回原始來源核實,<b>不構成投資建議</b>。</div>
   </header>
+
+  {search}
 
   {screener_cta}
 
@@ -451,4 +499,17 @@ code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: .85
   box-shadow: 0 6px 18px rgba(4,120,87,.20); }
 .screener-cta b { color: #fff; }
 .screener-cta .arrow { float: right; opacity: .8; font-size: 1.3rem; }
+.search-box { position: relative; margin: 14px 0; }
+.search-box input { width: 100%; box-sizing: border-box; padding: 13px 16px; font-size: 1rem;
+  border: 2px solid #cbd5e1; border-radius: 12px; outline: none; background: #fff; }
+.search-box input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+.os-suggest { display: none; position: absolute; z-index: 20; left: 0; right: 0; top: 100%;
+  margin-top: 4px; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+  box-shadow: 0 12px 28px rgba(0,0,0,.14); overflow: hidden; }
+.os-item { padding: 11px 16px; cursor: pointer; border-bottom: 1px solid #f1f5f9; }
+.os-item:hover { background: #eff6ff; }
+.os-item b { color: #1d4ed8; font-variant-numeric: tabular-nums; }
+.os-go { float: right; color: #2563eb; font-size: .85rem; opacity: .85; }
+.os-none { padding: 14px 16px; color: #64748b; font-size: .9rem; }
+.os-none a { color: #2563eb; }
 """
