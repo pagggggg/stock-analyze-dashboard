@@ -107,15 +107,18 @@ valuation_flag:
 # ★ 市值與覆蓋家數等門檻都在這裡,可自行調整。
 # ===========================================================================
 universe_builder:
+  reliable_coverage: 3             # 共識覆蓋 < 此值 → 下游 PEG/修正動能 標記「僅供參考,不得作為判斷依據」
   tw:
     min_market_cap: 30000000000    # 市值 > 300 億台幣
-    min_analyst_coverage: 3        # 至少 3 家分析師共識(yfinance numberOfAnalysts)
+    min_analyst_coverage: 1        # 母體門檻降到 1(有任何共識即可);守門靠法說會+市值+流動性
+                                   #   ↑ 因 yfinance 對台股覆蓋家數常低估,硬卡 ≥3 會誤刪好股;
+                                   #     改「不刪、只標記」:覆蓋<reliable_coverage 者下游自我標註不可信
     require_meeting: true          # 近一年有召開法人說明會(公開資訊觀測站 MOPS)
     meeting_lookback_days: 365
     min_avg_value: 100000000       # 近60日日均成交額 > 1 億台幣
   us:
     min_market_cap: 2000000000     # 市值 > 20 億美元
-    min_analyst_coverage: 5        # 至少 5 家分析師覆蓋
+    min_analyst_coverage: 5        # 美股 yfinance 覆蓋可靠,維持 ≥5
     require_earnings_call: true    # 有季度法說(以 yfinance 有季度共識為代理)
     min_avg_value: 20000000        # 近60日日均成交額 > 2000 萬美元
   liquidity_days: 60               # 流動性看近幾個交易日

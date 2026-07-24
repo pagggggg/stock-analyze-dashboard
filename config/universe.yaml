@@ -1,42 +1,80 @@
 # 可分析母體(build_universe.py 產出)。篩選器讀這份當基礎池。
 # 只含『有分析師覆蓋、有法說會、資訊揭露充分』的中大型股。
-generated: 2026-07-24 21:22
+generated: 2026-07-24 21:37
 twse:
 - stock_id: '2330'
   name: 台積電
+  coverage: 32
 - stock_id: '2454'
   name: 聯發科
+  coverage: 21
 - stock_id: '2317'
   name: 鴻海
+  coverage: 17
 - stock_id: '2308'
   name: 台達電
+  coverage: 19
 - stock_id: '2382'
   name: 廣達
+  coverage: 16
 - stock_id: '3711'
   name: 日月光投控
+  coverage: 16
 - stock_id: '2379'
   name: 瑞昱
+  coverage: 15
 - stock_id: '2412'
   name: 中華電
+  coverage: 5
 - stock_id: '2303'
   name: 聯電
+  coverage: 21
 - stock_id: '1301'
   name: 台塑
+  coverage: 3
 - stock_id: '2002'
   name: 中鋼
+  coverage: 5
 - stock_id: '2882'
   name: 國泰金
+  coverage: 8
+- stock_id: '2891'
+  name: 中信金
+  coverage: 1
 - stock_id: '3034'
   name: 聯詠
+  coverage: 15
+- stock_id: '4938'
+  name: 和碩
+  coverage: 1
 - stock_id: '2357'
   name: 華碩
+  coverage: 10
 - stock_id: '3008'
   name: 大立光
+  coverage: 18
 - stock_id: '2049'
   name: 上銀
+  coverage: 16
+- stock_id: '8454'
+  name: 富邦媒
+  coverage: 1
 - stock_id: '6415'
   name: 矽力*-KY
+  coverage: 14
 - stock_id: '1476'
   name: 儒鴻
+  coverage: 13
 - stock_id: '9910'
   name: 豐泰
+  coverage: 10
+us:
+- stock_id: TSLA
+  name: TSLA
+  coverage: 35
+- stock_id: GOOGL
+  name: GOOGL
+  coverage: 49
+- stock_id: NVDA
+  name: NVDA
+  coverage: 50

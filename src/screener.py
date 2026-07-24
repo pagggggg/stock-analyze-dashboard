@@ -438,6 +438,11 @@ def evaluate(rec: dict, cfg: dict) -> ScreenResult:
     from .valuation_flag import compute_flag
     r.metrics["flag"] = compute_flag(v.get("forward_pe"), v.get("peg"),
                                      ph.get("median"), ph.get("p90"), cfg)
+    # 共識覆蓋家數 + 是否「低覆蓋」(下游 PEG/修正動能 標記僅供參考,不刪資料)
+    cov = v.get("coverage")
+    rc = (cfg.get("universe_builder") or {}).get("reliable_coverage", 3)
+    r.metrics["coverage"] = cov
+    r.metrics["low_coverage"] = (cov is not None and cov < rc)
     return r
 
 

@@ -40,12 +40,13 @@ def _mom(cond) -> str:
 def _l2_table(rows: list[ScreenResult]) -> str:
     body = []
     for r in rows:
+        mom = _mom(r.layer2["q10"]) + (" ⚠低覆蓋" if r.metrics.get("low_coverage") else "")
         body.append(
             "<tr>"
             f"<td>{_esc(r.stock_id)}</td><td>{_esc(r.name)}</td><td>{_esc(r.industry)}</td>"
             f"<td>{_flag_html(r)}</td>"
             f"<td>{_q(r.layer2['q7'])}</td><td>{_q(r.layer2['q8'])}</td>"
-            f"<td>{_q(r.layer2['q9'])}</td><td>{_mom(r.layer2['q10'])}</td></tr>"
+            f"<td>{_q(r.layer2['q9'])}</td><td>{mom}</td></tr>"
         )
     return (
         '<div class="table-scroll"><table class="tbl"><thead><tr>'
@@ -56,13 +57,17 @@ def _l2_table(rows: list[ScreenResult]) -> str:
 
 
 def _val_tbl(rows: list[ScreenResult]) -> str:
-    """估值旗標明細表:代號|名稱|市場|旗標|前瞻PE|近5年中位|近5年P90|PE百分位|PEG。"""
+    """估值旗標明細表:代號|名稱|市場|旗標|前瞻PE|近5年中位|近5年P90|PE百分位|PEG|共識覆蓋。"""
     body = []
     for r in rows:
         m = r.metrics
         mkt = "美股" if r.market == "us" else "台股"
         pct = m.get("pe_pct")
         pct_s = f"{int(pct)}%" if pct is not None else "—"
+        low = m.get("low_coverage")
+        cov = m.get("coverage")
+        peg_s = _fv(m.get("peg"), "", 2) + (" ⚠" if (low and m.get("peg") is not None) else "")
+        cov_s = "—" if cov is None else (f"{cov} ⚠低覆蓋" if low else str(cov))
         body.append(
             f"<tr><td>{_esc(r.stock_id)}</td><td>{_esc(r.name)}</td><td>{mkt}</td>"
             f"<td>{_flag_html(r)}</td>"
@@ -70,12 +75,13 @@ def _val_tbl(rows: list[ScreenResult]) -> str:
             f"<td class='num'>{_fv(m.get('pe_median'), 'x')}</td>"
             f"<td class='num'>{_fv(m.get('pe_p90'), 'x')}</td>"
             f"<td class='num'>{pct_s}</td>"
-            f"<td class='num'>{_fv(m.get('peg'), '', 2)}</td></tr>"
+            f"<td class='num'>{peg_s}</td>"
+            f"<td class='num'>{cov_s}</td></tr>"
         )
     return (
         '<div class="table-scroll"><table class="tbl"><thead><tr>'
         "<th>代號</th><th>名稱</th><th>市場</th><th>🚩旗標</th><th>前瞻PE</th>"
-        "<th>近5年PE中位</th><th>近5年P90</th><th>PE百分位</th><th>PEG</th>"
+        "<th>近5年PE中位</th><th>近5年P90</th><th>PE百分位</th><th>PEG</th><th>共識覆蓋</th>"
         "</tr></thead><tbody>" + "".join(body) + "</tbody></table></div>"
     )
 
@@ -192,6 +198,8 @@ def build_screener_page(results, funnel, cfg, generated: str) -> str:
     w(_note("旗標門檻:🟢=PEG<1 且 前瞻PE<個股近5年PE中位;"
             "🔴=前瞻PE>近5年P90 或 PEG>2 或 前瞻PE>60;🟡=其餘;⚪=無共識前瞻PE。"
             "<b>PE 百分位一律用個股自己近5年歷史</b>(不用全市場平均——不同產業 PE 水準天生不同)。"))
+    w('<div class="warn">⚠️ <b>共識覆蓋 &lt; 3 家(標「⚠低覆蓋」)者:PEG 與修正動能僅供參考,'
+      '不得作為判斷依據</b>——這兩個訊號全靠分析師共識,覆蓋薄時不可信(母體不因此刪股,由資料自我標記)。</div>')
     w("</section>")
 
     # 美股測試標的:逐條 + 估值評語

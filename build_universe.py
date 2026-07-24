@@ -83,7 +83,8 @@ def _save_universe_yaml(market: str, passed: list) -> dict:
     if UNIVERSE_YAML.exists():
         doc = yaml.safe_load(UNIVERSE_YAML.read_text(encoding="utf-8")) or {}
     doc["generated"] = datetime.now().strftime("%Y-%m-%d %H:%M")
-    doc[market] = [{"stock_id": r.stock_id, "name": r.name} for r in passed]
+    doc[market] = [{"stock_id": r.stock_id, "name": r.name, "coverage": r.n_analysts}
+                   for r in passed]
     UNIVERSE_YAML.parent.mkdir(parents=True, exist_ok=True)
     UNIVERSE_YAML.write_text(
         "# 可分析母體(build_universe.py 產出)。篩選器讀這份當基礎池。\n"
@@ -123,26 +124,57 @@ def _write_report(market: str, results: list, stats: dict, cfg: dict, doc: dict)
         w(f"3. 有季度法說(以有季度共識為代理):{conf.get('require_earnings_call', True)}")
         w(f"4. 近{ub['liquidity_days']}日日均成交額 > **{conf['min_avg_value']/1e6:.0f} 百萬美元**")
     else:
+        rc = ub.get("reliable_coverage", 3)
         w(f"1. 市值 > **{conf['min_market_cap']/1e8:.0f} 億台幣**")
-        w(f"2. 分析師共識覆蓋 ≥ **{conf['min_analyst_coverage']}** 家(yfinance)")
+        w(f"2. 有分析師共識(母體門檻 ≥ **{conf['min_analyst_coverage']}** 家;"
+          f"但**覆蓋 < {rc} 家者,下游 PEG/修正動能標記為僅供參考**——見下方通過清單)")
         w(f"3. 近 **{conf['meeting_lookback_days']}** 天有召開法人說明會(公開資訊觀測站 MOPS)")
         w(f"4. 近{ub['liquidity_days']}日日均成交額 > **{conf['min_avg_value']/1e8:.0f} 億台幣**")
     w("")
 
     # 通過清單
+    rc = ub.get("reliable_coverage", 3)
     passed = [r for r in results if r.passed]
     passed.sort(key=lambda r: -(r.market_cap or 0))
     w(f"## 三、{mkt_zh}通過母體清單({len(passed)} / 評估 {stats['total']} 檔)")
     w("")
     if passed:
-        w("| 代號 | 名稱 | 產業 | 市值 | 分析師家數 | 近60日日均額 |")
+        w("| 代號 | 名稱 | 產業 | 市值 | 共識覆蓋家數 | 近60日日均額 |")
         w("| --- | --- | --- | ---: | ---: | ---: |")
         for r in passed:
+            cov = r.n_analysts
+            cov_s = ("—" if cov is None else (f"**{cov}** ⚠低覆蓋" if cov < rc else str(cov)))
             w(f"| {r.stock_id} | {r.name} | {r.industry} | {_money(r.market_cap, market)} | "
-              f"{r.n_analysts if r.n_analysts is not None else '—'} | {_money(r.liq_avg, market)} |")
+              f"{cov_s} | {_money(r.liq_avg, market)} |")
+        w("")
+        low = [r for r in passed if (r.n_analysts or 0) < rc]
+        if low:
+            names = "、".join(f"{r.stock_id} {r.name}" for r in low)
+            w(f"> ⚠️ **覆蓋 < {rc} 家(標「⚠低覆蓋」,共 {len(low)} 檔:{names}):"
+              "其 PEG 與修正動能僅供參考,不得作為判斷依據**——這兩個訊號全靠分析師共識,"
+              "覆蓋薄時不可信。**母體不因此刪除該股;不可靠的資料由它自己標記**"
+              "(守門仍靠法說會 + 市值 + 流動性)。")
     else:
         w("_(本次無通過標的。)_")
     w("")
+
+    # 另一市場的通過清單(從 universe.yaml 簡列,讓報告兩市場都看得到)
+    for mk in ("twse", "us"):
+        if mk == market:
+            continue
+        items = doc.get(mk) or []
+        if not items:
+            continue
+        mk2 = "美股" if mk == "us" else "台股"
+        w(f"### 另一市場:{mk2}母體通過清單({len(items)} 檔)")
+        w("")
+        w("| 代號 | 名稱 | 共識覆蓋 |")
+        w("| --- | --- | ---: |")
+        for it in items:
+            cov = it.get("coverage")
+            cov_s = "—" if cov is None else (f"{cov} ⚠低覆蓋" if cov < rc else str(cov))
+            w(f"| {it['stock_id']} | {it['name']} | {cov_s} |")
+        w("")
 
     # 排除原因統計
     w("## 四、排除原因統計(哪條刷掉最多)")

@@ -23,20 +23,28 @@ def _flag(r) -> str:
 
 
 def _val_rows(results: list[ScreenResult], with_market: bool = True) -> str:
-    """估值明細列:代號|名稱|(市場)|🚩旗標|前瞻PE|近5年中位|近5年P90|PE百分位|PEG。"""
+    """估值明細列:代號|名稱|(市場)|🚩旗標|前瞻PE|近5年中位|近5年P90|PE百分位|PEG|共識覆蓋。"""
     out = []
     for r in results:
         m = r.metrics
         mkt = ("台股" if r.market != "us" else "美股")
         mcell = f" {mkt} |" if with_market else ""
         pct = m.get("pe_pct")
+        low = m.get("low_coverage")
+        cov = m.get("coverage")
+        peg_s = _fv(m.get("peg"), "", 2) + (" ⚠" if (low and m.get("peg") is not None) else "")
+        cov_s = "—" if cov is None else (f"{cov} ⚠低覆蓋" if low else str(cov))
         out.append(
             f"| {r.stock_id} | {r.name} |{mcell} {_flag(r)} | "
             f"{_fv(m.get('forward_pe'), 'x')} | {_fv(m.get('pe_median'), 'x')} | "
             f"{_fv(m.get('pe_p90'), 'x')} | {(str(int(pct)) + '%') if pct is not None else '—'} | "
-            f"{_fv(m.get('peg'), '', 2)} |"
+            f"{peg_s} | {cov_s} |"
         )
     return "\n".join(out)
+
+
+_VAL_HEAD = ("| 代號 | 名稱 | 市場 | 🚩旗標 | 前瞻PE | 近5年PE中位 | 近5年P90 | PE百分位 | PEG | 共識覆蓋 |\n"
+             "| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |")
 
 
 def _cell(cond) -> str:
@@ -61,10 +69,13 @@ def _fv(v, unit: str = "", dp: int = 1) -> str:
 def _rows(results: list[ScreenResult]) -> str:
     out = []
     for r in results:
+        mom = _cell_momentum(r.layer2["q10"])
+        if r.metrics.get("low_coverage"):
+            mom += " ⚠低覆蓋"
         out.append(
             f"| {r.stock_id} | {r.name} | {r.industry} | {_flag(r)} | "
             f"{_cell(r.layer2['q7'])} | {_cell(r.layer2['q8'])} | "
-            f"{_cell(r.layer2['q9'])} | {_cell_momentum(r.layer2['q10'])} |"
+            f"{_cell(r.layer2['q9'])} | {mom} |"
         )
     return "\n".join(out)
 
@@ -195,8 +206,7 @@ def build_screener_report(results, funnel, cfg, generated: str, universe_desc: s
             w(f"### {title}({len(rows)} 檔)")
             w("")
             if rows:
-                w("| 代號 | 名稱 | 市場 | 🚩旗標 | 前瞻PE | 近5年PE中位 | 近5年P90 | PE百分位 | PEG |")
-                w("| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: |")
+                w(_VAL_HEAD)
                 w(_val_rows(rows))
             else:
                 w("_(無)_")
@@ -222,13 +232,15 @@ def build_screener_report(results, funnel, cfg, generated: str, universe_desc: s
     show += us_extra
     show.sort(key=lambda r: (r.metrics.get("flag") != "red", r.market != "us", r.stock_id))
     if show:
-        w("| 代號 | 名稱 | 市場 | 🚩旗標 | 前瞻PE | 近5年PE中位 | 近5年P90 | PE百分位 | PEG |")
-        w("| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: |")
+        w(_VAL_HEAD)
         w(_val_rows(show))
         w("")
         w("> 旗標門檻:🟢=PEG<1 且 前瞻PE<個股近5年PE中位;"
           "🔴=前瞻PE>近5年P90 或 PEG>2 或 前瞻PE>60;🟡=其餘;⚪=無共識前瞻PE。"
           "前瞻PE=現價÷今年共識EPS;PE百分位=前瞻PE 落在個股近5年每日PE分布的第幾百分位。")
+        w(">")
+        w("> ⚠️ **共識覆蓋 < 3 家(標「⚠低覆蓋」)者:PEG 與修正動能僅供參考,不得作為判斷依據**"
+          "——這兩個訊號全靠分析師共識,覆蓋薄時不可信(母體不因此刪股,由資料自我標記)。")
         reds = [r for r in show if r.metrics.get("flag") == "red"]
         if reds:
             w("")
