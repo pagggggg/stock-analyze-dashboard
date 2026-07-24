@@ -825,3 +825,52 @@ def fetch_daily_price_value(
         raise RuntimeError("FinMind 日股價/成交金額解析不到有效資料")
     obj = cache_set(key, rows)
     return rows, obj["fetched_date"]
+
+
+def fetch_coverage_snapshot(ticker: str = "2330.TW", liq_days: int = 60) -> tuple[dict, str]:
+    """母體建構用:一次抓 yfinance 的『市值 + 分析師覆蓋家數 + 近60日日均成交額』。
+
+    回傳 (dict, 抓取日期);dict 內含:
+      market_cap, currency, n_y0(今年FY分析師家數), n_q0/n_q1(當季/下季家數),
+      liq_avg(近 liq_days 日均成交額), liq_days。快取 24 小時。
+    完全抓不到會 raise,由上層記為資料不足。
+    """
+    key = f"yf_cov_{ticker}"
+    cached = cache_get(key, ttl_seconds=24 * 3600)
+    if cached is not None:
+        return cached["data"], cached["fetched_date"]
+
+    import yfinance as yf  # 延遲匯入
+
+    t = yf.Ticker(ticker)
+    out: dict = {}
+    try:
+        info = t.info or {}
+        out["market_cap"] = info.get("marketCap")
+        out["currency"] = info.get("currency")
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        ee = t.earnings_estimate
+
+        def _na(p):
+            if ee is not None and p in ee.index:
+                v = ee.loc[p, "numberOfAnalysts"]
+                return int(v) if v == v else None
+            return None
+        out["n_y0"], out["n_q0"], out["n_q1"] = _na("0y"), _na("0q"), _na("+1q")
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        h = t.history(period="5mo")
+        if h is not None and len(h):
+            v = (h["Close"] * h["Volume"]).dropna().tail(liq_days)
+            out["liq_avg"] = float(v.mean()) if len(v) else None
+            out["liq_days"] = int(len(v))
+    except Exception:  # noqa: BLE001
+        pass
+
+    if not out or out.get("market_cap") is None and out.get("liq_avg") is None:
+        raise RuntimeError("yfinance 未回傳任何母體快照(可能離線 / 無此標的 / 限流)")
+    obj = cache_set(key, out)
+    return out, obj["fetched_date"]

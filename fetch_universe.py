@@ -85,6 +85,27 @@ def load_stock_list(cfg: dict) -> list[dict]:
     return lst
 
 
+def load_from_universe(cfg: dict) -> list[dict]:
+    """改讀『可分析母體』config/universe.yaml 當清單(build_universe.py 產出)。
+
+    台股會再從 taiwan_stock_info 補回產業別(篩選器的負債門檻需要)。
+    """
+    import yaml
+    path = ROOT / "config/universe.yaml"
+    if not path.exists():
+        raise SystemExit("找不到 config/universe.yaml,請先執行 python build_universe.py --market tw")
+    doc = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    market = cfg["universe"]["market"]
+    items = doc.get(market) or (doc.get("twse") if market == "twse" else doc.get("us")) or []
+    if market == "twse":
+        info = _finmind_loader().taiwan_stock_info()
+        ind = {str(r["stock_id"]): str(r["industry_category"]) for _, r in info.iterrows()}
+        return [{"stock_id": str(s["stock_id"]), "name": s.get("name", s["stock_id"]),
+                 "industry": ind.get(str(s["stock_id"]), "")} for s in items]
+    return [{"stock_id": s["stock_id"], "name": s.get("name", s["stock_id"]), "industry": ""}
+            for s in items]
+
+
 def _fresh(path: Path, days: int) -> bool:
     if not path.exists():
         return False
@@ -176,9 +197,10 @@ def run(args) -> None:
     if args.stock_ids:
         cfg["universe"]["stock_ids"] = args.stock_ids.split(",")
 
-    stocks = load_stock_list(cfg)
+    stocks = load_from_universe(cfg) if args.from_universe else load_stock_list(cfg)
+    src = "母體 universe.yaml" if args.from_universe else "全市場"
     print(f"觀察宇宙:{cfg['universe']['market']} 共 {len(stocks)} 檔"
-          f"(token={'有' if os.getenv('FINMIND_TOKEN') else '匿名'})")
+          f"(來源 {src};token={'有' if os.getenv('FINMIND_TOKEN') else '匿名'})")
     refetch_days = cfg["fetch"].get("refetch_after_days", 3)
     sleep_s = cfg["fetch"].get("sleep_seconds", 0.6)
 
@@ -227,6 +249,8 @@ def main() -> None:
     p.add_argument("--config", default=str(ROOT / "config/screener.yaml"))
     p.add_argument("--limit", type=int, default=0, help="只抓前 N 檔(測試)")
     p.add_argument("--stock-ids", default="", help="只抓指定代號,逗號分隔(測試)")
+    p.add_argument("--from-universe", action="store_true",
+                   help="改讀 config/universe.yaml(可分析母體)當清單,而非全市場")
     run(p.parse_args())
 
 
