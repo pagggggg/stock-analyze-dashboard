@@ -24,6 +24,12 @@ fetch:
   refetch_after_days: 3          # 本地檔 ≤ N 天就跳過不重抓(可續跑 resumable)
   deep_fetch_only_liquid: true   # 只對「通過流動性」的股票深抓財報(大幅省請求)
   valuation: true                # 額外抓估值(前瞻PE/PEG/FCF Yield,yfinance)。全市場放大想省請求可設 false
+  month_revenue: true            # 抓月營收算『營收動能』(FinMind,台股每月10日前公告)
+                                 #   ★ 為何需要:yfinance 對多數台股無分析師覆蓋 → PEG/盈餘修正動能是空的;
+                                 #     月營收覆蓋近全市場、每月更新,提供不依賴共識的動能訊號。
+                                 #     它是『已發生的實際營收』,與分析師『未來共識』口徑不同,分開欄位顯示。
+  month_revenue_start: "2021-01-01"  # 月營收起抓日(需 ≥2 年才算得出 YoY 對照)
+  month_revenue_recent: 3        # 近 N 月平均 YoY 當「近期動能」,與其前 N 月比較判加速/減速
 
 # ---------------------------------------------------------------------------
 # 第一層:資格篩選(6 條全過才進池)

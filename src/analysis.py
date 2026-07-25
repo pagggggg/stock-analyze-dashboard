@@ -72,6 +72,7 @@ class StockAnalysis:
 
     ann_eps: float | None = None                   # 前瞻PE 用的年化EPS(共識優先)
     ann_eps_source: str = ""
+    mrev: dict | None = None                       # 月營收動能(不需分析師共識;台股每月公告)
     errors: list[str] = field(default_factory=list)
 
     @property
@@ -158,6 +159,15 @@ def analyze_stock(
         a.consensus_source = f"yfinance 分析師共識 (抓取 {yf_date})"
         if a.eps_y0 and a.eps_y1 and a.eps_y0 != 0:
             a.growth_pct = (a.eps_y1 - a.eps_y0) / a.eps_y0 * 100.0
+
+    # ---- 月營收動能(台股每月10日前公告;不依賴分析師覆蓋)----
+    # 多數台股沒有分析師共識 → 共識類訊號(PEG/盈餘修正動能)是空的;
+    # 月營收覆蓋近全市場,提供一個以「實際已發生營收」為準的動能訊號(口徑不同,獨立顯示)。
+    try:
+        from .data_layer import fetch_month_revenue, month_revenue_momentum
+        a.mrev = month_revenue_momentum(fetch_month_revenue(stock_id)[0])
+    except Exception as e:  # noqa: BLE001
+        a.errors.append(f"月營收動能抓取失敗:{e}")
 
     # 前瞻PE 的年化EPS:共識今年FY 優先,抓不到退回 TTM(近4季實際)
     if a.eps_y0:

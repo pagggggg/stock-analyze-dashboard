@@ -37,6 +37,41 @@ def _mom(cond) -> str:
     return "⚠️資料不足" if cond.status == "na" else _esc(cond.detail)
 
 
+_MREV_STYLE = {
+    "accel": (C_CHEAP, "▲ 加速"),
+    "decel": (C_EXP, "▼ 減速"),
+    "flat": (C_FAIR, "— 持平"),
+    "na": (C_NA, "—"),
+}
+
+
+def _mrev_cell(r) -> str:
+    """月營收動能欄:近N月平均YoY + 加速/減速。不依賴分析師覆蓋,近全市場都有。"""
+    yoy = r.metrics.get("mrev_yoy_recent")
+    trend = r.metrics.get("mrev_trend") or "na"
+    if yoy is None:
+        return '<td class="num">⚠️資料不足</td>'
+    col, lab = _MREV_STYLE.get(trend, _MREV_STYLE["na"])
+    ym = r.metrics.get("mrev_last_ym") or ""
+    return (f'<td class="num" title="最新資料月 {_esc(ym)}">'
+            f'<b style="color:{col}">{yoy:+.1f}%</b> '
+            f'<span style="color:{col};font-size:.8em">{_esc(lab)}</span></td>')
+
+
+def _hpeg_cell(r) -> str:
+    """歷史PEG 欄:trailing PE ÷ 實際EPS CAGR。衰退(CAGR≤0)不給 PEG,如實顯示成長率。"""
+    peg = r.metrics.get("hist_peg")
+    cagr = r.metrics.get("hist_eps_cagr")
+    tpe = r.metrics.get("hist_trailing_pe")
+    if peg is not None:
+        tip = f"trailing PE {tpe} ÷ EPS年化成長 {cagr}%（近{r.metrics.get('hist_span')}年）"
+        return f'<td class="num" title="{_esc(tip)}"><b>{peg:,.2f}</b></td>'
+    if cagr is not None:
+        return (f'<td class="num" title="EPS 年化成長 ≤0,PEG 無意義">'
+                f'<span style="color:{C_EXP}">成長 {cagr:+.1f}%</span></td>')
+    return '<td class="num">⚠️資料不足</td>'
+
+
 def _l2_table(rows: list[ScreenResult]) -> str:
     body = []
     for r in rows:
@@ -77,13 +112,16 @@ def _val_tbl(rows: list[ScreenResult]) -> str:
             f"<td class='num'>{_fv(m.get('pe_p90'), 'x')}</td>"
             f"<td class='num'>{pct_s}</td>"
             f"<td class='num'>{peg_s}</td>"
-            f"<td class='num'>{cov_s}</td></tr>"
+            f"<td class='num'>{cov_s}</td>"
+            f"{_hpeg_cell(r)}{_mrev_cell(r)}</tr>"
         )
     return (
         '<div class="swipe-hint">← 手機可左右滑動看更多欄位 →</div>'
         '<div class="table-scroll"><table class="tbl"><thead><tr>'
         "<th>代號</th><th>名稱</th><th>市場</th><th>🚩旗標</th><th>前瞻PE</th>"
         "<th>近5年PE中位</th><th>近5年P90</th><th>PE百分位</th><th>PEG</th><th>共識覆蓋</th>"
+        "<th>歷史PEG<br><span style='font-weight:400;font-size:.8em'>(不需共識)</span></th>"
+        "<th>月營收動能<br><span style='font-weight:400;font-size:.8em'>(不需共識)</span></th>"
         "</tr></thead><tbody>" + "".join(body) + "</tbody></table></div>"
     )
 
@@ -202,6 +240,16 @@ def build_screener_page(results, funnel, cfg, generated: str) -> str:
             "<b>PE 百分位一律用個股自己近5年歷史</b>(不用全市場平均——不同產業 PE 水準天生不同)。"))
     w('<div class="warn">⚠️ <b>共識覆蓋 &lt; 3 家(標「⚠低覆蓋」)者:PEG 與修正動能僅供參考,'
       '不得作為判斷依據</b>——這兩個訊號全靠分析師共識,覆蓋薄時不可信(母體不因此刪股,由資料自我標記)。</div>')
+    w(_note(
+        "<b>最後兩欄「歷史PEG」「月營收動能」不需要分析師共識</b>,是為了補救台股覆蓋不足而加"
+        "(yfinance 對多數台股、尤其金融/傳產無覆蓋,前瞻PE/PEG 永遠空白)。"
+        "<br>・<b>歷史PEG</b> = 現價÷最新年度實際EPS ÷ 實際EPS年化成長率(近5年)。"
+        "<b style='color:#b91c1c'>與前瞻PEG 口徑不同,兩者不可直接比較、不可互相取代</b>"
+        "(前瞻看未來共識、歷史看已發生事實)。EPS 年化成長 ≤0 時不給 PEG(負PEG無意義),改顯示成長率。"
+        "<br>・<b>月營收動能</b> = 近3個月平均營收年增率(YoY),並與其前3個月比較判斷加速/減速。"
+        "資料為台股每月10日前依法公告的月營收(FinMind),覆蓋近全市場。"
+        "<br>・<b style='color:#b91c1c'>共同限制</b>:兩者都是<b>回顧型</b>指標——過去成長不代表未來,"
+        "循環股在景氣高點會算出漂亮的低歷史PEG,最容易騙人;月營收也只反映營收、不含毛利與費用變化。"))
     w("</section>")
 
     # 美股測試標的:逐條 + 估值評語

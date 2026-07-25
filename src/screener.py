@@ -443,6 +443,18 @@ def evaluate(rec: dict, cfg: dict) -> ScreenResult:
     rc = (cfg.get("universe_builder") or {}).get("reliable_coverage", 3)
     r.metrics["coverage"] = cov
     r.metrics["low_coverage"] = (cov is not None and cov < rc)
+
+    # ---- 不依賴分析師共識的兩個補充欄位(口徑不同,獨立顯示,絕不覆蓋前瞻欄) ----
+    hp = rec.get("hist_peg") or {}
+    r.metrics["hist_peg"] = hp.get("peg")                 # 歷史PEG = trailing PE ÷ 實際EPS CAGR
+    r.metrics["hist_trailing_pe"] = hp.get("trailing_pe")
+    r.metrics["hist_eps_cagr"] = hp.get("eps_cagr")
+    r.metrics["hist_span"] = hp.get("span")
+    mv = rec.get("mrev") or {}
+    r.metrics["mrev_yoy_recent"] = mv.get("yoy_recent")   # 近N月平均營收YoY
+    r.metrics["mrev_yoy_last"] = mv.get("yoy_last")
+    r.metrics["mrev_trend"] = mv.get("trend")             # accel / decel / flat / na
+    r.metrics["mrev_last_ym"] = mv.get("last_ym")
     return r
 
 

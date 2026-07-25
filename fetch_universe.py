@@ -34,12 +34,14 @@ from src.data_layer import (
     fetch_cashflow_pivot,
     fetch_daily_price_value,
     fetch_income_pivot,
+    fetch_month_revenue,
     fetch_price_daily_finmind,
+    month_revenue_momentum,
 )
 from src.river import daily_pe_series
 from src.screener import extract_metrics, load_config
 from src.us_data import build_us_record, compute_valuation
-from src.valuation_flag import pe_history_stats
+from src.valuation_flag import historical_peg, pe_history_stats
 
 ROOT = Path(__file__).resolve().parent
 UNIVERSE_DIR = ROOT / "data/universe"
@@ -195,6 +197,13 @@ def build_and_save(stock: dict, cfg: dict) -> dict:
         # 估值檢查(僅參考;yfinance,best-effort)+ 估值旗標用的個股近N年PE分布
         if cfg["fetch"].get("valuation", True):
             rec["valuation"] = compute_valuation(f"{sid}.TW", rec.get("price_last"))
+            # 歷史PEG:不依賴分析師共識(無覆蓋股也算得出),口徑與前瞻PEG 不同,分開存
+            try:
+                rec["hist_peg"] = historical_peg(
+                    rec.get("annual") or {}, rec.get("price_last"),
+                    years=cfg["valuation_flag"].get("pe_history_years", 5))
+            except Exception as e:  # noqa: BLE001
+                errors.append(f"hist_peg:{e}")
             if inc:
                 try:
                     px_long = fetch_price_daily_finmind(sid)[0]      # ~10 年日收盤(有快取)
@@ -204,6 +213,16 @@ def build_and_save(stock: dict, cfg: dict) -> dict:
                         pe_ser, fpe, years=cfg["valuation_flag"]["pe_history_years"])
                 except Exception as e:  # noqa: BLE001
                     errors.append(f"pe_hist:{e}")
+
+        # --- 月營收動能(台股每月10日前公告;不依賴分析師覆蓋,近全市場都有)---
+        if cfg["fetch"].get("month_revenue", True):
+            try:
+                mrows = fetch_month_revenue(sid, start_date=cfg["fetch"].get(
+                    "month_revenue_start", "2021-01-01"))[0]
+                rec["mrev"] = month_revenue_momentum(
+                    mrows, recent=cfg["fetch"].get("month_revenue_recent", 3))
+            except Exception as e:  # noqa: BLE001
+                errors.append(f"month_revenue:{e}")
     else:
         rec["skipped_financials"] = True
 

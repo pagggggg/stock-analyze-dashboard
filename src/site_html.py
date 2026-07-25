@@ -111,6 +111,26 @@ def _metric_cell(a, key, unit, dp=1):
             f'<span class="verdict">{_esc(m.verdict)}</span></td>')
 
 
+_MREV = {
+    "accel": (C_CHEAP, "▲ 加速"),
+    "decel": (C_EXP, "▼ 減速"),
+    "flat": (C_FAIR, "— 持平"),
+    "na": (C_NA, "—"),
+}
+
+
+def _mrev_cell(a) -> str:
+    """月營收動能欄(不需分析師共識,近全市場都有)。無資料如實顯示 N/A。"""
+    mv = getattr(a, "mrev", None) or {}
+    yoy = mv.get("yoy_recent")
+    if yoy is None:
+        return '<td class="num" data-sort="nan">N/A</td>'
+    col, lab = _MREV.get(mv.get("trend") or "na", _MREV["na"])
+    return (f'<td class="num" data-sort="{yoy}" title="最新資料月 {_esc(mv.get("last_ym") or "")}">'
+            f'<span style="color:{col};font-weight:700">{yoy:+.1f}%</span>'
+            f'<span class="verdict">{_esc(lab)}</span></td>')
+
+
 def _scan_table(rows: list[tuple]) -> str:
     """rows: list of (analysis, momentum_dir, momentum_pct)。"""
     body = []
@@ -132,11 +152,12 @@ def _scan_table(rows: list[tuple]) -> str:
             f'{_metric_cell(a, "fcf_yield", "%")}'
             f'{_metric_cell(a, "ev_ebitda", "x")}'
             f'<td class="num" data-sort="{msort}"><span style="color:{mcolor};font-weight:700">{_esc(mtxt)}</span></td>'
+            f'{_mrev_cell(a)}'
             "</tr>"
         )
     heads = [
         ("代號", 0), ("名稱", 1), ("現價", 2), ("前瞻PE", 3), ("PEG", 4),
-        ("FCF Yield", 5), ("EV/EBITDA", 6), ("盈餘修正動能", 7),
+        ("FCF Yield", 5), ("EV/EBITDA", 6), ("盈餘修正動能", 7), ("月營收動能", 8),
     ]
     th = "".join(f'<th onclick="sortTable({i})">{_esc(h)} ⇅</th>' for h, i in heads)
     return (
@@ -287,7 +308,13 @@ def build_index_html(
     {_note('<b>前瞻PE</b>=現價÷今年共識EPS;<b>PEG</b>=前瞻PE÷盈餘成長率;'
            '<b>FCF Yield</b>=近4季自由現金流÷市值;<b>EV/EBITDA</b>=(市值+負債−現金)÷近4季EBITDA。'
            '<b>盈餘修正動能</b>僅<b>標記</b>近期共識被上/下修的方向,<b>目前不納入評分</b>'
-           '(依原則,等回測驗證後才考慮加權重)。點名稱進個股詳情看河流圖與 FCF 品質。')}
+           '(依原則,等回測驗證後才考慮加權重)。'
+           '<br><b>月營收動能</b>=近3個月平均營收年增率(YoY),並與其前3個月比較判加速/減速。'
+           '資料為台股每月10日前依法公告的月營收——<b>不需分析師覆蓋,近全市場都有</b>,'
+           '正好補上多數台股(尤其金融/傳產)沒有共識、導致前瞻PE/PEG/盈餘修正動能空白的缺口。'
+           '<b style="color:#b91c1c">但它與共識類指標口徑不同</b>:一個是已發生的實際營收、一個是對未來的預估,'
+           '兩者不可互相取代;且月營收只反映營收,<b>不含毛利與費用變化</b>。'
+           '點名稱進個股詳情看河流圖與 FCF 品質。')}
   </section>
 
   <footer>

@@ -48,6 +48,45 @@ def pe_history_stats(pe_series: list, forward_pe: float | None,
     return {"median": median, "p90": p90, "percentile": pct, "years": years, "n": len(vals)}
 
 
+def historical_peg(annual: dict, price: float | None, years: int = 5) -> dict | None:
+    """『歷史PEG』——完全不依賴分析師共識,只用實際財報 EPS 與現價。
+
+    ★ 與前瞻PEG 口徑不同,兩者**不可直接比較、不可互相取代**:
+        前瞻PEG = 現價÷今年共識EPS  ÷  共識預估成長率   (看未來,需分析師覆蓋)
+        歷史PEG = 現價÷最新年度EPS  ÷  實際EPS年化成長率 (看過去,人人都有)
+      台股多數個股(金融/傳產尤甚)沒有分析師覆蓋,前瞻PEG 永遠是空的;
+      歷史PEG 至少提供一個『用已發生事實』算出的估值/成長對照。
+
+    限制(誠實揭露):
+      - 過去成長不代表未來,循環股在景氣高點會算出很漂亮的低 PEG,**最容易騙人**。
+      - 起始年 EPS ≤ 0 無法算年化成長 → 回 None(不硬湊、不補值)。
+      - 衰退(成長率 ≤ 0)不給 PEG(負 PEG 無意義),但仍回報成長率供判讀。
+    """
+    if not annual or not price or price <= 0:
+        return None
+    ys = sorted(int(y) for y, a in annual.items() if (a or {}).get("eps") is not None)
+    if len(ys) < 2:
+        return None
+    window = ys[-years:] if len(ys) >= years else ys
+    y0, y1 = window[0], window[-1]
+    e0 = annual[str(y0)]["eps"]
+    e1 = annual[str(y1)]["eps"]
+    if e1 is None or e1 <= 0:                 # 最新年度虧損 → 本益比無意義
+        return None
+    trailing_pe = price / e1
+    n = y1 - y0
+    cagr = None
+    if e0 is not None and e0 > 0 and n >= 1:
+        cagr = ((e1 / e0) ** (1 / n) - 1) * 100
+    peg = (trailing_pe / cagr) if (cagr and cagr > 0) else None
+    return {
+        "trailing_pe": round(trailing_pe, 1),
+        "eps_cagr": round(cagr, 1) if cagr is not None else None,
+        "peg": round(peg, 2) if peg is not None else None,
+        "eps_last": e1, "year_from": y0, "year_to": y1, "span": n,
+    }
+
+
 def pe_series_us(hist, annual_eps: dict, years: int = 5) -> list:
     """美股:用『每日收盤 ÷ 最近會計年度 EPS(step)』近似每日本益比序列。
 

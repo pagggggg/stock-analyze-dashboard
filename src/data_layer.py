@@ -827,6 +827,84 @@ def fetch_daily_price_value(
     return rows, obj["fetched_date"]
 
 
+def fetch_month_revenue(
+    stock_id: str = "2330", start_date: str = "2021-01-01"
+) -> tuple[list[dict], str]:
+    """FinMind 月營收(台股每月10日前依法公告)。回傳 ([{ym, year, month, revenue}], 抓取日期)。
+
+    為什麼要它:yfinance 對多數台股(尤其金融/傳產)沒有分析師共識,
+    導致 PEG / 盈餘修正動能無值。月營收是台股特有的『高頻公開揭露』,
+    覆蓋接近全市場、每月更新,可作為**獨立的營收動能訊號**——
+    ★ 它是『實際已發生的營收』,與分析師『未來共識』口徑不同,不可混為一談。
+    快取 24 小時(每月只更新一次,不需頻繁抓)。
+    """
+    key = f"finmind_mrev_{stock_id}"
+    cached = cache_get(key, ttl_seconds=24 * 3600)
+    if cached is not None:
+        return cached["data"], cached["fetched_date"]
+
+    dl = _finmind_loader()
+    df = dl.taiwan_stock_month_revenue(stock_id=stock_id, start_date=start_date)
+    if df is None or len(df) == 0:
+        raise RuntimeError("FinMind 未回傳月營收")
+    rows: list[dict] = []
+    for _, r in df.iterrows():
+        try:
+            y, m = int(r["revenue_year"]), int(r["revenue_month"])
+            rev = float(r["revenue"])
+        except (TypeError, ValueError, KeyError):
+            continue
+        if rev == rev and 1 <= m <= 12:      # 濾 NaN / 壞月份
+            rows.append({"ym": f"{y:04d}-{m:02d}", "year": y, "month": m, "revenue": rev})
+    if not rows:
+        raise RuntimeError("FinMind 月營收解析不到有效資料")
+    rows.sort(key=lambda x: x["ym"])
+    obj = cache_set(key, rows)
+    return rows, obj["fetched_date"]
+
+
+def month_revenue_momentum(rows: list[dict], recent: int = 3) -> dict | None:
+    """由月營收算『營收動能』(不依賴分析師共識)。
+
+    作法:每月 YoY = 本月營收 ÷ 去年同月營收 − 1(YoY 可自然吸收台股的季節性/工作天差異)。
+      - yoy_last  : 最新月 YoY
+      - yoy_recent: 近 recent 個月平均 YoY(近期動能)
+      - yoy_prev  : 再往前 recent 個月平均 YoY(對照)
+      - trend     : accel(加速)/ decel(減速)/ flat,由上面兩者相差判斷
+    資料不足(不足一年、無去年同月)一律回 None 或該欄 None,**不猜、不補值**。
+    """
+    if not rows or len(rows) < 13:
+        return None
+    by_ym = {r["ym"]: r["revenue"] for r in rows}
+    yoy: list[tuple[str, float]] = []
+    for r in rows:
+        prev = by_ym.get(f"{r['year'] - 1:04d}-{r['month']:02d}")
+        if prev and prev > 0:
+            yoy.append((r["ym"], (r["revenue"] / prev - 1) * 100))
+    if not yoy:
+        return None
+
+    def _avg(seq):
+        return (sum(v for _, v in seq) / len(seq)) if seq else None
+
+    recent_seq = yoy[-recent:]
+    prev_seq = yoy[-2 * recent:-recent]
+    y_recent, y_prev = _avg(recent_seq), _avg(prev_seq)
+    trend = "na"
+    if y_recent is not None and y_prev is not None:
+        diff = y_recent - y_prev
+        trend = "accel" if diff > 3 else ("decel" if diff < -3 else "flat")
+    return {
+        "yoy_last": round(yoy[-1][1], 1),
+        "last_ym": yoy[-1][0],
+        "yoy_recent": round(y_recent, 1) if y_recent is not None else None,
+        "yoy_prev": round(y_prev, 1) if y_prev is not None else None,
+        "trend": trend,
+        "months": len(yoy),
+        "recent_n": recent,
+    }
+
+
 def fetch_coverage_snapshot(ticker: str = "2330.TW", liq_days: int = 60) -> tuple[dict, str]:
     """母體建構用:一次抓 yfinance 的『市值 + 分析師覆蓋家數 + 近60日日均成交額』。
 
