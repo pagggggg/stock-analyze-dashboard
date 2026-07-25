@@ -282,6 +282,7 @@ def build_index_html(
   <div class="layer-tag">掃描總表 · 縮小研究範圍用</div>
   <section>
     <div class="table-warn">📌 本表僅供<b>縮小研究範圍</b>,<b>非買進清單</b>。點欄位標題可排序;顏色為估值判讀(綠便宜/灰合理/橘偏貴/紅貴),僅為經驗法則。</div>
+    <div class="swipe-hint">← 手機可左右滑動看更多欄位 →</div>
     <div class="table-scroll">{table}</div>
     {_note('<b>前瞻PE</b>=現價÷今年共識EPS;<b>PEG</b>=前瞻PE÷盈餘成長率;'
            '<b>FCF Yield</b>=近4季自由現金流÷市值;<b>EV/EBITDA</b>=(市值+負債−現金)÷近4季EBITDA。'
@@ -512,4 +513,12 @@ code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: .85
 .os-go { float: right; color: #2563eb; font-size: .85rem; opacity: .85; }
 .os-none { padding: 14px 16px; color: #64748b; font-size: .9rem; }
 .os-none a { color: #2563eb; }
+.swipe-hint { display: none; }
+@media (max-width: 640px) {
+  .swipe-hint { display: block; font-size: .72rem; color: #94a3b8; margin: 2px 2px 5px; text-align: right; }
+  table#scan { font-size: .86rem; }
+  table#scan th, table#scan td { padding: 8px 6px; }
+  .layer-tag { margin: 14px 4px 6px; }
+  .screener-cta { padding: 14px; }
+}
 """

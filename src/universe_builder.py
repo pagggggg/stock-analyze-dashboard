@@ -100,6 +100,7 @@ class UniverseResult:
     industry: str
     market: str                       # twse / us
     conds: dict = field(default_factory=dict)   # u1..u4 -> Cond
+    gate_keys: tuple = ("u1", "u3", "u4")       # 真正『守門』的條件(覆蓋預設不守門)
     market_cap: float | None = None
     n_analysts: int | None = None
     liq_avg: float | None = None
@@ -107,16 +108,21 @@ class UniverseResult:
 
     @property
     def passed(self) -> bool:
-        return all(c.status == "pass" for c in self.conds.values())
+        return all(self.conds[k].status == "pass" for k in self.gate_keys)
 
     @property
     def n_pass(self) -> int:
-        return sum(1 for c in self.conds.values() if c.status == "pass")
+        """通過的『守門』條件數。"""
+        return sum(1 for k in self.gate_keys if self.conds[k].status == "pass")
+
+    @property
+    def n_gates(self) -> int:
+        return len(self.gate_keys)
 
     @property
     def missing(self) -> list[str]:
-        """沒通過(fail/na)的條件標籤,給邊緣案例用。"""
-        return [_U_LABELS[k] for k, c in self.conds.items() if c.status != "pass"]
+        """沒通過(fail/na)的『守門』條件標籤,給邊緣案例用。"""
+        return [_U_LABELS[k] for k in self.gate_keys if self.conds[k].status != "pass"]
 
 
 def _money(v: float | None, market: str) -> str:
@@ -132,6 +138,11 @@ def evaluate(stock: dict, snap: dict | None, meeting_ids: set[str], cfg: dict) -
     conf = cfg["universe_builder"]["us" if market == "us" else "tw"]
     r = UniverseResult(stock_id=stock["stock_id"], name=stock.get("name", stock["stock_id"]),
                        industry=stock.get("industry", ""), market=market)
+    # 決定哪些條件『守門』(覆蓋 u2 預設不守門,只標記)
+    gates = ["u1", "u3", "u4"]
+    if cfg["universe_builder"].get("coverage_gates", False):
+        gates = ["u1", "u2", "u3", "u4"]
+    r.gate_keys = tuple(gates)
     if not snap:
         r.ok = False
         for k in ("u1", "u2", "u3", "u4"):
@@ -198,11 +209,21 @@ def build(candidates: list[dict], market: str, cfg: dict, meeting_ids: set[str] 
         if progress:
             progress(i, len(candidates), r)
 
-    # 統計:每條刷掉幾檔(獨立計)+ 通過家數 + 邊緣案例(僅差一條)
+    # 統計:每條刷掉幾檔(獨立計)+ 通過家數 + 邊緣案例(僅差一條守門)
     stats = {"total": len(results), "passed": sum(1 for r in results if r.passed)}
     for k, label in _U_LABELS.items():
         stats[k] = {"fail": sum(1 for r in results if r.conds[k].status == "fail"),
                     "na": sum(1 for r in results if r.conds[k].status == "na"),
                     "label": label}
-    stats["edge"] = [r for r in results if r.n_pass == 3]   # 4 條只差 1 條
+    # 邊緣案例:守門條件只差 1 條(且該檔有被評估到)
+    stats["edge"] = [r for r in results if r.ok and (r.n_gates - r.n_pass) == 1]
+    # 覆蓋分布(在『進池』者當中):有覆蓋 / 低覆蓋(<3) / 無覆蓋
+    rc = cfg["universe_builder"].get("reliable_coverage", 3)
+    passed = [r for r in results if r.passed]
+    stats["cover"] = {
+        "full": sum(1 for r in passed if (r.n_analysts or 0) >= rc),
+        "low": sum(1 for r in passed if r.n_analysts is not None and 0 < r.n_analysts < rc),
+        "none": sum(1 for r in passed if not r.n_analysts),
+    }
+    stats["coverage_gates"] = cfg["universe_builder"].get("coverage_gates", False)
     return results, stats

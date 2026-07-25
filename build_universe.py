@@ -120,14 +120,22 @@ def _write_report(market: str, results: list, stats: dict, cfg: dict, doc: dict)
     w("")
     if market == "us":
         w(f"1. 市值 > **{conf['min_market_cap']/1e9:.0f} 十億美元**")
-        w(f"2. 分析師覆蓋 ≥ **{conf['min_analyst_coverage']}** 家(yfinance)")
+        gated = ub.get("coverage_gates", False)
+        w(f"2. 分析師覆蓋 ≥ **{conf['min_analyst_coverage']}** 家(yfinance;"
+          f"**{'守門' if gated else '不守門,只標記'}**)")
         w(f"3. 有季度法說(以有季度共識為代理):{conf.get('require_earnings_call', True)}")
         w(f"4. 近{ub['liquidity_days']}日日均成交額 > **{conf['min_avg_value']/1e6:.0f} 百萬美元**")
     else:
         rc = ub.get("reliable_coverage", 3)
+        gated = ub.get("coverage_gates", False)
         w(f"1. 市值 > **{conf['min_market_cap']/1e8:.0f} 億台幣**")
-        w(f"2. 有分析師共識(母體門檻 ≥ **{conf['min_analyst_coverage']}** 家;"
-          f"但**覆蓋 < {rc} 家者,下游 PEG/修正動能標記為僅供參考**——見下方通過清單)")
+        if gated:
+            w(f"2. 分析師共識 ≥ **{conf['min_analyst_coverage']}** 家(**當前設為守門條件**;"
+              f"覆蓋 < {rc} 家者下游 PEG/修正動能標『僅供參考』)")
+        else:
+            w(f"2. 分析師共識覆蓋:**不守門,只標記**(yfinance 對多數台股「無分析師資料」,"
+              f"硬卡會冤殺大型股如合庫金/彰銀;故覆蓋僅記錄,覆蓋 < {rc} 家者下游 PEG/修正動能"
+              f"標『僅供參考』。**守門只靠 1+3+4**)")
         w(f"3. 近 **{conf['meeting_lookback_days']}** 天有召開法人說明會(公開資訊觀測站 MOPS)")
         w(f"4. 近{ub['liquidity_days']}日日均成交額 > **{conf['min_avg_value']/1e8:.0f} 億台幣**")
     w("")
@@ -149,11 +157,12 @@ def _write_report(market: str, results: list, stats: dict, cfg: dict, doc: dict)
         w("")
         low = [r for r in passed if (r.n_analysts or 0) < rc]
         if low:
-            names = "、".join(f"{r.stock_id} {r.name}" for r in low)
-            w(f"> ⚠️ **覆蓋 < {rc} 家(標「⚠低覆蓋」,共 {len(low)} 檔:{names}):"
-              "其 PEG 與修正動能僅供參考,不得作為判斷依據**——這兩個訊號全靠分析師共識,"
-              "覆蓋薄時不可信。**母體不因此刪除該股;不可靠的資料由它自己標記**"
-              "(守門仍靠法說會 + 市值 + 流動性)。")
+            show = "、".join(f"{r.stock_id} {r.name}" for r in low[:15])
+            tail = f"…等共 {len(low)} 檔" if len(low) > 15 else f"(共 {len(low)} 檔)"
+            w(f"> ⚠️ **覆蓋 < {rc} 家(標「⚠低覆蓋」){tail}:{show}"
+              f"{'…' if len(low) > 15 else ''}**——其 PEG 與修正動能僅供參考,不得作為判斷依據"
+              "(這兩個訊號全靠分析師共識,覆蓋薄時不可信)。**母體不因此刪除該股;"
+              "不可靠的資料由它自己標記**(守門仍靠法說會 + 市值 + 流動性)。")
     else:
         w("_(本次無通過標的。)_")
     w("")
@@ -176,19 +185,36 @@ def _write_report(market: str, results: list, stats: dict, cfg: dict, doc: dict)
             w(f"| {it['stock_id']} | {it['name']} | {cov_s} |")
         w("")
 
-    # 排除原因統計
-    w("## 四、排除原因統計(哪條刷掉最多)")
+    # 排除原因統計(只算守門條件)
+    gated = stats.get("coverage_gates", False)
+    gate_keys = ("u1", "u2", "u3", "u4") if gated else ("u1", "u3", "u4")
+    w("## 四、排除原因統計(守門條件,哪條刷掉最多)")
     w("")
-    w("| 條件 | 未通過(fail) | 資料不足(na) |")
+    w("| 守門條件 | 未通過(fail) | 資料不足(na) |")
     w("| --- | ---: | ---: |")
-    order = sorted(("u1", "u2", "u3", "u4"), key=lambda k: -(stats[k]["fail"] + stats[k]["na"]))
+    order = sorted(gate_keys, key=lambda k: -(stats[k]["fail"] + stats[k]["na"]))
     for k in order:
         s = stats[k]
         w(f"| {_U_LABELS[k]} | {s['fail']} | {s['na']} |")
     w("")
-    w("> 註:各條**獨立計**(一檔可能同時卡多條);「通過母體」是 4 條同時成立。"
-      "「資料不足」一律**不算通過**(誠實排除,不冒充納入)。")
+    w(f"> 註:各條**獨立計**(一檔可能同時卡多條);「通過母體」是這 **{len(gate_keys)} 條守門**"
+      "同時成立。「資料不足」一律**不算通過**(誠實排除,不冒充納入)。")
     w("")
+    if not gated:
+        cov = stats["cover"]
+        u2 = stats["u2"]
+        w("### ② 分析師覆蓋:不守門,只標記(為何?)")
+        w("")
+        w(f"- yfinance 對台股分析師覆蓋**極不完整**:本次 **{u2['fail']}** 檔查無任何覆蓋資料。"
+          "**這不代表它們沒人研究**——合庫金、彰銀、臺企銀等大型金融/傳產股都被 yfinance 漏掉。"
+          "若把覆蓋當守門,會**冤殺一堆貨真價實的大戶**,故覆蓋只記錄+標記。")
+        w(f"- 進池 {stats['passed']} 檔的覆蓋分布:"
+          f"**有覆蓋(≥{rc}家)** {cov['full']} 檔　|　"
+          f"**低覆蓋(1–{rc-1}家)** {cov['low']} 檔　|　"
+          f"**無覆蓋(yfinance 無資料)** {cov['none']} 檔。")
+        w("- 低覆蓋 / 無覆蓋者,下游 **PEG 與修正動能**一律標「僅供參考,不得作為判斷依據」;"
+          "其餘訊號(FCF、估值、共識方向等)不受影響。")
+        w("")
 
     # 邊緣案例
     edge = stats["edge"]
@@ -199,7 +225,7 @@ def _write_report(market: str, results: list, stats: dict, cfg: dict, doc: dict)
         w("| 代號 | 名稱 | 差哪一條 | 該條實況 | 市值 | 分析師 | 日均額 |")
         w("| --- | --- | --- | --- | ---: | ---: | ---: |")
         for r in edge:
-            miss_k = next(k for k, c in r.conds.items() if c.status != "pass")
+            miss_k = next(k for k in r.gate_keys if r.conds[k].status != "pass")
             w(f"| {r.stock_id} | {r.name} | {_U_LABELS[miss_k]} | {r.conds[miss_k].detail} | "
               f"{_money(r.market_cap, market)} | {r.n_analysts if r.n_analysts is not None else '—'} | "
               f"{_money(r.liq_avg, market)} |")
@@ -239,7 +265,7 @@ def run(args) -> None:
     print(f"{mkt_zh}母體評估:{len(candidates)} 檔(逐檔 yfinance,請稍候)")
 
     def _prog(i, n, r):
-        tag = "✅進池" if r.passed else f"✗ 差{4 - r.n_pass}條"
+        tag = "✅進池" if r.passed else f"✗ 差{r.n_gates - r.n_pass}條"
         print(f"  [{i}/{n}] {r.stock_id} {r.name}　{tag}"
               f"（市值 {_money(r.market_cap, market)}／{r.n_analysts if r.n_analysts is not None else '—'}家／"
               f"日均 {_money(r.liq_avg, market)}）")

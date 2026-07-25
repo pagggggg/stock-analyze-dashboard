@@ -49,6 +49,7 @@ def _l2_table(rows: list[ScreenResult]) -> str:
             f"<td>{_q(r.layer2['q9'])}</td><td>{mom}</td></tr>"
         )
     return (
+        '<div class="swipe-hint">← 手機可左右滑動看更多欄位 →</div>'
         '<div class="table-scroll"><table class="tbl"><thead><tr>'
         "<th>代號</th><th>名稱</th><th>產業</th><th>🚩旗標</th><th>⑦營收CAGR</th><th>⑧毛利率趨勢</th>"
         "<th>⑨ROE</th><th>⑩修正動能</th></tr></thead><tbody>"
@@ -79,6 +80,7 @@ def _val_tbl(rows: list[ScreenResult]) -> str:
             f"<td class='num'>{cov_s}</td></tr>"
         )
     return (
+        '<div class="swipe-hint">← 手機可左右滑動看更多欄位 →</div>'
         '<div class="table-scroll"><table class="tbl"><thead><tr>'
         "<th>代號</th><th>名稱</th><th>市場</th><th>🚩旗標</th><th>前瞻PE</th>"
         "<th>近5年PE中位</th><th>近5年P90</th><th>PE百分位</th><th>PEG</th><th>共識覆蓋</th>"
