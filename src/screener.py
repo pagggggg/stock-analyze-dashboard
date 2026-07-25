@@ -465,13 +465,26 @@ def screen_all(records: list[dict], cfg: dict) -> tuple[list[ScreenResult], dict
 
 # ---- 本地資料存取 ----------------------------------------------------
 def load_records(universe_dir: str | Path) -> list[dict]:
+    """讀本地母體資料。缺區塊的紀錄『不丟棄、不補值』——補成空容器,
+
+    讓各條件自然判成「資料不足(na)」並如實顯示,而不是整批 crash 或被當通過。
+    (例:抓取中斷導致 annual 缺席的股票,會顯示『僅 0 個完整年度』。)
+    """
     d = Path(universe_dir)
     out: list[dict] = []
     for p in sorted(d.glob("*.json")):
         try:
-            out.append(json.loads(p.read_text(encoding="utf-8")))
+            rec = json.loads(p.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
             continue
+        if not isinstance(rec, dict):
+            continue
+        # 缺哪塊就補空容器 → 該條件自然判成 na(資料不足),不 crash、也不會被當通過
+        for k in ("annual", "annual_bs", "annual_ocf", "latest_bs", "valuation", "pe_hist"):
+            rec.setdefault(k, {})
+        for k in ("quarters", "ocf_q", "errors"):
+            rec.setdefault(k, [])
+        out.append(rec)
     return out
 
 

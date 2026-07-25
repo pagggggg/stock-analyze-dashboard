@@ -107,6 +107,7 @@ def load_from_universe(cfg: dict) -> list[dict]:
     """改讀『可分析母體』config/universe.yaml 當清單(build_universe.py 產出)。
 
     台股會再從 taiwan_stock_info 補回產業別(篩選器的負債門檻需要)。
+    ★ 同樣支援 --stock-ids / --limit 過濾(否則指定代號會被無視,整份母體被重抓)。
     """
     import yaml
     path = ROOT / "config/universe.yaml"
@@ -115,6 +116,16 @@ def load_from_universe(cfg: dict) -> list[dict]:
     doc = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     market = cfg["universe"]["market"]
     items = doc.get(market) or (doc.get("twse") if market == "twse" else doc.get("us")) or []
+
+    # --stock-ids:只留指定代號(順序依指定);--limit:只取前 N 檔
+    only = [str(x).strip() for x in (cfg["universe"].get("stock_ids") or []) if str(x).strip()]
+    if only:
+        by_id = {str(s["stock_id"]): s for s in items}
+        items = [by_id[i] for i in only if i in by_id]
+    lim = cfg["universe"].get("limit") or 0
+    if lim:
+        items = items[:lim]
+
     if market == "twse":
         info = _finmind_loader().taiwan_stock_info()
         ind = {str(r["stock_id"]): str(r["industry_category"]) for _, r in info.iterrows()}
