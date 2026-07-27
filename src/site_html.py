@@ -52,8 +52,9 @@ _MOM = {
     "na": (C_NA, "—"),
 }
 _STATUS = {
-    "green": ("#16a34a", "🟢 無訊號級變化", "觀察清單目前沒有需要注意的基本面訊號。"),
-    "yellow": ("#eab308", "🟡 有共識異動 / FCF 燈變色", "有『訊號級』變化,詳見下方訊號流水。"),
+    "green": ("#15803d", "🟢 無訊號級變化", "觀察清單目前沒有需要注意的基本面訊號。"),
+    # 黃燈底色刻意用較深的琥珀(#a16207)而非亮黃:亮黃配白字對比不足,手機戶外幾乎看不見。
+    "yellow": ("#a16207", "🟡 有共識異動 / FCF 燈變色", "有『訊號級』變化,詳見下方訊號流水。"),
     "red": ("#dc2626", "🔴 有股票跨越估值門檻", "有股票前瞻PE 判讀等級改變,詳見下方訊號流水。"),
 }
 
@@ -254,7 +255,10 @@ def build_index_html(
     n_yellow = sum(1 for e in events if e.level == "yellow")
     count_txt = ""
     if not first_run:
-        count_txt = f'　本次:<b style="color:{C_EXP}">紅 {n_red}</b>・<b style="color:#b59000">黃 {n_yellow}</b>'
+        # 狀態燈是彩色底(綠/黃/紅),計數若再用紅/黃字會「紅底紅字」看不見 →
+        # 一律白字 + 半透明白底藥丸,在任何底色上都保持高對比。
+        count_txt = (f'　本次:<b class="cnt">紅 {n_red}</b>'
+                     f'<b class="cnt">黃 {n_yellow}</b>')
 
     banner = (
         f'<div class="status" style="background:{scolor}">'
@@ -495,6 +499,12 @@ _SITE_CSS = BASE_CSS + """
   box-shadow: 0 8px 24px rgba(0,0,0,.14); }
 .status-title { font-size: 1.5rem; font-weight: 800; }
 .status-desc { font-size: .95rem; opacity: .95; margin-top: 4px; }
+/* 狀態燈內的計數:白字+半透明白底,避免「紅底紅字」在彩色橫幅上看不見。
+   選擇器同時涵蓋 .cnt 與任何 <b>,舊版已產生的 HTML 也能被修正(含行內 color 也蓋掉)。 */
+.status-desc b, .status-desc .cnt { display: inline-block; color: #fff !important;
+  background: rgba(255,255,255,.25); border: 1px solid rgba(255,255,255,.45);
+  border-radius: 999px; padding: 1px 10px; margin-left: 6px;
+  font-variant-numeric: tabular-nums; }
 .stream { display: flex; flex-direction: column; gap: 2px; }
 .stream-item { display: flex; align-items: center; gap: 10px; padding: 8px 6px;
   border-bottom: 1px solid #f1f5f9; font-size: .92rem; flex-wrap: wrap; }
