@@ -1,0 +1,5829 @@
+{
+ "params": {
+  "entry_pctl": 50.0,
+  "exit_pctl": 80.0,
+  "deterioration_quarters": 2,
+  "warmup": 504,
+  "lag": 1,
+  "costs": {
+   "TW": {
+    "buy_pct": 0.1425,
+    "sell_pct": 0.4425
+   },
+   "US": {
+    "buy_pct": 0.025,
+    "sell_pct": 0.025
+   }
+  },
+  "eras": [
+   {
+    "key": "early",
+    "name": "2008~2016(成長股大噴發前)",
+    "start": "2008-01-01",
+    "end": "2016-12-31"
+   },
+   {
+    "key": "late",
+    "name": "2017~2026(大噴發時代)",
+    "start": "2017-01-01",
+    "end": "2099-12-31"
+   }
+  ],
+  "era_min_days": 250
+ },
+ "stocks": [
+  {
+   "code": "2330",
+   "yf": "2330.TW",
+   "name": "台積電",
+   "market": "TW",
+   "group": "成長",
+   "analysis_start": "2011-08-14",
+   "analysis_end": "2026-07-27",
+   "meta": {
+    "price_start": "2000-01-04",
+    "price_end": "2026-07-27",
+    "price_days": 6604,
+    "pe_source": "TWSE 個股日本益比(BWIBBU)— 交易所官方 trailing PE",
+    "pe_start": "2005-09-02",
+    "pe_end": "2026-07-27",
+    "pe_days": 5138,
+    "fs_source": "FinMind 綜合損益表(季)",
+    "eps_basis": "實際 EPS(台股免費資料源無分析師共識,依題目指定改用實際 EPS 連兩季年減)",
+    "has_consensus": false,
+    "fs_start": "2010-03-31",
+    "fs_end": "2026-03-31",
+    "fs_quarters": 65
+   },
+   "full": {
+    "A": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": 3.8985013779959914,
+     "cagr": 0.11214700631034091,
+     "max_drawdown": -0.2294990950043888,
+     "mdd_peak_date": "2015-03-19",
+     "mdd_trough_date": "2015-08-24",
+     "n_trades": 6,
+     "n_closed": 6,
+     "n_open": 0,
+     "win_rate": 1.0,
+     "avg_trade_ret": 0.31448549300938794,
+     "best_trade": 0.6087974781302612,
+     "worst_trade": 0.08553091973087645,
+     "time_in_market": 0.405042477391066,
+     "final_equity": 4.898501377995991
+    },
+    "B": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": 0.7500673530663362,
+     "cagr": 0.03814805656654485,
+     "max_drawdown": -0.23841189223495785,
+     "mdd_peak_date": "2017-08-08",
+     "mdd_trough_date": "2022-10-25",
+     "n_trades": 5,
+     "n_closed": 5,
+     "n_open": 0,
+     "win_rate": 0.8,
+     "avg_trade_ret": 0.12189298844979886,
+     "best_trade": 0.23751700773974616,
+     "worst_trade": -0.022524485210092426,
+     "time_in_market": 0.16388051520964647,
+     "final_equity": 1.7500673530663362
+    },
+    "BH": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": 51.4293531199481,
+     "cagr": 0.30326272916027763,
+     "max_drawdown": -0.44799017822497866,
+     "mdd_peak_date": "2022-01-17",
+     "mdd_trough_date": "2022-10-25",
+     "n_trades": 0,
+     "n_closed": 0,
+     "n_open": 0,
+     "win_rate": null,
+     "avg_trade_ret": null,
+     "best_trade": null,
+     "worst_trade": null,
+     "time_in_market": 1.0,
+     "final_equity": 52.4293531199481
+    }
+   },
+   "eras": {
+    "A": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 1.750456477165518,
+      "cagr": 0.20702761757709287,
+      "max_drawdown": -0.2294990950043888,
+      "final_equity": 2.750456477165518,
+      "time_in_market": 0.7439759036144579,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 4,
+      "n_closed": 4,
+      "win_rate": 1.0
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 0.7809776008686893,
+      "cagr": 0.06222844524497262,
+      "max_drawdown": -0.22251564281503977,
+      "final_equity": 1.7809776008686893,
+      "time_in_market": 0.2137009909521758,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 2,
+      "n_closed": 2,
+      "win_rate": 1.0
+     }
+    },
+    "B": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 0.3131044161187688,
+      "cagr": 0.05196286715463616,
+      "max_drawdown": -0.10313876138840217,
+      "final_equity": 1.3131044161187688,
+      "time_in_market": 0.19954819277108435,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 3,
+      "n_closed": 3,
+      "win_rate": 0.6666666666666666
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 0.3327708989351572,
+      "cagr": 0.03050227254321669,
+      "max_drawdown": -0.23841189223495785,
+      "final_equity": 1.3327708989351572,
+      "time_in_market": 0.14562688496337786,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 2,
+      "n_closed": 2,
+      "win_rate": 1.0
+     }
+    },
+    "BH": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 2.1755099368125896,
+      "cagr": 0.2397197192291789,
+      "max_drawdown": -0.23199262087324668,
+      "final_equity": 3.1755099368125896,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 15.375199154649508,
+      "cagr": 0.3396746134626838,
+      "max_drawdown": -0.44799017822497866,
+      "final_equity": 16.375199154649508,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     }
+    }
+   },
+   "pe_coverage": 0.9978076185256235,
+   "pe_days_in_period": 3641,
+   "period_days": 3649,
+   "gm_not_applicable": false,
+   "b_fund_exits": 4,
+   "b_fund_exit_detail": [
+    {
+     "entry_date": "2013-08-15",
+     "exit_date": "2014-04-01",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": 0.23751700773974616,
+     "quarter": "2013-12-31"
+    },
+    {
+     "entry_date": "2015-03-02",
+     "exit_date": "2015-05-18",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": -0.022524485210092426,
+     "quarter": "2015-03-31"
+    },
+    {
+     "entry_date": "2017-02-17",
+     "exit_date": "2017-08-15",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": 0.1601111096536596,
+     "quarter": "2017-06-30"
+    },
+    {
+     "entry_date": "2022-09-20",
+     "exit_date": "2023-08-15",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": 0.1488303903348045,
+     "quarter": "2023-06-30"
+    }
+   ]
+  },
+  {
+   "code": "2308",
+   "yf": "2308.TW",
+   "name": "台達電",
+   "market": "TW",
+   "group": "成長",
+   "analysis_start": "2011-08-14",
+   "analysis_end": "2026-07-27",
+   "meta": {
+    "price_start": "2000-01-04",
+    "price_end": "2026-07-27",
+    "price_days": 6604,
+    "pe_source": "TWSE 個股日本益比(BWIBBU)— 交易所官方 trailing PE",
+    "pe_start": "2005-09-02",
+    "pe_end": "2026-07-27",
+    "pe_days": 5138,
+    "fs_source": "FinMind 綜合損益表(季)",
+    "eps_basis": "實際 EPS(台股免費資料源無分析師共識,依題目指定改用實際 EPS 連兩季年減)",
+    "has_consensus": false,
+    "fs_start": "2010-03-31",
+    "fs_end": "2026-03-31",
+    "fs_quarters": 65
+   },
+   "full": {
+    "A": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": 2.7654656423952693,
+     "cagr": 0.09274729282734917,
+     "max_drawdown": -0.30448275603165975,
+     "mdd_peak_date": "2018-01-22",
+     "mdd_trough_date": "2018-07-05",
+     "n_trades": 10,
+     "n_closed": 10,
+     "n_open": 0,
+     "win_rate": 0.9,
+     "avg_trade_ret": 0.14632322372505985,
+     "best_trade": 0.35091082627870773,
+     "worst_trade": -0.015134756900916257,
+     "time_in_market": 0.2863798300904357,
+     "final_equity": 3.7654656423952693
+    },
+    "B": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": 0.29853809463158454,
+     "cagr": 0.017629341040144908,
+     "max_drawdown": -0.2809212894034846,
+     "mdd_peak_date": "2019-06-21",
+     "mdd_trough_date": "2020-03-19",
+     "n_trades": 10,
+     "n_closed": 10,
+     "n_open": 0,
+     "win_rate": 0.5,
+     "avg_trade_ret": 0.03541207095315123,
+     "best_trade": 0.2244383716462779,
+     "worst_trade": -0.21771306409001712,
+     "time_in_market": 0.11866264730063031,
+     "final_equity": 1.2985380946315845
+    },
+    "BH": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": 31.041843763276027,
+     "cagr": 0.2610313458723714,
+     "max_drawdown": -0.46990283892370444,
+     "mdd_peak_date": "2014-09-01",
+     "mdd_trough_date": "2018-07-05",
+     "n_trades": 0,
+     "n_closed": 0,
+     "n_open": 0,
+     "win_rate": null,
+     "avg_trade_ret": null,
+     "best_trade": null,
+     "worst_trade": null,
+     "time_in_market": 1.0,
+     "final_equity": 32.04184376327603
+    }
+   },
+   "eras": {
+    "A": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 1.244996370415309,
+      "cagr": 0.1622952233295647,
+      "max_drawdown": -0.2616279162371715,
+      "final_equity": 2.244996370415309,
+      "time_in_market": 0.3870481927710843,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 6,
+      "n_closed": 6,
+      "win_rate": 0.8333333333333334
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 0.6772702584364017,
+      "cagr": 0.05558358879615266,
+      "max_drawdown": -0.30448275603165975,
+      "final_equity": 1.6772702584364017,
+      "time_in_market": 0.23308918569582077,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 4,
+      "n_closed": 4,
+      "win_rate": 1.0
+     }
+    },
+    "B": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 0.19706994354922402,
+      "cagr": 0.034017964523415545,
+      "max_drawdown": -0.22491527565136105,
+      "final_equity": 1.197069943549224,
+      "time_in_market": 0.16490963855421686,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 5,
+      "n_closed": 5,
+      "win_rate": 0.4
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 0.08476376140688568,
+      "cagr": 0.008546496437386475,
+      "max_drawdown": -0.2809212894034846,
+      "final_equity": 1.0847637614068857,
+      "time_in_market": 0.0965101249461439,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 5,
+      "n_closed": 5,
+      "win_rate": 0.6
+     }
+    },
+    "BH": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 1.2673282245428146,
+      "cagr": 0.16443674745294978,
+      "max_drawdown": -0.38741808076461826,
+      "final_equity": 2.2673282245428146,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 13.221138970290841,
+      "cagr": 0.32005667657231496,
+      "max_drawdown": -0.39295180780700045,
+      "final_equity": 14.221138970290841,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     }
+    }
+   },
+   "pe_coverage": 0.9978076185256235,
+   "pe_days_in_period": 3641,
+   "period_days": 3649,
+   "gm_not_applicable": false,
+   "b_fund_exits": 5,
+   "b_fund_exit_detail": [
+    {
+     "entry_date": "2011-08-16",
+     "exit_date": "2011-11-15",
+     "reasons": [
+      "EPS_DOWN"
+     ],
+     "ret_net": -0.12251722844539725,
+     "quarter": "2011-09-30"
+    },
+    {
+     "entry_date": "2012-11-02",
+     "exit_date": "2012-11-15",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": -0.0010867786558320658,
+     "quarter": "2012-09-30"
+    },
+    {
+     "entry_date": "2016-01-11",
+     "exit_date": "2016-05-17",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": -0.03669702034658906,
+     "quarter": "2016-03-31"
+    },
+    {
+     "entry_date": "2017-11-09",
+     "exit_date": "2017-11-15",
+     "reasons": [
+      "EPS_DOWN"
+     ],
+     "ret_net": -0.01661073947341518,
+     "quarter": "2017-09-30"
+    },
+    {
+     "entry_date": "2019-08-02",
+     "exit_date": "2020-04-01",
+     "reasons": [
+      "EPS_DOWN"
+     ],
+     "ret_net": -0.21771306409001712,
+     "quarter": "2019-12-31"
+    }
+   ]
+  },
+  {
+   "code": "2454",
+   "yf": "2454.TW",
+   "name": "聯發科",
+   "market": "TW",
+   "group": "成長",
+   "analysis_start": "2011-08-14",
+   "analysis_end": "2026-07-27",
+   "meta": {
+    "price_start": "2001-07-23",
+    "price_end": "2026-07-27",
+    "price_days": 6200,
+    "pe_source": "TWSE 個股日本益比(BWIBBU)— 交易所官方 trailing PE",
+    "pe_start": "2005-09-02",
+    "pe_end": "2026-07-27",
+    "pe_days": 5138,
+    "fs_source": "FinMind 綜合損益表(季)",
+    "eps_basis": "實際 EPS(台股免費資料源無分析師共識,依題目指定改用實際 EPS 連兩季年減)",
+    "has_consensus": false,
+    "fs_start": "2010-03-31",
+    "fs_end": "2026-03-31",
+    "fs_quarters": 65
+   },
+   "full": {
+    "A": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": 2.031317355474955,
+     "cagr": 0.07700823499178622,
+     "max_drawdown": -0.5962112873201804,
+     "mdd_peak_date": "2015-01-26",
+     "mdd_trough_date": "2016-05-06",
+     "n_trades": 5,
+     "n_closed": 5,
+     "n_open": 0,
+     "win_rate": 0.8,
+     "avg_trade_ret": 0.28885518328230464,
+     "best_trade": 0.7370689087236519,
+     "worst_trade": -0.1723291673088675,
+     "time_in_market": 0.5245272677445876,
+     "final_equity": 3.031317355474955
+    },
+    "B": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": 0.6318725456331109,
+     "cagr": 0.03330319990497976,
+     "max_drawdown": -0.4983152421553698,
+     "mdd_peak_date": "2021-12-30",
+     "mdd_trough_date": "2022-09-29",
+     "n_trades": 5,
+     "n_closed": 5,
+     "n_open": 0,
+     "win_rate": 0.6,
+     "avg_trade_ret": 0.12934596377947588,
+     "best_trade": 0.5463514178192479,
+     "worst_trade": -0.1750704997189061,
+     "time_in_market": 0.22828172101945737,
+     "final_equity": 1.631872545633111
+    },
+    "BH": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": 25.64271062242845,
+     "cagr": 0.2455607926574459,
+     "max_drawdown": -0.6167428778573929,
+     "mdd_peak_date": "2014-07-07",
+     "mdd_trough_date": "2016-05-06",
+     "n_trades": 0,
+     "n_closed": 0,
+     "n_open": 0,
+     "win_rate": null,
+     "avg_trade_ret": null,
+     "best_trade": null,
+     "worst_trade": null,
+     "time_in_market": 1.0,
+     "final_equity": 26.64271062242845
+    }
+   },
+   "eras": {
+    "A": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": -0.3723792943192671,
+      "cagr": -0.08298328224583806,
+      "max_drawdown": -0.5962112873201804,
+      "final_equity": 0.6276207056807329,
+      "time_in_market": 0.4397590361445783,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 1,
+      "n_closed": 1,
+      "win_rate": 1.0
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 3.79662223428374,
+      "cagr": 0.1782115641343982,
+      "max_drawdown": -0.49831524215537004,
+      "final_equity": 4.79662223428374,
+      "time_in_market": 0.5751831107281344,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 4,
+      "n_closed": 4,
+      "win_rate": 0.75
+     }
+    },
+    "B": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": -0.06908816489241154,
+      "cagr": -0.013225664837322126,
+      "max_drawdown": -0.171341782556805,
+      "final_equity": 0.9309118351075885,
+      "time_in_market": 0.09487951807228916,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 1,
+      "n_closed": 1,
+      "win_rate": 0.0
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 0.7529829185644741,
+      "cagr": 0.06046960236466514,
+      "max_drawdown": -0.4983152421553697,
+      "final_equity": 1.752982918564474,
+      "time_in_market": 0.30676432572167167,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 4,
+      "n_closed": 4,
+      "win_rate": 0.75
+     }
+    },
+    "BH": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": -0.01287335958007163,
+      "cagr": -0.0024067336305508835,
+      "max_drawdown": -0.6167428778573929,
+      "final_equity": 0.9871266404199284,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 25.804450476934935,
+      "cagr": 0.4105388226630078,
+      "max_drawdown": -0.4983152421553694,
+      "final_equity": 26.804450476934935,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     }
+    }
+   },
+   "pe_coverage": 0.9978076185256235,
+   "pe_days_in_period": 3641,
+   "period_days": 3649,
+   "gm_not_applicable": false,
+   "b_fund_exits": 3,
+   "b_fund_exit_detail": [
+    {
+     "entry_date": "2014-09-24",
+     "exit_date": "2015-04-01",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": -0.06908816489241076,
+     "quarter": "2014-12-31"
+    },
+    {
+     "entry_date": "2021-08-17",
+     "exit_date": "2023-05-16",
+     "reasons": [
+      "EPS_DOWN",
+      "GM_DOWN"
+     ],
+     "ret_net": -0.1750704997189061,
+     "quarter": "2023-03-31"
+    },
+    {
+     "entry_date": "2024-08-06",
+     "exit_date": "2024-11-15",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": 0.1744917730742679,
+     "quarter": "2024-09-30"
+    }
+   ]
+  },
+  {
+   "code": "3017",
+   "yf": "3017.TW",
+   "name": "奇鋐",
+   "market": "TW",
+   "group": "成長",
+   "analysis_start": "2011-08-14",
+   "analysis_end": "2026-07-27",
+   "meta": {
+    "price_start": "2002-09-30",
+    "price_end": "2026-07-27",
+    "price_days": 5890,
+    "pe_source": "TWSE 個股日本益比(BWIBBU)— 交易所官方 trailing PE",
+    "pe_start": "2005-09-02",
+    "pe_end": "2026-07-27",
+    "pe_days": 4806,
+    "fs_source": "FinMind 綜合損益表(季)",
+    "eps_basis": "實際 EPS(台股免費資料源無分析師共識,依題目指定改用實際 EPS 連兩季年減)",
+    "has_consensus": false,
+    "fs_start": "2010-03-31",
+    "fs_end": "2026-03-31",
+    "fs_quarters": 65
+   },
+   "full": {
+    "A": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": 17.309198608159555,
+     "cagr": 0.21469439737149099,
+     "max_drawdown": -0.4450896730320093,
+     "mdd_peak_date": "2017-11-29",
+     "mdd_trough_date": "2018-10-25",
+     "n_trades": 3,
+     "n_closed": 3,
+     "n_open": 0,
+     "win_rate": 0.6666666666666666,
+     "avg_trade_ret": 3.1294579048745046,
+     "best_trade": 8.125592714216518,
+     "worst_trade": -0.17797824662862538,
+     "time_in_market": 0.6009865716634695,
+     "final_equity": 18.309198608159555
+    },
+    "B": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": 7.293082150252339,
+     "cagr": 0.15201480366808084,
+     "max_drawdown": -0.3603856273597965,
+     "mdd_peak_date": "2015-06-05",
+     "mdd_trough_date": "2016-05-12",
+     "n_trades": 6,
+     "n_closed": 6,
+     "n_open": 0,
+     "win_rate": 0.6666666666666666,
+     "avg_trade_ret": 0.6524258178973902,
+     "best_trade": 2.7035415520738426,
+     "worst_trade": -0.060036410582058,
+     "time_in_market": 0.35379556042751437,
+     "final_equity": 8.293082150252339
+    },
+    "BH": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": 186.46296141957575,
+     "cagr": 0.41921454795447577,
+     "max_drawdown": -0.5751973486282485,
+     "mdd_peak_date": "2024-05-29",
+     "mdd_trough_date": "2025-04-09",
+     "n_trades": 0,
+     "n_closed": 0,
+     "n_open": 0,
+     "win_rate": null,
+     "avg_trade_ret": null,
+     "best_trade": null,
+     "worst_trade": null,
+     "time_in_market": 1.0,
+     "final_equity": 187.46296141957575
+    }
+   },
+   "eras": {
+    "A": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 0.024278272975138515,
+      "cagr": 0.004471118964840759,
+      "max_drawdown": -0.42166706063841797,
+      "final_equity": 1.0242782729751385,
+      "time_in_market": 0.5873493975903614,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 1,
+      "n_closed": 1,
+      "win_rate": 0.0
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 16.698932126186726,
+      "cagr": 0.3506118180655897,
+      "max_drawdown": -0.4450896730320093,
+      "final_equity": 17.698932126186726,
+      "time_in_market": 0.6100818612666954,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 2,
+      "n_closed": 2,
+      "win_rate": 1.0
+     }
+    },
+    "B": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 0.0485304546010461,
+      "cagr": 0.008852116040575453,
+      "max_drawdown": -0.3603856273597965,
+      "final_equity": 1.048530454601046,
+      "time_in_market": 0.22515060240963855,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 2,
+      "n_closed": 2,
+      "win_rate": 0.5
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 6.831241320905458,
+      "cagr": 0.24019878846356457,
+      "max_drawdown": -0.34023411741572185,
+      "final_equity": 7.831241320905458,
+      "time_in_market": 0.42998707453683754,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 4,
+      "n_closed": 4,
+      "win_rate": 0.75
+     }
+    },
+    "BH": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 0.5369053255024847,
+      "cagr": 0.08320643567563901,
+      "max_drawdown": -0.4245527525911468,
+      "final_equity": 1.5369053255024847,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 119.77138495139226,
+      "cagr": 0.6510703154758564,
+      "max_drawdown": -0.5751973486282485,
+      "final_equity": 120.77138495139226,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     }
+    }
+   },
+   "pe_coverage": 0.9978076185256235,
+   "pe_days_in_period": 3641,
+   "period_days": 3649,
+   "gm_not_applicable": false,
+   "b_fund_exits": 5,
+   "b_fund_exit_detail": [
+    {
+     "entry_date": "2014-11-14",
+     "exit_date": "2015-08-17",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": 0.01918061879235511,
+     "quarter": "2015-06-30"
+    },
+    {
+     "entry_date": "2016-04-21",
+     "exit_date": "2016-08-16",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": -0.060036410582058,
+     "quarter": "2016-06-30"
+    },
+    {
+     "entry_date": "2016-11-15",
+     "exit_date": "2017-08-15",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": 0.10051801345828149,
+     "quarter": "2017-06-30"
+    },
+    {
+     "entry_date": "2017-11-15",
+     "exit_date": "2018-05-16",
+     "reasons": [
+      "EPS_DOWN",
+      "GM_DOWN"
+     ],
+     "ret_net": -0.02334645798493218,
+     "quarter": "2018-03-31"
+    },
+    {
+     "entry_date": "2020-03-16",
+     "exit_date": "2021-05-18",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": 1.174697591626852,
+     "quarter": "2021-03-31"
+    }
+   ]
+  },
+  {
+   "code": "3661",
+   "yf": "3661.TW",
+   "name": "世芯-KY",
+   "market": "TW",
+   "group": "成長",
+   "analysis_start": "2017-11-22",
+   "analysis_end": "2026-07-27",
+   "meta": {
+    "price_start": "2012-10-05",
+    "price_end": "2026-07-27",
+    "price_days": 3363,
+    "pe_source": "TWSE 個股日本益比(BWIBBU)— 交易所官方 trailing PE",
+    "pe_start": "2014-10-29",
+    "pe_end": "2026-07-27",
+    "pe_days": 2618,
+    "fs_source": "FinMind 綜合損益表(季)",
+    "eps_basis": "實際 EPS(台股免費資料源無分析師共識,依題目指定改用實際 EPS 連兩季年減)",
+    "has_consensus": false,
+    "fs_start": "2013-06-30",
+    "fs_end": "2026-03-31",
+    "fs_quarters": 51
+   },
+   "full": {
+    "A": {
+     "start_date": "2017-11-22",
+     "end_date": "2026-07-27",
+     "years": 8.68,
+     "total_return": 7.3802625154171455,
+     "cagr": 0.2776504994910607,
+     "max_drawdown": -0.6145434407648376,
+     "mdd_peak_date": "2018-06-08",
+     "mdd_trough_date": "2018-10-30",
+     "n_trades": 4,
+     "n_closed": 4,
+     "n_open": 0,
+     "win_rate": 1.0,
+     "avg_trade_ret": 0.7394079080150724,
+     "best_trade": 1.2537922834800797,
+     "worst_trade": 0.24056657639190004,
+     "time_in_market": 0.5161443494776828,
+     "final_equity": 8.380262515417146
+    },
+    "B": {
+     "start_date": "2017-11-22",
+     "end_date": "2026-07-27",
+     "years": 8.68,
+     "total_return": 1.3479700281369036,
+     "cagr": 0.10337966922938313,
+     "max_drawdown": -0.6145434407648372,
+     "mdd_peak_date": "2018-06-08",
+     "mdd_trough_date": "2018-10-30",
+     "n_trades": 4,
+     "n_closed": 4,
+     "n_open": 0,
+     "win_rate": 0.75,
+     "avg_trade_ret": 0.33533679772138747,
+     "best_trade": 0.981055728976628,
+     "worst_trade": -0.34239169954044324,
+     "time_in_market": 0.34283000949667614,
+     "final_equity": 2.3479700281369036
+    },
+    "BH": {
+     "start_date": "2017-11-22",
+     "end_date": "2026-07-27",
+     "years": 8.68,
+     "total_return": 39.87745513126305,
+     "cagr": 0.5336811593848088,
+     "max_drawdown": -0.6267966831193106,
+     "mdd_peak_date": "2021-02-18",
+     "mdd_trough_date": "2021-05-06",
+     "n_trades": 0,
+     "n_closed": 0,
+     "n_open": 0,
+     "win_rate": null,
+     "avg_trade_ret": null,
+     "best_trade": null,
+     "worst_trade": null,
+     "time_in_market": 1.0,
+     "final_equity": 40.87745513126305
+    }
+   },
+   "eras": {
+    "A": {
+     "early": {
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "insufficient": true,
+      "n_days": 0
+     },
+     "late": {
+      "start_date": "2017-11-22",
+      "end_date": "2026-07-27",
+      "years": 8.68,
+      "n_days": 2106,
+      "total_return": 7.3802625154171455,
+      "cagr": 0.2776504994910607,
+      "max_drawdown": -0.6145434407648376,
+      "final_equity": 8.380262515417146,
+      "time_in_market": 0.5180436847103513,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 4,
+      "n_closed": 4,
+      "win_rate": 1.0
+     }
+    },
+    "B": {
+     "early": {
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "insufficient": true,
+      "n_days": 0
+     },
+     "late": {
+      "start_date": "2017-11-22",
+      "end_date": "2026-07-27",
+      "years": 8.68,
+      "n_days": 2106,
+      "total_return": 1.3479700281369036,
+      "cagr": 0.10337966922938313,
+      "max_drawdown": -0.6145434407648372,
+      "final_equity": 2.3479700281369036,
+      "time_in_market": 0.34472934472934474,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 4,
+      "n_closed": 4,
+      "win_rate": 0.75
+     }
+    },
+    "BH": {
+     "early": {
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "insufficient": true,
+      "n_days": 0
+     },
+     "late": {
+      "start_date": "2017-11-22",
+      "end_date": "2026-07-27",
+      "years": 8.68,
+      "n_days": 2106,
+      "total_return": 39.87745513126305,
+      "cagr": 0.5336811593848088,
+      "max_drawdown": -0.6267966831193106,
+      "final_equity": 40.87745513126305,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     }
+    }
+   },
+   "pe_coverage": 0.9995251661918328,
+   "pe_days_in_period": 2105,
+   "period_days": 2106,
+   "gm_not_applicable": false,
+   "b_fund_exits": 3,
+   "b_fund_exit_detail": [
+    {
+     "entry_date": "2018-04-03",
+     "exit_date": "2019-04-02",
+     "reasons": [
+      "EPS_DOWN",
+      "GM_DOWN"
+     ],
+     "ret_net": -0.34239169954044324,
+     "quarter": "2018-12-31"
+    },
+    {
+     "entry_date": "2022-06-21",
+     "exit_date": "2022-11-15",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": 0.19701110141593903,
+     "quarter": "2022-09-30"
+    },
+    {
+     "entry_date": "2024-09-06",
+     "exit_date": "2025-11-17",
+     "reasons": [
+      "EPS_DOWN"
+     ],
+     "ret_net": 0.5056720600334261,
+     "quarter": "2025-09-30"
+    }
+   ]
+  },
+  {
+   "code": "2382",
+   "yf": "2382.TW",
+   "name": "廣達",
+   "market": "TW",
+   "group": "成長",
+   "analysis_start": "2011-08-14",
+   "analysis_end": "2026-07-27",
+   "meta": {
+    "price_start": "2000-01-04",
+    "price_end": "2026-07-27",
+    "price_days": 6604,
+    "pe_source": "TWSE 個股日本益比(BWIBBU)— 交易所官方 trailing PE",
+    "pe_start": "2005-09-02",
+    "pe_end": "2026-07-27",
+    "pe_days": 5138,
+    "fs_source": "FinMind 綜合損益表(季)",
+    "eps_basis": "實際 EPS(台股免費資料源無分析師共識,依題目指定改用實際 EPS 連兩季年減)",
+    "has_consensus": false,
+    "fs_start": "2010-03-31",
+    "fs_end": "2026-03-31",
+    "fs_quarters": 65
+   },
+   "full": {
+    "A": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": 4.451253702828628,
+     "cagr": 0.12012985177775759,
+     "max_drawdown": -0.24405589582434817,
+     "mdd_peak_date": "2022-02-09",
+     "mdd_trough_date": "2022-11-04",
+     "n_trades": 9,
+     "n_closed": 9,
+     "n_open": 0,
+     "win_rate": 1.0,
+     "avg_trade_ret": 0.21597554803908114,
+     "best_trade": 0.588149154718927,
+     "worst_trade": 0.007817886855571166,
+     "time_in_market": 0.4165524801315429,
+     "final_equity": 5.451253702828628
+    },
+    "B": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": 1.254368237845347,
+     "cagr": 0.05588303281187579,
+     "max_drawdown": -0.2698978552361112,
+     "mdd_peak_date": "2022-02-09",
+     "mdd_trough_date": "2025-04-09",
+     "n_trades": 9,
+     "n_closed": 9,
+     "n_open": 0,
+     "win_rate": 0.6666666666666666,
+     "avg_trade_ret": 0.10261445873829361,
+     "best_trade": 0.27968421276648825,
+     "worst_trade": -0.09660941934775735,
+     "time_in_market": 0.21649767059468347,
+     "final_equity": 2.254368237845347
+    },
+    "BH": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": 11.950959863205686,
+     "cagr": 0.18688355294240333,
+     "max_drawdown": -0.4765395693802329,
+     "mdd_peak_date": "2024-07-10",
+     "mdd_trough_date": "2025-04-09",
+     "n_trades": 0,
+     "n_closed": 0,
+     "n_open": 0,
+     "win_rate": null,
+     "avg_trade_ret": null,
+     "best_trade": null,
+     "worst_trade": null,
+     "time_in_market": 1.0,
+     "final_equity": 12.950959863205686
+    }
+   },
+   "eras": {
+    "A": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 0.4127758447316785,
+      "cagr": 0.06637388352721763,
+      "max_drawdown": -0.24165344232807395,
+      "final_equity": 1.4127758447316785,
+      "time_in_market": 0.5647590361445783,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 2,
+      "n_closed": 2,
+      "win_rate": 1.0
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 2.8778339128578674,
+      "cagr": 0.15229640213025286,
+      "max_drawdown": -0.24405589582434817,
+      "final_equity": 3.8778339128578674,
+      "time_in_market": 0.33563119345109865,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 7,
+      "n_closed": 7,
+      "win_rate": 1.0
+     }
+    },
+    "B": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 0.11840307138267181,
+      "cagr": 0.021028717140828324,
+      "max_drawdown": -0.22191738224823498,
+      "final_equity": 1.1184030713826718,
+      "time_in_market": 0.21987951807228914,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 3,
+      "n_closed": 3,
+      "win_rate": 0.3333333333333333
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 1.015702831590306,
+      "cagr": 0.07607331520828109,
+      "max_drawdown": -0.2698978552361113,
+      "final_equity": 2.015702831590306,
+      "time_in_market": 0.21844032744506678,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 6,
+      "n_closed": 6,
+      "win_rate": 0.8333333333333334
+     }
+    },
+    "BH": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 0.4042605922964633,
+      "cagr": 0.06517562506367613,
+      "max_drawdown": -0.4031950391385477,
+      "final_equity": 1.4042605922964633,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 8.268731884054842,
+      "cagr": 0.2622537512072669,
+      "max_drawdown": -0.4765395693802329,
+      "final_equity": 9.268731884054842,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     }
+    }
+   },
+   "pe_coverage": 0.9978076185256235,
+   "pe_days_in_period": 3641,
+   "period_days": 3649,
+   "gm_not_applicable": false,
+   "b_fund_exits": 4,
+   "b_fund_exit_detail": [
+    {
+     "entry_date": "2012-10-11",
+     "exit_date": "2013-05-16",
+     "reasons": [
+      "EPS_DOWN"
+     ],
+     "ret_net": -0.08975677860700726,
+     "quarter": "2013-03-31"
+    },
+    {
+     "entry_date": "2016-04-01",
+     "exit_date": "2016-05-17",
+     "reasons": [
+      "EPS_DOWN"
+     ],
+     "ret_net": -0.016495353375886368,
+     "quarter": "2016-03-31"
+    },
+    {
+     "entry_date": "2018-11-16",
+     "exit_date": "2019-04-02",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": 0.16604766007959348,
+     "quarter": "2018-12-31"
+    },
+    {
+     "entry_date": "2021-05-13",
+     "exit_date": "2022-05-17",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": -0.09660941934775735,
+     "quarter": "2022-03-31"
+    }
+   ]
+  },
+  {
+   "code": "2412",
+   "yf": "2412.TW",
+   "name": "中華電",
+   "market": "TW",
+   "group": "成熟",
+   "analysis_start": "2011-08-14",
+   "analysis_end": "2026-07-27",
+   "meta": {
+    "price_start": "2000-11-15",
+    "price_end": "2026-07-27",
+    "price_days": 6378,
+    "pe_source": "TWSE 個股日本益比(BWIBBU)— 交易所官方 trailing PE",
+    "pe_start": "2005-09-02",
+    "pe_end": "2026-07-27",
+    "pe_days": 5088,
+    "fs_source": "FinMind 綜合損益表(季)",
+    "eps_basis": "實際 EPS(台股免費資料源無分析師共識,依題目指定改用實際 EPS 連兩季年減)",
+    "has_consensus": false,
+    "fs_start": "2010-03-31",
+    "fs_end": "2026-03-31",
+    "fs_quarters": 65
+   },
+   "full": {
+    "A": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": 0.0,
+     "cagr": 0.0,
+     "max_drawdown": 0.0,
+     "mdd_peak_date": "2011-08-15",
+     "mdd_trough_date": "2011-08-15",
+     "n_trades": 0,
+     "n_closed": 0,
+     "n_open": 0,
+     "win_rate": null,
+     "avg_trade_ret": null,
+     "best_trade": null,
+     "worst_trade": null,
+     "time_in_market": 0.0,
+     "final_equity": 1.0
+    },
+    "B": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": 0.0,
+     "cagr": 0.0,
+     "max_drawdown": 0.0,
+     "mdd_peak_date": "2011-08-15",
+     "mdd_trough_date": "2011-08-15",
+     "n_trades": 0,
+     "n_closed": 0,
+     "n_open": 0,
+     "win_rate": null,
+     "avg_trade_ret": null,
+     "best_trade": null,
+     "worst_trade": null,
+     "time_in_market": 0.0,
+     "final_equity": 1.0
+    },
+    "BH": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": 1.6007592439961238,
+     "cagr": 0.06602741965836878,
+     "max_drawdown": -0.16406239591111182,
+     "mdd_peak_date": "2022-07-06",
+     "mdd_trough_date": "2022-10-20",
+     "n_trades": 0,
+     "n_closed": 0,
+     "n_open": 0,
+     "win_rate": null,
+     "avg_trade_ret": null,
+     "best_trade": null,
+     "worst_trade": null,
+     "time_in_market": 1.0,
+     "final_equity": 2.600759243996124
+    }
+   },
+   "eras": {
+    "A": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 0.0,
+      "cagr": 0.0,
+      "max_drawdown": 0.0,
+      "final_equity": 1.0,
+      "time_in_market": 0.0,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 0.0,
+      "cagr": 0.0,
+      "max_drawdown": 0.0,
+      "final_equity": 1.0,
+      "time_in_market": 0.0,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     }
+    },
+    "B": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 0.0,
+      "cagr": 0.0,
+      "max_drawdown": 0.0,
+      "final_equity": 1.0,
+      "time_in_market": 0.0,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 0.0,
+      "cagr": 0.0,
+      "max_drawdown": 0.0,
+      "final_equity": 1.0,
+      "time_in_market": 0.0,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     }
+    },
+    "BH": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 0.26467210460435076,
+      "cagr": 0.04463625139291971,
+      "max_drawdown": -0.1536232251706665,
+      "final_equity": 1.2646721046043508,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 1.0364063952321017,
+      "cagr": 0.07722408301883732,
+      "max_drawdown": -0.16406239591111182,
+      "final_equity": 2.0364063952321017,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     }
+    }
+   },
+   "pe_coverage": 0.9978076185256235,
+   "pe_days_in_period": 3641,
+   "period_days": 3649,
+   "gm_not_applicable": false,
+   "b_fund_exits": 0,
+   "b_fund_exit_detail": []
+  },
+  {
+   "code": "1216",
+   "yf": "1216.TW",
+   "name": "統一",
+   "market": "TW",
+   "group": "成熟",
+   "analysis_start": "2011-08-14",
+   "analysis_end": "2026-07-27",
+   "meta": {
+    "price_start": "2000-01-04",
+    "price_end": "2026-07-27",
+    "price_days": 6604,
+    "pe_source": "TWSE 個股日本益比(BWIBBU)— 交易所官方 trailing PE",
+    "pe_start": "2005-09-02",
+    "pe_end": "2026-07-27",
+    "pe_days": 5138,
+    "fs_source": "FinMind 綜合損益表(季)",
+    "eps_basis": "實際 EPS(台股免費資料源無分析師共識,依題目指定改用實際 EPS 連兩季年減)",
+    "has_consensus": false,
+    "fs_start": "2010-03-31",
+    "fs_end": "2026-03-31",
+    "fs_quarters": 65
+   },
+   "full": {
+    "A": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": 2.307136022747713,
+     "cagr": 0.08330078877042801,
+     "max_drawdown": -0.23053138718801203,
+     "mdd_peak_date": "2013-07-23",
+     "mdd_trough_date": "2014-02-06",
+     "n_trades": 7,
+     "n_closed": 6,
+     "n_open": 1,
+     "win_rate": 1.0,
+     "avg_trade_ret": 0.22686203902031407,
+     "best_trade": 0.5884544096301332,
+     "worst_trade": 0.02028253711607686,
+     "time_in_market": 0.7232118388599617,
+     "final_equity": 3.307136022747713
+    },
+    "B": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": 0.27066478707363273,
+     "cagr": 0.01615326347218682,
+     "max_drawdown": -0.23559072983564633,
+     "mdd_peak_date": "2018-09-26",
+     "mdd_trough_date": "2020-10-29",
+     "n_trades": 9,
+     "n_closed": 8,
+     "n_open": 1,
+     "win_rate": 0.75,
+     "avg_trade_ret": 0.02934171371224359,
+     "best_trade": 0.17172655828693761,
+     "worst_trade": -0.10111690345930546,
+     "time_in_market": 0.3548917511647027,
+     "final_equity": 1.2706647870736327
+    },
+    "BH": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": 2.571406145088494,
+     "cagr": 0.08888625362213665,
+     "max_drawdown": -0.23053138718801214,
+     "mdd_peak_date": "2013-07-23",
+     "mdd_trough_date": "2014-02-06",
+     "n_trades": 0,
+     "n_closed": 0,
+     "n_open": 0,
+     "win_rate": null,
+     "avg_trade_ret": null,
+     "best_trade": null,
+     "worst_trade": null,
+     "time_in_market": 1.0,
+     "final_equity": 3.571406145088494
+    }
+   },
+   "eras": {
+    "A": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 0.76742987532356,
+      "cagr": 0.11172877578945317,
+      "max_drawdown": -0.23053138718801203,
+      "final_equity": 1.76742987532356,
+      "time_in_market": 0.7259036144578314,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 2,
+      "n_closed": 2,
+      "win_rate": 1.0
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 0.874665981920904,
+      "cagr": 0.06793988857685429,
+      "max_drawdown": -0.1806463760296806,
+      "final_equity": 1.874665981920904,
+      "time_in_market": 0.7246876346402413,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 5,
+      "n_closed": 4,
+      "win_rate": 1.0
+     }
+    },
+    "B": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": -0.013157952336627421,
+      "cagr": -0.0024602275214168356,
+      "max_drawdown": -0.1821306407379556,
+      "final_equity": 0.9868420476633726,
+      "time_in_market": 0.3042168674698795,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 3,
+      "n_closed": 3,
+      "win_rate": 0.6666666666666666
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 0.29002278651651126,
+      "cagr": 0.026994382426167807,
+      "max_drawdown": -0.23559072983564633,
+      "final_equity": 1.2900227865165113,
+      "time_in_market": 0.38776389487289964,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 6,
+      "n_closed": 5,
+      "win_rate": 0.8
+     }
+    },
+    "BH": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 0.7072732776592325,
+      "cagr": 0.10459221690701637,
+      "max_drawdown": -0.23053138718801214,
+      "final_equity": 1.7072732776592325,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 1.0958019075168535,
+      "cagr": 0.08046827483288177,
+      "max_drawdown": -0.2304049695600604,
+      "final_equity": 2.0958019075168535,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     }
+    }
+   },
+   "pe_coverage": 0.9978076185256235,
+   "pe_days_in_period": 3641,
+   "period_days": 3649,
+   "gm_not_applicable": false,
+   "b_fund_exits": 7,
+   "b_fund_exit_detail": [
+    {
+     "entry_date": "2013-08-13",
+     "exit_date": "2014-04-01",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": -0.051615424391442066,
+     "quarter": "2013-12-31"
+    },
+    {
+     "entry_date": "2015-11-19",
+     "exit_date": "2016-04-01",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": 0.010454083043575091,
+     "quarter": "2015-12-31"
+    },
+    {
+     "entry_date": "2016-11-14",
+     "exit_date": "2017-04-05",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": 0.06164970956254301,
+     "quarter": "2016-12-31"
+    },
+    {
+     "entry_date": "2018-03-30",
+     "exit_date": "2019-04-02",
+     "reasons": [
+      "EPS_DOWN",
+      "GM_DOWN"
+     ],
+     "ret_net": 0.17172655828693761,
+     "quarter": "2018-12-31"
+    },
+    {
+     "entry_date": "2020-03-03",
+     "exit_date": "2020-04-01",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": -0.10111690345930546,
+     "quarter": "2019-12-31"
+    },
+    {
+     "entry_date": "2020-05-18",
+     "exit_date": "2021-11-16",
+     "reasons": [
+      "EPS_DOWN",
+      "GM_DOWN"
+     ],
+     "ret_net": 0.05298030438791668,
+     "quarter": "2021-09-30"
+    },
+    {
+     "entry_date": "2023-08-11",
+     "exit_date": "2024-04-02",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": 0.038157711187907895,
+     "quarter": "2023-12-31"
+    }
+   ]
+  },
+  {
+   "code": "1101",
+   "yf": "1101.TW",
+   "name": "台泥",
+   "market": "TW",
+   "group": "成熟",
+   "analysis_start": "2011-08-14",
+   "analysis_end": "2026-07-27",
+   "meta": {
+    "price_start": "2000-01-04",
+    "price_end": "2026-07-27",
+    "price_days": 6604,
+    "pe_source": "TWSE 個股日本益比(BWIBBU)— 交易所官方 trailing PE",
+    "pe_start": "2005-09-02",
+    "pe_end": "2025-11-12",
+    "pe_days": 4970,
+    "fs_source": "FinMind 綜合損益表(季)",
+    "eps_basis": "實際 EPS(台股免費資料源無分析師共識,依題目指定改用實際 EPS 連兩季年減)",
+    "has_consensus": false,
+    "fs_start": "2010-03-31",
+    "fs_end": "2026-03-31",
+    "fs_quarters": 65
+   },
+   "full": {
+    "A": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": 0.4748147814775212,
+     "cagr": 0.026331824749454835,
+     "max_drawdown": -0.3826877913147244,
+     "mdd_peak_date": "2014-08-22",
+     "mdd_trough_date": "2018-10-26",
+     "n_trades": 4,
+     "n_closed": 4,
+     "n_open": 0,
+     "win_rate": 0.75,
+     "avg_trade_ret": 0.12286731462498571,
+     "best_trade": 0.4496926675338224,
+     "worst_trade": -0.1619489638194037,
+     "time_in_market": 0.4823239243628391,
+     "final_equity": 1.4748147814775212
+    },
+    "B": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": 0.2825671612604328,
+     "cagr": 0.016787233476981633,
+     "max_drawdown": -0.30554136032582313,
+     "mdd_peak_date": "2014-08-22",
+     "mdd_trough_date": "2018-10-26",
+     "n_trades": 7,
+     "n_closed": 7,
+     "n_open": 0,
+     "win_rate": 0.5714285714285714,
+     "avg_trade_ret": 0.040730883857467926,
+     "best_trade": 0.18226512884797086,
+     "worst_trade": -0.08436477962278188,
+     "time_in_market": 0.2663743491367498,
+     "final_equity": 1.2825671612604328
+    },
+    "BH": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": 0.5051298402724136,
+     "cagr": 0.027729724964977276,
+     "max_drawdown": -0.5190142693997802,
+     "mdd_peak_date": "2021-04-21",
+     "mdd_trough_date": "2025-11-19",
+     "n_trades": 0,
+     "n_closed": 0,
+     "n_open": 0,
+     "win_rate": null,
+     "avg_trade_ret": null,
+     "best_trade": null,
+     "worst_trade": null,
+     "time_in_market": 1.0,
+     "final_equity": 1.5051298402724136
+    }
+   },
+   "eras": {
+    "A": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 0.01732926882112018,
+      "cagr": 0.0032002718696213517,
+      "max_drawdown": -0.335917696896196,
+      "final_equity": 1.0173292688211202,
+      "time_in_market": 0.5926204819277109,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 3,
+      "n_closed": 3,
+      "win_rate": 0.6666666666666666
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 0.44969266753382087,
+      "cagr": 0.0396061833564898,
+      "max_drawdown": -0.2532966197442441,
+      "final_equity": 1.4496926675338209,
+      "time_in_market": 0.42093925032313656,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 1,
+      "n_closed": 1,
+      "win_rate": 1.0
+     }
+    },
+    "B": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 0.027816128866007928,
+      "cagr": 0.005115434608163438,
+      "max_drawdown": -0.268750031346917,
+      "final_equity": 1.027816128866008,
+      "time_in_market": 0.3230421686746988,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 3,
+      "n_closed": 3,
+      "win_rate": 0.3333333333333333
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 0.2478566206929369,
+      "cagr": 0.023430752750501993,
+      "max_drawdown": -0.2525027725859743,
+      "final_equity": 1.247856620692937,
+      "time_in_market": 0.23696682464454977,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 4,
+      "n_closed": 4,
+      "win_rate": 0.75
+     }
+    },
+    "BH": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 0.03886177393369228,
+      "cagr": 0.007115521424354565,
+      "max_drawdown": -0.4503660990335221,
+      "final_equity": 1.0388617739336923,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 0.44882589583903765,
+      "cagr": 0.03954115093839938,
+      "max_drawdown": -0.5190142693997802,
+      "final_equity": 1.4488258958390376,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     }
+    }
+   },
+   "pe_coverage": 0.951767607563716,
+   "pe_days_in_period": 3473,
+   "period_days": 3649,
+   "gm_not_applicable": false,
+   "b_fund_exits": 7,
+   "b_fund_exit_detail": [
+    {
+     "entry_date": "2011-08-29",
+     "exit_date": "2012-04-03",
+     "reasons": [
+      "EPS_DOWN"
+     ],
+     "ret_net": -0.08436477962278188,
+     "quarter": "2011-12-31"
+    },
+    {
+     "entry_date": "2012-05-16",
+     "exit_date": "2012-11-15",
+     "reasons": [
+      "EPS_DOWN"
+     ],
+     "ret_net": 0.18226512884797086,
+     "quarter": "2012-09-30"
+    },
+    {
+     "entry_date": "2014-08-18",
+     "exit_date": "2015-04-01",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": -0.05053697059866191,
+     "quarter": "2014-12-31"
+    },
+    {
+     "entry_date": "2018-08-13",
+     "exit_date": "2019-04-02",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": -0.02353333898302623,
+     "quarter": "2018-12-31"
+    },
+    {
+     "entry_date": "2019-05-16",
+     "exit_date": "2020-05-18",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": 0.1666027974578146,
+     "quarter": "2020-03-31"
+    },
+    {
+     "entry_date": "2020-11-17",
+     "exit_date": "2021-04-01",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": 0.08601380604750752,
+     "quarter": "2020-12-31"
+    },
+    {
+     "entry_date": "2021-08-17",
+     "exit_date": "2021-11-16",
+     "reasons": [
+      "EPS_DOWN"
+     ],
+     "ret_net": 0.008669543853452533,
+     "quarter": "2021-09-30"
+    }
+   ]
+  },
+  {
+   "code": "2886",
+   "yf": "2886.TW",
+   "name": "兆豐金",
+   "market": "TW",
+   "group": "成熟",
+   "analysis_start": "2011-08-14",
+   "analysis_end": "2026-07-27",
+   "meta": {
+    "price_start": "2000-01-04",
+    "price_end": "2026-07-27",
+    "price_days": 6604,
+    "pe_source": "TWSE 個股日本益比(BWIBBU)— 交易所官方 trailing PE",
+    "pe_start": "2005-09-02",
+    "pe_end": "2026-07-27",
+    "pe_days": 5138,
+    "fs_source": "FinMind 綜合損益表(季)",
+    "eps_basis": "實際 EPS(台股免費資料源無分析師共識,依題目指定改用實際 EPS 連兩季年減)",
+    "has_consensus": false,
+    "fs_start": "2010-03-31",
+    "fs_end": "2025-12-31",
+    "fs_quarters": 64
+   },
+   "full": {
+    "A": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": 1.5008041043004572,
+     "cagr": 0.06323626302306606,
+     "max_drawdown": -0.27151991921367735,
+     "mdd_peak_date": "2015-04-23",
+     "mdd_trough_date": "2016-01-21",
+     "n_trades": 2,
+     "n_closed": 2,
+     "n_open": 0,
+     "win_rate": 1.0,
+     "avg_trade_ret": 0.6910724897956726,
+     "best_trade": 1.29017353423081,
+     "worst_trade": 0.09197144536053514,
+     "time_in_market": 0.574677993970951,
+     "final_equity": 2.500804104300457
+    },
+    "B": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": 1.0875823520910624,
+     "cagr": 0.05046782037299247,
+     "max_drawdown": -0.2489363709757334,
+     "mdd_peak_date": "2011-10-28",
+     "mdd_trough_date": "2011-12-20",
+     "n_trades": 7,
+     "n_closed": 7,
+     "n_open": 0,
+     "win_rate": 1.0,
+     "avg_trade_ret": 0.11291286846283881,
+     "best_trade": 0.23330716358083037,
+     "worst_trade": 0.035152389424114805,
+     "time_in_market": 0.44916415456289394,
+     "final_equity": 2.0875823520910624
+    },
+    "BH": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": 3.2899958949777783,
+     "cagr": 0.10232227900331958,
+     "max_drawdown": -0.31721492793275874,
+     "mdd_peak_date": "2011-09-02",
+     "mdd_trough_date": "2011-12-20",
+     "n_trades": 0,
+     "n_closed": 0,
+     "n_open": 0,
+     "win_rate": null,
+     "avg_trade_ret": null,
+     "best_trade": null,
+     "worst_trade": null,
+     "time_in_market": 1.0,
+     "final_equity": 4.289995894977778
+    }
+   },
+   "eras": {
+    "A": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 0.4314407592318905,
+      "cagr": 0.06897996476412649,
+      "max_drawdown": -0.27151991921367735,
+      "final_equity": 1.4314407592318905,
+      "time_in_market": 0.9841867469879518,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 0.7394906764236595,
+      "cagr": 0.05961291593622753,
+      "max_drawdown": -0.08627663010312348,
+      "final_equity": 1.7394906764236595,
+      "time_in_market": 0.3412322274881517,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 2,
+      "n_closed": 2,
+      "win_rate": 1.0
+     }
+    },
+    "B": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 0.4113688956381085,
+      "cagr": 0.06617630512467754,
+      "max_drawdown": -0.2489363709757334,
+      "final_equity": 1.4113688956381085,
+      "time_in_market": 0.8185240963855421,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 3,
+      "n_closed": 3,
+      "win_rate": 1.0
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 0.4727155955690412,
+      "cagr": 0.04132093573945417,
+      "max_drawdown": -0.08627663010312359,
+      "final_equity": 1.4727155955690412,
+      "time_in_market": 0.24084446359327877,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 4,
+      "n_closed": 4,
+      "win_rate": 1.0
+     }
+    },
+    "BH": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 0.23010859681274165,
+      "cagr": 0.03926669394352911,
+      "max_drawdown": -0.31721492793275874,
+      "final_equity": 1.2301085968127417,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 2.472395894728488,
+      "cagr": 0.1390630768488379,
+      "max_drawdown": -0.3121766580397213,
+      "final_equity": 3.472395894728488,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     }
+    }
+   },
+   "pe_coverage": 0.9978076185256235,
+   "pe_days_in_period": 3641,
+   "period_days": 3649,
+   "gm_not_applicable": true,
+   "b_fund_exits": 6,
+   "b_fund_exit_detail": [
+    {
+     "entry_date": "2011-09-14",
+     "exit_date": "2013-08-15",
+     "reasons": [
+      "EPS_DOWN"
+     ],
+     "ret_net": 0.18968914369923717,
+     "quarter": "2013-06-30"
+    },
+    {
+     "entry_date": "2013-11-15",
+     "exit_date": "2015-11-17",
+     "reasons": [
+      "EPS_DOWN"
+     ],
+     "ret_net": 0.05612541460299392,
+     "quarter": "2015-09-30"
+    },
+    {
+     "entry_date": "2016-04-01",
+     "exit_date": "2016-08-16",
+     "reasons": [
+      "EPS_DOWN"
+     ],
+     "ret_net": 0.12489208475505742,
+     "quarter": "2016-06-30"
+    },
+    {
+     "entry_date": "2016-11-29",
+     "exit_date": "2017-05-16",
+     "reasons": [
+      "EPS_DOWN"
+     ],
+     "ret_net": 0.07844345251069806,
+     "quarter": "2017-03-31"
+    },
+    {
+     "entry_date": "2017-08-31",
+     "exit_date": "2018-04-03",
+     "reasons": [
+      "EPS_DOWN"
+     ],
+     "ret_net": 0.035152389424114805,
+     "quarter": "2017-12-31"
+    },
+    {
+     "entry_date": "2018-09-04",
+     "exit_date": "2019-11-15",
+     "reasons": [
+      "EPS_DOWN"
+     ],
+     "ret_net": 0.23330716358083037,
+     "quarter": "2019-09-30"
+    }
+   ]
+  },
+  {
+   "code": "2317",
+   "yf": "2317.TW",
+   "name": "鴻海",
+   "market": "TW",
+   "group": "成熟",
+   "analysis_start": "2011-08-14",
+   "analysis_end": "2026-07-27",
+   "meta": {
+    "price_start": "2000-01-03",
+    "price_end": "2026-07-27",
+    "price_days": 6605,
+    "pe_source": "TWSE 個股日本益比(BWIBBU)— 交易所官方 trailing PE",
+    "pe_start": "2005-09-02",
+    "pe_end": "2026-07-27",
+    "pe_days": 5132,
+    "fs_source": "FinMind 綜合損益表(季)",
+    "eps_basis": "實際 EPS(台股免費資料源無分析師共識,依題目指定改用實際 EPS 連兩季年減)",
+    "has_consensus": false,
+    "fs_start": "2010-03-31",
+    "fs_end": "2026-03-31",
+    "fs_quarters": 65
+   },
+   "full": {
+    "A": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": 9.066403595104616,
+     "cagr": 0.16704575974130664,
+     "max_drawdown": -0.5441975683940476,
+     "mdd_peak_date": "2017-08-07",
+     "mdd_trough_date": "2019-01-04",
+     "n_trades": 3,
+     "n_closed": 3,
+     "n_open": 0,
+     "win_rate": 1.0,
+     "avg_trade_ret": 1.1998183127319118,
+     "best_trade": 1.8075012864391153,
+     "worst_trade": 0.8001136361235968,
+     "time_in_market": 0.8711975883803782,
+     "final_equity": 10.066403595104616
+    },
+    "B": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": 0.6958238806571366,
+     "cagr": 0.03596376111658284,
+     "max_drawdown": -0.3998985596547915,
+     "mdd_peak_date": "2019-04-17",
+     "mdd_trough_date": "2020-03-19",
+     "n_trades": 11,
+     "n_closed": 11,
+     "n_open": 0,
+     "win_rate": 0.45454545454545453,
+     "avg_trade_ret": 0.07866960331492165,
+     "best_trade": 0.6767111993265713,
+     "worst_trade": -0.17245599765765152,
+     "time_in_market": 0.5015072622636338,
+     "final_equity": 1.6958238806571366
+    },
+    "BH": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": 6.189425826594288,
+     "cagr": 0.1410615643486488,
+     "max_drawdown": -0.5441975683940481,
+     "mdd_peak_date": "2017-08-07",
+     "mdd_trough_date": "2019-01-04",
+     "n_trades": 0,
+     "n_closed": 0,
+     "n_open": 0,
+     "win_rate": null,
+     "avg_trade_ret": null,
+     "best_trade": null,
+     "worst_trade": null,
+     "time_in_market": 1.0,
+     "final_equity": 7.189425826594288
+    }
+   },
+   "eras": {
+    "A": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 1.041687184467762,
+      "cagr": 0.14195625738915285,
+      "max_drawdown": -0.32508192674750147,
+      "final_equity": 2.041687184467762,
+      "time_in_market": 0.9992469879518072,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 3.9245848338536113,
+      "cagr": 0.18146060617830573,
+      "max_drawdown": -0.5441975683940476,
+      "final_equity": 4.924584833853611,
+      "time_in_market": 0.7992244722102542,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 3,
+      "n_closed": 3,
+      "win_rate": 1.0
+     }
+    },
+    "B": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": -0.10518877946692418,
+      "cagr": -0.02045730203740448,
+      "max_drawdown": -0.3123948581400563,
+      "final_equity": 0.8948112205330758,
+      "time_in_market": 0.5993975903614458,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 4,
+      "n_closed": 4,
+      "win_rate": 0.25
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 0.8951750288143063,
+      "cagr": 0.06915598126080358,
+      "max_drawdown": -0.3998985596547914,
+      "final_equity": 1.8951750288143063,
+      "time_in_market": 0.45023696682464454,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 7,
+      "n_closed": 7,
+      "win_rate": 0.5714285714285714
+     }
+    },
+    "BH": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 1.0309153267220355,
+      "cagr": 0.14083337519513472,
+      "max_drawdown": -0.3250819267475029,
+      "final_equity": 2.0309153267220355,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 2.535793374384407,
+      "cagr": 0.1412207357141806,
+      "max_drawdown": -0.5441975683940481,
+      "final_equity": 3.535793374384407,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     }
+    }
+   },
+   "pe_coverage": 0.996163332419841,
+   "pe_days_in_period": 3635,
+   "period_days": 3649,
+   "gm_not_applicable": false,
+   "b_fund_exits": 9,
+   "b_fund_exit_detail": [
+    {
+     "entry_date": "2012-04-03",
+     "exit_date": "2012-08-15",
+     "reasons": [
+      "EPS_DOWN"
+     ],
+     "ret_net": -0.1458590443084542,
+     "quarter": "2012-06-30"
+    },
+    {
+     "entry_date": "2012-11-15",
+     "exit_date": "2013-05-16",
+     "reasons": [
+      "EPS_DOWN"
+     ],
+     "ret_net": -0.13163057262972322,
+     "quarter": "2013-03-31"
+    },
+    {
+     "entry_date": "2013-08-15",
+     "exit_date": "2014-05-16",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": 0.259855875469839,
+     "quarter": "2014-03-31"
+    },
+    {
+     "entry_date": "2014-08-15",
+     "exit_date": "2016-04-01",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": -0.04241687492847812,
+     "quarter": "2015-12-31"
+    },
+    {
+     "entry_date": "2018-04-03",
+     "exit_date": "2018-08-15",
+     "reasons": [
+      "EPS_DOWN"
+     ],
+     "ret_net": -0.05316297225416622,
+     "quarter": "2018-06-30"
+    },
+    {
+     "entry_date": "2018-11-15",
+     "exit_date": "2019-08-15",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": 0.004899006987695298,
+     "quarter": "2019-06-30"
+    },
+    {
+     "entry_date": "2019-11-15",
+     "exit_date": "2020-05-18",
+     "reasons": [
+      "EPS_DOWN"
+     ],
+     "ret_net": -0.17245599765765152,
+     "quarter": "2020-03-31"
+    },
+    {
+     "entry_date": "2021-05-18",
+     "exit_date": "2022-05-17",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": 0.011539827805783665,
+     "quarter": "2022-03-31"
+    },
+    {
+     "entry_date": "2022-08-16",
+     "exit_date": "2023-04-06",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": -0.07301638550905076,
+     "quarter": "2022-12-31"
+    }
+   ]
+  },
+  {
+   "code": "2327",
+   "yf": "2327.TW",
+   "name": "國巨",
+   "market": "TW",
+   "group": "循環",
+   "analysis_start": "2011-08-14",
+   "analysis_end": "2026-07-27",
+   "meta": {
+    "price_start": "2000-01-04",
+    "price_end": "2026-07-27",
+    "price_days": 6604,
+    "pe_source": "TWSE 個股日本益比(BWIBBU)— 交易所官方 trailing PE",
+    "pe_start": "2006-05-02",
+    "pe_end": "2026-07-27",
+    "pe_days": 4677,
+    "fs_source": "FinMind 綜合損益表(季)",
+    "eps_basis": "實際 EPS(台股免費資料源無分析師共識,依題目指定改用實際 EPS 連兩季年減)",
+    "has_consensus": false,
+    "fs_start": "2010-03-31",
+    "fs_end": "2026-03-31",
+    "fs_quarters": 65
+   },
+   "full": {
+    "A": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": 9.294108032191264,
+     "cagr": 0.1687933569468958,
+     "max_drawdown": -0.6567375949014715,
+     "mdd_peak_date": "2018-08-29",
+     "mdd_trough_date": "2019-05-24",
+     "n_trades": 7,
+     "n_closed": 7,
+     "n_open": 0,
+     "win_rate": 0.7142857142857143,
+     "avg_trade_ret": 0.5401905369410052,
+     "best_trade": 1.7009754039686311,
+     "worst_trade": -0.1771791248939889,
+     "time_in_market": 0.7484242258152919,
+     "final_equity": 10.294108032191264
+    },
+    "B": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": 0.377751302186359,
+     "cagr": 0.021668296141999166,
+     "max_drawdown": -0.7453408354487715,
+     "mdd_peak_date": "2018-08-29",
+     "mdd_trough_date": "2022-10-13",
+     "n_trades": 10,
+     "n_closed": 10,
+     "n_open": 0,
+     "win_rate": 0.5,
+     "avg_trade_ret": 0.12636419524158576,
+     "best_trade": 1.1363790256196884,
+     "worst_trade": -0.5941886918772923,
+     "time_in_market": 0.34913674979446424,
+     "final_equity": 1.377751302186359
+    },
+    "BH": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": 135.83577452004027,
+     "cagr": 0.3896401935012459,
+     "max_drawdown": -0.7684210749786211,
+     "mdd_peak_date": "2018-07-10",
+     "mdd_trough_date": "2019-05-24",
+     "n_trades": 0,
+     "n_closed": 0,
+     "n_open": 0,
+     "win_rate": null,
+     "avg_trade_ret": null,
+     "best_trade": null,
+     "worst_trade": null,
+     "time_in_market": 1.0,
+     "final_equity": 136.83577452004027
+    }
+   },
+   "eras": {
+    "A": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 1.622350334995577,
+      "cagr": 0.19636847448032824,
+      "max_drawdown": -0.29848542178233584,
+      "final_equity": 2.622350334995577,
+      "time_in_market": 0.8441265060240963,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 3,
+      "n_closed": 3,
+      "win_rate": 1.0
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 2.8923157463495124,
+      "cagr": 0.1527457570759705,
+      "max_drawdown": -0.6567375949014715,
+      "final_equity": 3.8923157463495124,
+      "time_in_market": 0.6966824644549763,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 4,
+      "n_closed": 4,
+      "win_rate": 0.5
+     }
+    },
+    "B": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 1.6997266429304552,
+      "cagr": 0.2028559541705035,
+      "max_drawdown": -0.22562041098208396,
+      "final_equity": 2.699726642930455,
+      "time_in_market": 0.4058734939759036,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 5,
+      "n_closed": 5,
+      "win_rate": 0.6
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": -0.48967007241486493,
+      "cagr": -0.0679433210342163,
+      "max_drawdown": -0.7453408354487715,
+      "final_equity": 0.5103299275851351,
+      "time_in_market": 0.3209823352003447,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 5,
+      "n_closed": 5,
+      "win_rate": 0.4
+     }
+    },
+    "BH": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 1.6588489287072479,
+      "cagr": 0.19944777801547398,
+      "max_drawdown": -0.29848542178233584,
+      "final_equity": 2.658848928707248,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 50.02888104032946,
+      "cagr": 0.5087980102810097,
+      "max_drawdown": -0.7684210749786211,
+      "final_equity": 51.02888104032946,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     }
+    }
+   },
+   "pe_coverage": 0.9846533296793643,
+   "pe_days_in_period": 3593,
+   "period_days": 3649,
+   "gm_not_applicable": false,
+   "b_fund_exits": 7,
+   "b_fund_exit_detail": [
+    {
+     "entry_date": "2014-11-12",
+     "exit_date": "2015-04-01",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": 0.4165105243762328,
+     "quarter": "2014-12-31"
+    },
+    {
+     "entry_date": "2015-05-18",
+     "exit_date": "2015-11-17",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": -0.05430562220395563,
+     "quarter": "2015-09-30"
+    },
+    {
+     "entry_date": "2016-04-01",
+     "exit_date": "2016-11-15",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": -0.074464017730964,
+     "quarter": "2016-09-30"
+    },
+    {
+     "entry_date": "2018-08-15",
+     "exit_date": "2019-05-16",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": -0.5941886918772923,
+     "quarter": "2019-03-31"
+    },
+    {
+     "entry_date": "2021-05-14",
+     "exit_date": "2022-05-17",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": -0.08655583144950829,
+     "quarter": "2022-03-31"
+    },
+    {
+     "entry_date": "2022-08-16",
+     "exit_date": "2022-11-15",
+     "reasons": [
+      "EPS_DOWN"
+     ],
+     "ret_net": 0.08939847940204748,
+     "quarter": "2022-09-30"
+    },
+    {
+     "entry_date": "2024-08-16",
+     "exit_date": "2025-04-01",
+     "reasons": [
+      "EPS_DOWN"
+     ],
+     "ret_net": -0.23035607894343257,
+     "quarter": "2024-12-31"
+    }
+   ]
+  },
+  {
+   "code": "2408",
+   "yf": "2408.TW",
+   "name": "南亞科",
+   "market": "TW",
+   "group": "循環",
+   "analysis_start": "2011-08-14",
+   "analysis_end": "2026-07-27",
+   "meta": {
+    "price_start": "2000-08-18",
+    "price_end": "2026-07-27",
+    "price_days": 6441,
+    "pe_source": "TWSE 個股日本益比(BWIBBU)— 交易所官方 trailing PE",
+    "pe_start": "2005-09-02",
+    "pe_end": "2026-07-27",
+    "pe_days": 3038,
+    "fs_source": "FinMind 綜合損益表(季)",
+    "eps_basis": "實際 EPS(台股免費資料源無分析師共識,依題目指定改用實際 EPS 連兩季年減)",
+    "has_consensus": false,
+    "fs_start": "2010-03-31",
+    "fs_end": "2026-03-31",
+    "fs_quarters": 65
+   },
+   "full": {
+    "A": {
+     "start_date": "2014-03-20",
+     "end_date": "2026-07-27",
+     "years": 12.35,
+     "total_return": 2.1037600602467625,
+     "cagr": 0.09602065176350516,
+     "max_drawdown": -0.6312451114117732,
+     "mdd_peak_date": "2014-06-05",
+     "mdd_trough_date": "2015-07-27",
+     "n_trades": 3,
+     "n_closed": 3,
+     "n_open": 0,
+     "win_rate": 1.0,
+     "avg_trade_ret": 0.5369578090382287,
+     "best_trade": 1.2627726186098926,
+     "worst_trade": 0.09200176964942397,
+     "time_in_market": 0.5287279973430754,
+     "final_equity": 3.1037600602467625
+    },
+    "B": {
+     "start_date": "2014-03-20",
+     "end_date": "2026-07-27",
+     "years": 12.35,
+     "total_return": 0.3752563186044473,
+     "cagr": 0.026129721058948396,
+     "max_drawdown": -0.6312451114117732,
+     "mdd_peak_date": "2014-06-05",
+     "mdd_trough_date": "2015-07-27",
+     "n_trades": 3,
+     "n_closed": 3,
+     "n_open": 0,
+     "win_rate": 0.6666666666666666,
+     "avg_trade_ret": 0.12458293122890123,
+     "best_trade": 0.35702882181242024,
+     "worst_trade": -0.049587796579896315,
+     "time_in_market": 0.3649950182663567,
+     "final_equity": 1.3752563186044473
+    },
+    "BH": {
+     "start_date": "2014-03-20",
+     "end_date": "2026-07-27",
+     "years": 12.35,
+     "total_return": 17.715909196761682,
+     "cagr": 0.2676124318774704,
+     "max_drawdown": -0.7220163533522871,
+     "mdd_peak_date": "2021-04-09",
+     "mdd_trough_date": "2025-01-13",
+     "n_trades": 0,
+     "n_closed": 0,
+     "n_open": 0,
+     "win_rate": null,
+     "avg_trade_ret": null,
+     "best_trade": null,
+     "worst_trade": null,
+     "time_in_market": 1.0,
+     "final_equity": 18.715909196761682
+    }
+   },
+   "eras": {
+    "A": {
+     "early": {
+      "start_date": "2014-03-20",
+      "end_date": "2016-12-30",
+      "years": 2.78,
+      "n_days": 690,
+      "total_return": 0.25609903885536633,
+      "cagr": 0.08542267789438429,
+      "max_drawdown": -0.6312451114117732,
+      "final_equity": 1.2560990388553663,
+      "time_in_market": 0.946376811594203,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 1,
+      "n_closed": 1,
+      "win_rate": 1.0
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 1.4709517038362652,
+      "cagr": 0.09923896927541365,
+      "max_drawdown": -0.534945878961381,
+      "final_equity": 2.470951703836265,
+      "time_in_market": 0.4058595433003016,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 2,
+      "n_closed": 2,
+      "win_rate": 1.0
+     }
+    },
+    "B": {
+     "early": {
+      "start_date": "2014-03-20",
+      "end_date": "2016-12-30",
+      "years": 2.78,
+      "n_days": 690,
+      "total_return": -0.0495877965798972,
+      "cagr": -0.018117750419137768,
+      "max_drawdown": -0.6312451114117732,
+      "final_equity": 0.9504122034201028,
+      "time_in_market": 0.4956521739130435,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 1,
+      "n_closed": 1,
+      "win_rate": 0.0
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 0.447010374714806,
+      "cagr": 0.039404822471074796,
+      "max_drawdown": -0.5469270674249578,
+      "final_equity": 1.447010374714806,
+      "time_in_market": 0.32744506678155966,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 2,
+      "n_closed": 2,
+      "win_rate": 1.0
+     }
+    },
+    "BH": {
+     "early": {
+      "start_date": "2014-03-20",
+      "end_date": "2016-12-30",
+      "years": 2.78,
+      "n_days": 690,
+      "total_return": 0.4937760372745359,
+      "cagr": 0.1551949720419188,
+      "max_drawdown": -0.6312451114117732,
+      "final_equity": 1.493776037274536,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 11.807689689889115,
+      "cagr": 0.30568152501803003,
+      "max_drawdown": -0.7220163533522872,
+      "final_equity": 12.807689689889115,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     }
+    }
+   },
+   "pe_coverage": 0.6500411071526445,
+   "pe_days_in_period": 2372,
+   "period_days": 3649,
+   "gm_not_applicable": false,
+   "b_fund_exits": 3,
+   "b_fund_exit_detail": [
+    {
+     "entry_date": "2014-04-01",
+     "exit_date": "2015-08-17",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": -0.049587796579896315,
+     "quarter": "2015-06-30"
+    },
+    {
+     "entry_date": "2017-04-05",
+     "exit_date": "2019-05-16",
+     "reasons": [
+      "EPS_DOWN",
+      "GM_DOWN"
+     ],
+     "ret_net": 0.35702882181242024,
+     "quarter": "2019-03-31"
+    },
+    {
+     "entry_date": "2022-04-07",
+     "exit_date": "2023-04-06",
+     "reasons": [
+      "EPS_DOWN",
+      "GM_DOWN"
+     ],
+     "ret_net": 0.06630776845417974,
+     "quarter": "2022-12-31"
+    }
+   ]
+  },
+  {
+   "code": "2603",
+   "yf": "2603.TW",
+   "name": "長榮",
+   "market": "TW",
+   "group": "循環",
+   "analysis_start": "2011-08-14",
+   "analysis_end": "2026-07-27",
+   "meta": {
+    "price_start": "2000-01-04",
+    "price_end": "2026-07-27",
+    "price_days": 6604,
+    "pe_source": "TWSE 個股日本益比(BWIBBU)— 交易所官方 trailing PE",
+    "pe_start": "2005-09-02",
+    "pe_end": "2026-07-27",
+    "pe_days": 3600,
+    "fs_source": "FinMind 綜合損益表(季)",
+    "eps_basis": "實際 EPS(台股免費資料源無分析師共識,依題目指定改用實際 EPS 連兩季年減)",
+    "has_consensus": false,
+    "fs_start": "2010-03-31",
+    "fs_end": "2026-03-31",
+    "fs_quarters": 65
+   },
+   "full": {
+    "A": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": 8.13594765758245,
+     "cagr": 0.1594985047656452,
+     "max_drawdown": -0.7053666200929143,
+     "mdd_peak_date": "2021-07-06",
+     "mdd_trough_date": "2022-11-01",
+     "n_trades": 3,
+     "n_closed": 2,
+     "n_open": 1,
+     "win_rate": 0.5,
+     "avg_trade_ret": -0.09820329994905552,
+     "best_trade": 10.550882683829037,
+     "worst_trade": -0.24755722259549162,
+     "time_in_market": 0.4828720197314333,
+     "final_equity": 9.13594765758245
+    },
+    "B": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": 3.3443007039255654,
+     "cagr": 0.10325025331534432,
+     "max_drawdown": -0.7331471887330221,
+     "mdd_peak_date": "2021-07-06",
+     "mdd_trough_date": "2024-08-05",
+     "n_trades": 4,
+     "n_closed": 4,
+     "n_open": 0,
+     "win_rate": 0.75,
+     "avg_trade_ret": 0.7328699000187255,
+     "best_trade": 2.745882704203643,
+     "worst_trade": -0.121581255428309,
+     "time_in_market": 0.27130720745409703,
+     "final_equity": 4.344300703925565
+    },
+    "BH": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": 15.89736061566509,
+     "cagr": 0.20819124842196168,
+     "max_drawdown": -0.7053666200929143,
+     "mdd_peak_date": "2021-07-06",
+     "mdd_trough_date": "2022-11-01",
+     "n_trades": 0,
+     "n_closed": 0,
+     "n_open": 0,
+     "win_rate": null,
+     "avg_trade_ret": null,
+     "best_trade": null,
+     "worst_trade": null,
+     "time_in_market": 1.0,
+     "final_equity": 16.89736061566509
+    }
+   },
+   "eras": {
+    "A": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 0.05115062269738013,
+      "cagr": 0.009320479584459695,
+      "max_drawdown": -0.10703359079033525,
+      "final_equity": 1.0511506226973801,
+      "time_in_market": 0.04141566265060241,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 1,
+      "n_closed": 1,
+      "win_rate": 1.0
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 7.691378248093979,
+      "cagr": 0.2537909278408088,
+      "max_drawdown": -0.7053666200929143,
+      "final_equity": 8.69137824809398,
+      "time_in_market": 0.7367514002585093,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 2,
+      "n_closed": 1,
+      "win_rate": 0.0
+     }
+    },
+    "B": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 0.05115062269738013,
+      "cagr": 0.009320479584459695,
+      "max_drawdown": -0.10703359079033525,
+      "final_equity": 1.0511506226973801,
+      "time_in_market": 0.04141566265060241,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 1,
+      "n_closed": 1,
+      "win_rate": 1.0
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 3.1329002810059343,
+      "cagr": 0.15999985742506428,
+      "max_drawdown": -0.7331471887330221,
+      "final_equity": 4.132900281005934,
+      "time_in_market": 0.40456699698405857,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 3,
+      "n_closed": 3,
+      "win_rate": 0.6666666666666666
+     }
+    },
+    "BH": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": -0.27535507083979716,
+      "cagr": -0.05813828548197364,
+      "max_drawdown": -0.5437142666758327,
+      "final_equity": 0.7246449291602028,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 21.31303377217461,
+      "cagr": 0.3837388496456411,
+      "max_drawdown": -0.7053666200929143,
+      "final_equity": 22.31303377217461,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     }
+    }
+   },
+   "pe_coverage": 0.7051246916963552,
+   "pe_days_in_period": 2573,
+   "period_days": 3649,
+   "gm_not_applicable": false,
+   "b_fund_exits": 3,
+   "b_fund_exit_detail": [
+    {
+     "entry_date": "2017-11-15",
+     "exit_date": "2018-05-16",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": -0.121581255428309,
+     "quarter": "2018-03-31"
+    },
+    {
+     "entry_date": "2020-11-16",
+     "exit_date": "2023-04-06",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": 2.745882704203643,
+     "quarter": "2022-12-31"
+    },
+    {
+     "entry_date": "2024-05-16",
+     "exit_date": "2025-05-16",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": 0.2560275286021876,
+     "quarter": "2025-03-31"
+    }
+   ]
+  },
+  {
+   "code": "2002",
+   "yf": "2002.TW",
+   "name": "中鋼",
+   "market": "TW",
+   "group": "循環",
+   "analysis_start": "2011-08-14",
+   "analysis_end": "2026-07-27",
+   "meta": {
+    "price_start": "2000-01-04",
+    "price_end": "2026-07-27",
+    "price_days": 6604,
+    "pe_source": "TWSE 個股日本益比(BWIBBU)— 交易所官方 trailing PE",
+    "pe_start": "2005-09-02",
+    "pe_end": "2025-08-07",
+    "pe_days": 4486,
+    "fs_source": "FinMind 綜合損益表(季)",
+    "eps_basis": "實際 EPS(台股免費資料源無分析師共識,依題目指定改用實際 EPS 連兩季年減)",
+    "has_consensus": false,
+    "fs_start": "2010-03-31",
+    "fs_end": "2026-03-31",
+    "fs_quarters": 65
+   },
+   "full": {
+    "A": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": -0.1761397176445746,
+     "cagr": -0.01287767651043259,
+     "max_drawdown": -0.38840887114092537,
+     "mdd_peak_date": "2016-03-08",
+     "mdd_trough_date": "2022-06-30",
+     "n_trades": 3,
+     "n_closed": 3,
+     "n_open": 0,
+     "win_rate": 0.3333333333333333,
+     "avg_trade_ret": -0.051277701258273876,
+     "best_trade": 0.14730327233961749,
+     "worst_trade": -0.20930713814645385,
+     "time_in_market": 0.2507536311318169,
+     "final_equity": 0.8238602823554254
+    },
+    "B": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": -0.11871988103728937,
+     "cagr": -0.008418612948198567,
+     "max_drawdown": -0.1786506860076118,
+     "mdd_peak_date": "2022-03-23",
+     "mdd_trough_date": "2022-05-17",
+     "n_trades": 2,
+     "n_closed": 2,
+     "n_open": 0,
+     "win_rate": 0.0,
+     "avg_trade_ret": -0.061073982877802024,
+     "best_trade": -0.04369737025499587,
+     "worst_trade": -0.07845059550060818,
+     "time_in_market": 0.0898876404494382,
+     "final_equity": 0.8812801189627106
+    },
+    "BH": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "total_return": 0.08880324516534599,
+     "cagr": 0.005707648259841491,
+     "max_drawdown": -0.5309571484946244,
+     "mdd_peak_date": "2021-05-10",
+     "mdd_trough_date": "2025-11-21",
+     "n_trades": 0,
+     "n_closed": 0,
+     "n_open": 0,
+     "win_rate": null,
+     "avg_trade_ret": null,
+     "best_trade": null,
+     "worst_trade": null,
+     "time_in_market": 1.0,
+     "final_equity": 1.088803245165346
+    }
+   },
+   "eras": {
+    "A": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 0.14730327233961749,
+      "cagr": 0.02588459970554924,
+      "max_drawdown": -0.21911428366940844,
+      "final_equity": 1.1473032723396175,
+      "time_in_market": 0.1091867469879518,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 1,
+      "n_closed": 1,
+      "win_rate": 1.0
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": -0.281915861117189,
+      "cagr": -0.034045914636388064,
+      "max_drawdown": -0.3817409622288622,
+      "final_equity": 0.718084138882811,
+      "time_in_market": 0.3330461008186127,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 2,
+      "n_closed": 2,
+      "win_rate": 0.0
+     }
+    },
+    "B": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 0.0,
+      "cagr": 0.0,
+      "max_drawdown": 0.0,
+      "final_equity": 1.0,
+      "time_in_market": 0.0,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": -0.11871988103728937,
+      "cagr": -0.01313185869157385,
+      "max_drawdown": -0.1786506860076118,
+      "final_equity": 0.8812801189627106,
+      "time_in_market": 0.14218009478672985,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 2,
+      "n_closed": 2,
+      "win_rate": 0.0
+     }
+    },
+    "BH": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 0.01020737488010437,
+      "cagr": 0.0018904528770631313,
+      "max_drawdown": -0.3701362214554258,
+      "final_equity": 1.0102073748801044,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 0.08661801967168126,
+      "cagr": 0.008726679863911624,
+      "max_drawdown": -0.5309571484946243,
+      "final_equity": 1.0866180196716813,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     }
+    }
+   },
+   "pe_coverage": 0.8585913949027131,
+   "pe_days_in_period": 3133,
+   "period_days": 3649,
+   "gm_not_applicable": false,
+   "b_fund_exits": 2,
+   "b_fund_exit_detail": [
+    {
+     "entry_date": "2018-08-14",
+     "exit_date": "2019-05-16",
+     "reasons": [
+      "EPS_DOWN",
+      "GM_DOWN"
+     ],
+     "ret_net": -0.04369737025499587,
+     "quarter": "2019-03-31"
+    },
+    {
+     "entry_date": "2021-10-05",
+     "exit_date": "2022-05-17",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": -0.07845059550060818,
+     "quarter": "2022-03-31"
+    }
+   ]
+  },
+  {
+   "code": "1301",
+   "yf": "1301.TW",
+   "name": "台塑",
+   "market": "TW",
+   "group": "循環",
+   "analysis_start": "2011-08-14",
+   "analysis_end": "2026-07-24",
+   "meta": {
+    "price_start": "2000-01-04",
+    "price_end": "2026-07-24",
+    "price_days": 6603,
+    "pe_source": "TWSE 個股日本益比(BWIBBU)— 交易所官方 trailing PE",
+    "pe_start": "2005-09-02",
+    "pe_end": "2024-11-06",
+    "pe_days": 4722,
+    "fs_source": "FinMind 綜合損益表(季)",
+    "eps_basis": "實際 EPS(台股免費資料源無分析師共識,依題目指定改用實際 EPS 連兩季年減)",
+    "has_consensus": false,
+    "fs_start": "2010-03-31",
+    "fs_end": "2026-03-31",
+    "fs_quarters": 65
+   },
+   "full": {
+    "A": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-24",
+     "years": 14.94,
+     "total_return": 0.37548987988881355,
+     "cagr": 0.02156800676440951,
+     "max_drawdown": -0.40308625680296717,
+     "mdd_peak_date": "2018-09-21",
+     "mdd_trough_date": "2020-03-19",
+     "n_trades": 3,
+     "n_closed": 3,
+     "n_open": 0,
+     "win_rate": 0.6666666666666666,
+     "avg_trade_ret": 0.12229807581337478,
+     "best_trade": 0.34029887126760316,
+     "worst_trade": -0.009420019761629428,
+     "time_in_market": 0.4399671052631579,
+     "final_equity": 1.3754898798888135
+    },
+    "B": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-24",
+     "years": 14.94,
+     "total_return": 0.5057160641891987,
+     "cagr": 0.027771966517917024,
+     "max_drawdown": -0.27614065049854253,
+     "mdd_peak_date": "2021-10-06",
+     "mdd_trough_date": "2022-10-13",
+     "n_trades": 5,
+     "n_closed": 5,
+     "n_open": 0,
+     "win_rate": 0.8,
+     "avg_trade_ret": 0.08879423362783641,
+     "best_trade": 0.22034735218663148,
+     "worst_trade": -0.021199852993296853,
+     "time_in_market": 0.2760416666666667,
+     "final_equity": 1.5057160641891987
+    },
+    "BH": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-24",
+     "years": 14.94,
+     "total_return": 0.32941096324282637,
+     "cagr": 0.019240819489278804,
+     "max_drawdown": -0.6925560479447546,
+     "mdd_peak_date": "2021-10-06",
+     "mdd_trough_date": "2025-01-10",
+     "n_trades": 0,
+     "n_closed": 0,
+     "n_open": 0,
+     "win_rate": null,
+     "avg_trade_ret": null,
+     "best_trade": null,
+     "worst_trade": null,
+     "time_in_market": 1.0,
+     "final_equity": 1.3294109632428264
+    }
+   },
+   "eras": {
+    "A": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 0.2512347419409118,
+      "cagr": 0.042563075569711284,
+      "max_drawdown": -0.16104458294409085,
+      "final_equity": 1.2512347419409118,
+      "time_in_market": 0.2311746987951807,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 1,
+      "n_closed": 1,
+      "win_rate": 1.0
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-24",
+      "years": 9.55,
+      "n_days": 2320,
+      "total_return": 0.08832510998029686,
+      "cagr": 0.008899999274939896,
+      "max_drawdown": -0.40308625680296717,
+      "final_equity": 1.0883251099802969,
+      "time_in_market": 0.5607758620689656,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 2,
+      "n_closed": 2,
+      "win_rate": 0.5
+     }
+    },
+    "B": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 0.21048164584753226,
+      "cagr": 0.036162679698539035,
+      "max_drawdown": -0.16104458294409085,
+      "final_equity": 1.2104816458475323,
+      "time_in_market": 0.1408132530120482,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 2,
+      "n_closed": 2,
+      "win_rate": 1.0
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-24",
+      "years": 9.55,
+      "n_days": 2320,
+      "total_return": 0.24389830226211706,
+      "cagr": 0.02311078856070803,
+      "max_drawdown": -0.2761406504985424,
+      "final_equity": 1.243898302262117,
+      "time_in_market": 0.35560344827586204,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 3,
+      "n_closed": 3,
+      "win_rate": 0.6666666666666666
+     }
+    },
+    "BH": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 0.2723026919871885,
+      "cagr": 0.04580556204628672,
+      "max_drawdown": -0.22560325663860004,
+      "final_equity": 1.2723026919871885,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-24",
+      "years": 9.55,
+      "n_days": 2320,
+      "total_return": 0.03444845279923148,
+      "cagr": 0.003551844355990319,
+      "max_drawdown": -0.6925560479447546,
+      "final_equity": 1.0344484527992315,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     }
+    }
+   },
+   "pe_coverage": 0.8843201754385965,
+   "pe_days_in_period": 3226,
+   "period_days": 3648,
+   "gm_not_applicable": false,
+   "b_fund_exits": 5,
+   "b_fund_exit_detail": [
+    {
+     "entry_date": "2011-08-16",
+     "exit_date": "2011-11-15",
+     "reasons": [
+      "EPS_DOWN",
+      "GM_DOWN"
+     ],
+     "ret_net": 0.04415467071067525,
+     "quarter": "2011-09-30"
+    },
+    {
+     "entry_date": "2016-05-20",
+     "exit_date": "2016-11-15",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": 0.159293426349999,
+     "quarter": "2016-09-30"
+    },
+    {
+     "entry_date": "2017-04-05",
+     "exit_date": "2017-08-15",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": 0.04137557188517316,
+     "quarter": "2017-06-30"
+    },
+    {
+     "entry_date": "2017-11-15",
+     "exit_date": "2019-04-02",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": 0.22034735218663148,
+     "quarter": "2018-12-31"
+    },
+    {
+     "entry_date": "2021-08-12",
+     "exit_date": "2023-04-06",
+     "reasons": [
+      "EPS_DOWN",
+      "GM_DOWN"
+     ],
+     "ret_net": -0.021199852993296853,
+     "quarter": "2022-12-31"
+    }
+   ]
+  },
+  {
+   "code": "AAPL",
+   "yf": "AAPL",
+   "name": "蘋果",
+   "market": "US",
+   "group": "美股成長",
+   "cik": "0000320193",
+   "analysis_start": "2009-07-22",
+   "analysis_end": "2026-07-27",
+   "meta": {
+    "price_start": "2000-01-03",
+    "price_end": "2026-07-27",
+    "price_days": 6680,
+    "pe_source": "自算 trailing PE = 未還原收盤價 / 近四季實際 EPS(adjusted 口徑)",
+    "pe_start": "2005-10-11",
+    "pe_end": "2026-04-30",
+    "pe_days": null,
+    "fs_source": "EPS/共識:yfinance 財報日;毛利率:SEC EDGAR XBRL(Q4 由全年減前三季推導)",
+    "eps_basis": "共識 EPS(可得 87 季),毛利率可得 66 季",
+    "has_consensus": true,
+    "fs_start": "2004-12-31",
+    "fs_end": "2026-06-30",
+    "fs_quarters": 87
+   },
+   "full": {
+    "A": {
+     "start_date": "2009-07-22",
+     "end_date": "2026-07-27",
+     "years": 17.01,
+     "total_return": 18.613856898298597,
+     "cagr": 0.1911734306935533,
+     "max_drawdown": -0.43797158589777174,
+     "mdd_peak_date": "2012-09-19",
+     "mdd_trough_date": "2013-04-19",
+     "n_trades": 1,
+     "n_closed": 1,
+     "n_open": 0,
+     "win_rate": 1.0,
+     "avg_trade_ret": 18.61385689829856,
+     "best_trade": 18.61385689829856,
+     "worst_trade": 18.61385689829856,
+     "time_in_market": 0.6447768170133209,
+     "final_equity": 19.613856898298597
+    },
+    "B": {
+     "start_date": "2009-07-22",
+     "end_date": "2026-07-27",
+     "years": 17.01,
+     "total_return": 3.365269266950773,
+     "cagr": 0.09048307663927657,
+     "max_drawdown": -0.4377477472908753,
+     "mdd_peak_date": "2015-05-22",
+     "mdd_trough_date": "2019-01-03",
+     "n_trades": 4,
+     "n_closed": 4,
+     "n_open": 0,
+     "win_rate": 0.75,
+     "avg_trade_ret": 0.5209199071312179,
+     "best_trade": 0.9331351058847961,
+     "worst_trade": -0.1807566593654788,
+     "time_in_market": 0.34003271792474876,
+     "final_equity": 4.365269266950773
+    },
+    "BH": {
+     "start_date": "2009-07-22",
+     "end_date": "2026-07-27",
+     "years": 17.01,
+     "total_return": 71.0831855132874,
+     "cagr": 0.28588110259522415,
+     "max_drawdown": -0.4379715858977722,
+     "mdd_peak_date": "2012-09-19",
+     "mdd_trough_date": "2013-04-19",
+     "n_trades": 0,
+     "n_closed": 0,
+     "n_open": 0,
+     "win_rate": null,
+     "avg_trade_ret": null,
+     "best_trade": null,
+     "worst_trade": null,
+     "time_in_market": 1.0,
+     "final_equity": 72.0831855132874
+    }
+   },
+   "eras": {
+    "A": {
+     "early": {
+      "start_date": "2009-07-22",
+      "end_date": "2016-12-30",
+      "years": 7.44,
+      "n_days": 1876,
+      "total_return": 4.63851606216441,
+      "cagr": 0.2616618026938151,
+      "max_drawdown": -0.43797158589777174,
+      "final_equity": 5.63851606216441,
+      "time_in_market": 0.9994669509594882,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2403,
+      "total_return": 2.4686667574527377,
+      "cagr": 0.13893506451879167,
+      "max_drawdown": -0.38515903771210724,
+      "final_equity": 3.4686667574527377,
+      "time_in_market": 0.3682896379525593,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 1,
+      "n_closed": 1,
+      "win_rate": 1.0
+     }
+    },
+    "B": {
+     "early": {
+      "start_date": "2009-07-22",
+      "end_date": "2016-12-30",
+      "years": 7.44,
+      "n_days": 1876,
+      "total_return": 4.328415930204304,
+      "cagr": 0.2521075506808532,
+      "max_drawdown": -0.30443772282036685,
+      "final_equity": 5.328415930204304,
+      "time_in_market": 0.7468017057569296,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 3,
+      "n_closed": 3,
+      "win_rate": 1.0
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2403,
+      "total_return": -0.18075665936547902,
+      "cagr": -0.02063784288847892,
+      "max_drawdown": -0.3203802566503544,
+      "final_equity": 0.819243340634521,
+      "time_in_market": 0.024136496046608405,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 1,
+      "n_closed": 1,
+      "win_rate": 0.0
+     }
+    },
+    "BH": {
+     "early": {
+      "start_date": "2009-07-22",
+      "end_date": "2016-12-30",
+      "years": 7.44,
+      "n_days": 1876,
+      "total_return": 4.678788230121445,
+      "cagr": 0.262869019481069,
+      "max_drawdown": -0.4379715858977722,
+      "final_equity": 5.678788230121445,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2403,
+      "total_return": 11.65734725100135,
+      "cagr": 0.3040699244623353,
+      "max_drawdown": -0.38515903771210724,
+      "final_equity": 12.65734725100135,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     }
+    }
+   },
+   "pe_coverage": 1.0,
+   "pe_days_in_period": 4279,
+   "period_days": 4279,
+   "gm_not_applicable": false,
+   "b_fund_exits": 4,
+   "b_fund_exit_detail": [
+    {
+     "entry_date": "2009-07-23",
+     "exit_date": "2010-10-28",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": 0.9331351058847961,
+     "quarter": "2010-09-30"
+    },
+    {
+     "entry_date": "2011-01-20",
+     "exit_date": "2012-11-01",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": 0.7999341435752083,
+     "quarter": "2012-09-30"
+    },
+    {
+     "entry_date": "2014-01-29",
+     "exit_date": "2016-07-28",
+     "reasons": [
+      "EPS_DOWN",
+      "GM_DOWN"
+     ],
+     "ret_net": 0.5313670384303459,
+     "quarter": "2016-06-30"
+    },
+    {
+     "entry_date": "2018-11-06",
+     "exit_date": "2019-01-31",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": -0.1807566593654788,
+     "quarter": "2018-12-31"
+    }
+   ]
+  },
+  {
+   "code": "MSFT",
+   "yf": "MSFT",
+   "name": "微軟",
+   "market": "US",
+   "group": "美股成長",
+   "cik": "0000789019",
+   "analysis_start": "2010-07-30",
+   "analysis_end": "2026-07-27",
+   "meta": {
+    "price_start": "2000-01-03",
+    "price_end": "2026-07-27",
+    "price_days": 6680,
+    "pe_source": "自算 trailing PE = 未還原收盤價 / 近四季實際 EPS(adjusted 口徑)",
+    "pe_start": "2002-07-18",
+    "pe_end": "2026-04-29",
+    "pe_days": null,
+    "fs_source": "EPS/共識:yfinance 財報日;毛利率:SEC EDGAR XBRL(Q4 由全年減前三季推導)",
+    "eps_basis": "共識 EPS(可得 100 季),毛利率可得 70 季",
+    "has_consensus": true,
+    "fs_start": "2001-09-30",
+    "fs_end": "2026-06-30",
+    "fs_quarters": 100
+   },
+   "full": {
+    "A": {
+     "start_date": "2010-07-30",
+     "end_date": "2026-07-27",
+     "years": 15.99,
+     "total_return": 1.9506774848593507,
+     "cagr": 0.07000348880228247,
+     "max_drawdown": -0.18051148314393384,
+     "mdd_peak_date": "2014-11-13",
+     "mdd_trough_date": "2015-01-30",
+     "n_trades": 2,
+     "n_closed": 1,
+     "n_open": 1,
+     "win_rate": 1.0,
+     "avg_trade_ret": 1.8150300646707649,
+     "best_trade": 1.8150300646707649,
+     "worst_trade": 0.048186845991804006,
+     "time_in_market": 0.403630937577717,
+     "final_equity": 2.9506774848593507
+    },
+    "B": {
+     "start_date": "2010-07-30",
+     "end_date": "2026-07-27",
+     "years": 15.99,
+     "total_return": 0.453972866984645,
+     "cagr": 0.02368181177834261,
+     "max_drawdown": -0.16846314050329925,
+     "mdd_peak_date": "2011-01-27",
+     "mdd_trough_date": "2011-06-10",
+     "n_trades": 2,
+     "n_closed": 2,
+     "n_open": 0,
+     "win_rate": 1.0,
+     "avg_trade_ret": 0.20709415363313444,
+     "best_trade": 0.2628025798418232,
+     "worst_trade": 0.15138572742444567,
+     "time_in_market": 0.1875155433971649,
+     "final_equity": 1.453972866984645
+    },
+    "BH": {
+     "start_date": "2010-07-30",
+     "end_date": "2026-07-27",
+     "years": 15.99,
+     "total_return": 19.17741662922703,
+     "cagr": 0.20669075286287808,
+     "max_drawdown": -0.37148486047273466,
+     "mdd_peak_date": "2021-11-19",
+     "mdd_trough_date": "2022-11-03",
+     "n_trades": 0,
+     "n_closed": 0,
+     "n_open": 0,
+     "win_rate": null,
+     "avg_trade_ret": null,
+     "best_trade": null,
+     "worst_trade": null,
+     "time_in_market": 1.0,
+     "final_equity": 20.17741662922703
+    }
+   },
+   "eras": {
+    "A": {
+     "early": {
+      "start_date": "2010-07-30",
+      "end_date": "2016-12-30",
+      "years": 6.42,
+      "n_days": 1618,
+      "total_return": 1.8150300646707636,
+      "cagr": 0.17492487297383552,
+      "max_drawdown": -0.18051148314393384,
+      "final_equity": 2.8150300646707636,
+      "time_in_market": 0.9913473423980222,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 1,
+      "n_closed": 1,
+      "win_rate": 1.0
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2403,
+      "total_return": 0.04818684599180356,
+      "cagr": 0.004934627837227978,
+      "max_drawdown": -0.0514803289584056,
+      "final_equity": 1.0481868459918036,
+      "time_in_market": 0.008739076154806492,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 1,
+      "n_closed": 0,
+      "win_rate": null
+     }
+    },
+    "B": {
+     "early": {
+      "start_date": "2010-07-30",
+      "end_date": "2016-12-30",
+      "years": 6.42,
+      "n_days": 1618,
+      "total_return": 0.453972866984645,
+      "cagr": 0.060032719222378406,
+      "max_drawdown": -0.16846314050329925,
+      "final_equity": 1.453972866984645,
+      "time_in_market": 0.4672435105067985,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 2,
+      "n_closed": 2,
+      "win_rate": 1.0
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2403,
+      "total_return": 0.0,
+      "cagr": 0.0,
+      "max_drawdown": 0.0,
+      "final_equity": 1.0,
+      "time_in_market": 0.0,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     }
+    },
+    "BH": {
+     "early": {
+      "start_date": "2010-07-30",
+      "end_date": "2016-12-30",
+      "years": 6.42,
+      "n_days": 1618,
+      "total_return": 1.8717945635217355,
+      "cagr": 0.17858405719821757,
+      "max_drawdown": -0.18051148314393406,
+      "final_equity": 2.8717945635217355,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2403,
+      "total_return": 5.9766615298,
+      "cagr": 0.2252997800332961,
+      "max_drawdown": -0.37148486047273477,
+      "final_equity": 6.9766615298,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     }
+    }
+   },
+   "pe_coverage": 1.0,
+   "pe_days_in_period": 4021,
+   "period_days": 4021,
+   "gm_not_applicable": false,
+   "b_fund_exits": 2,
+   "b_fund_exit_detail": [
+    {
+     "entry_date": "2010-08-02",
+     "exit_date": "2012-10-19",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": 0.15138572742444567,
+     "quarter": "2012-09-30"
+    },
+    {
+     "entry_date": "2013-04-19",
+     "exit_date": "2014-01-24",
+     "reasons": [
+      "EPS_DOWN"
+     ],
+     "ret_net": 0.2628025798418232,
+     "quarter": "2013-12-31"
+    }
+   ]
+  },
+  {
+   "code": "TSLA",
+   "yf": "TSLA",
+   "name": "特斯拉",
+   "market": "US",
+   "group": "美股成長",
+   "cik": "0001318605",
+   "analysis_start": "2020-11-09",
+   "analysis_end": "2026-07-27",
+   "meta": {
+    "price_start": "2010-06-29",
+    "price_end": "2026-07-27",
+    "price_days": 4043,
+    "pe_source": "自算 trailing PE = 未還原收盤價 / 近四季實際 EPS(adjusted 口徑)",
+    "pe_start": "2011-08-03",
+    "pe_end": "2026-07-22",
+    "pe_days": null,
+    "fs_source": "EPS/共識:yfinance 財報日;毛利率:SEC EDGAR XBRL(Q4 由全年減前三季推導)",
+    "eps_basis": "共識 EPS(可得 59 季),毛利率可得 63 季",
+    "has_consensus": true,
+    "fs_start": "2010-09-30",
+    "fs_end": "2026-09-30",
+    "fs_quarters": 64
+   },
+   "full": {
+    "A": {
+     "start_date": "2020-11-09",
+     "end_date": "2026-07-27",
+     "years": 5.71,
+     "total_return": 1.3594568802811025,
+     "cagr": 0.1621919208791216,
+     "max_drawdown": -0.7363221754364413,
+     "mdd_peak_date": "2021-11-04",
+     "mdd_trough_date": "2023-01-03",
+     "n_trades": 2,
+     "n_closed": 1,
+     "n_open": 1,
+     "win_rate": 1.0,
+     "avg_trade_ret": 0.5828908471588572,
+     "best_trade": 0.5828908471588572,
+     "worst_trade": 0.49059986322879157,
+     "time_in_market": 0.9581297976273552,
+     "final_equity": 2.3594568802811025
+    },
+    "B": {
+     "start_date": "2020-11-09",
+     "end_date": "2026-07-27",
+     "years": 5.71,
+     "total_return": -0.05491651799416675,
+     "cagr": -0.009841024967529144,
+     "max_drawdown": -0.7852077236458956,
+     "mdd_peak_date": "2021-11-04",
+     "mdd_trough_date": "2025-04-08",
+     "n_trades": 4,
+     "n_closed": 3,
+     "n_open": 1,
+     "win_rate": 0.3333333333333333,
+     "avg_trade_ret": 0.046304370784516734,
+     "best_trade": 0.5828908471588572,
+     "worst_trade": -0.224753768097679,
+     "time_in_market": 0.473831123517097,
+     "final_equity": 0.9450834820058333
+    },
+    "BH": {
+     "start_date": "2020-11-09",
+     "end_date": "2026-07-27",
+     "years": 5.71,
+     "total_return": 1.1994730835988192,
+     "cagr": 0.14799126779455407,
+     "max_drawdown": -0.7363221754364413,
+     "mdd_peak_date": "2021-11-04",
+     "mdd_trough_date": "2023-01-03",
+     "n_trades": 0,
+     "n_closed": 0,
+     "n_open": 0,
+     "win_rate": null,
+     "avg_trade_ret": null,
+     "best_trade": null,
+     "worst_trade": null,
+     "time_in_market": 1.0,
+     "final_equity": 2.199473083598819
+    }
+   },
+   "eras": {
+    "A": {
+     "early": {
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "insufficient": true,
+      "n_days": 0
+     },
+     "late": {
+      "start_date": "2020-11-09",
+      "end_date": "2026-07-27",
+      "years": 5.71,
+      "n_days": 1433,
+      "total_return": 1.3594568802811025,
+      "cagr": 0.1621919208791216,
+      "max_drawdown": -0.7363221754364413,
+      "final_equity": 2.3594568802811025,
+      "time_in_market": 0.9595254710397767,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 2,
+      "n_closed": 1,
+      "win_rate": 1.0
+     }
+    },
+    "B": {
+     "early": {
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "insufficient": true,
+      "n_days": 0
+     },
+     "late": {
+      "start_date": "2020-11-09",
+      "end_date": "2026-07-27",
+      "years": 5.71,
+      "n_days": 1433,
+      "total_return": -0.05491651799416675,
+      "cagr": -0.009841024967529144,
+      "max_drawdown": -0.7852077236458956,
+      "final_equity": 0.9450834820058333,
+      "time_in_market": 0.47662247034194,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 4,
+      "n_closed": 3,
+      "win_rate": 0.3333333333333333
+     }
+    },
+    "BH": {
+     "early": {
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "insufficient": true,
+      "n_days": 0
+     },
+     "late": {
+      "start_date": "2020-11-09",
+      "end_date": "2026-07-27",
+      "years": 5.71,
+      "n_days": 1433,
+      "total_return": 1.1994730835988192,
+      "cagr": 0.14799126779455407,
+      "max_drawdown": -0.7363221754364413,
+      "final_equity": 2.199473083598819,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     }
+    }
+   },
+   "pe_coverage": 1.0,
+   "pe_days_in_period": 1433,
+   "period_days": 1433,
+   "gm_not_applicable": false,
+   "b_fund_exits": 2,
+   "b_fund_exit_detail": [
+    {
+     "entry_date": "2021-03-04",
+     "exit_date": "2023-04-25",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": -0.224753768097679,
+     "quarter": "2023-03-31"
+    },
+    {
+     "entry_date": "2025-01-31",
+     "exit_date": "2025-07-25",
+     "reasons": [
+      "EPS_DOWN"
+     ],
+     "ret_net": -0.219223966707628,
+     "quarter": "2025-06-30"
+    }
+   ]
+  },
+  {
+   "code": "KO",
+   "yf": "KO",
+   "name": "可口可樂",
+   "market": "US",
+   "group": "美股成熟",
+   "cik": "0000021344",
+   "analysis_start": "2018-10-30",
+   "analysis_end": "2026-07-27",
+   "meta": {
+    "price_start": "2000-01-03",
+    "price_end": "2026-07-27",
+    "price_days": 6680,
+    "pe_source": "自算 trailing PE = 未還原收盤價 / 近四季實際 EPS(adjusted 口徑)",
+    "pe_start": "2002-07-17",
+    "pe_end": "2026-04-28",
+    "pe_days": null,
+    "fs_source": "EPS/共識:yfinance 財報日;毛利率:SEC EDGAR XBRL(Q4 由全年減前三季推導)",
+    "eps_basis": "共識 EPS(可得 100 季),毛利率可得 26 季",
+    "has_consensus": true,
+    "fs_start": "2001-09-30",
+    "fs_end": "2026-06-30",
+    "fs_quarters": 100
+   },
+   "full": {
+    "A": {
+     "start_date": "2018-10-30",
+     "end_date": "2026-07-27",
+     "years": 7.74,
+     "total_return": 0.6743414693608372,
+     "cagr": 0.06885987965819673,
+     "max_drawdown": -0.11803741620423114,
+     "mdd_peak_date": "2020-06-08",
+     "mdd_trough_date": "2020-06-26",
+     "n_trades": 2,
+     "n_closed": 2,
+     "n_open": 0,
+     "win_rate": 1.0,
+     "avg_trade_ret": 0.29408076727635946,
+     "best_trade": 0.3115038230856604,
+     "worst_trade": 0.27665771146705853,
+     "time_in_market": 0.15028306742151312,
+     "final_equity": 1.6743414693608372
+    },
+    "B": {
+     "start_date": "2018-10-30",
+     "end_date": "2026-07-27",
+     "years": 7.74,
+     "total_return": 0.6743414693608372,
+     "cagr": 0.06885987965819673,
+     "max_drawdown": -0.11803741620423114,
+     "mdd_peak_date": "2020-06-08",
+     "mdd_trough_date": "2020-06-26",
+     "n_trades": 2,
+     "n_closed": 2,
+     "n_open": 0,
+     "win_rate": 1.0,
+     "avg_trade_ret": 0.29408076727635946,
+     "best_trade": 0.3115038230856604,
+     "worst_trade": 0.27665771146705853,
+     "time_in_market": 0.15028306742151312,
+     "final_equity": 1.6743414693608372
+    },
+    "BH": {
+     "start_date": "2018-10-30",
+     "end_date": "2026-07-27",
+     "years": 7.74,
+     "total_return": 1.2303779262657493,
+     "cagr": 0.10920212770381776,
+     "max_drawdown": -0.3698749978905278,
+     "mdd_peak_date": "2020-02-21",
+     "mdd_trough_date": "2020-03-23",
+     "n_trades": 0,
+     "n_closed": 0,
+     "n_open": 0,
+     "win_rate": null,
+     "avg_trade_ret": null,
+     "best_trade": null,
+     "worst_trade": null,
+     "time_in_market": 1.0,
+     "final_equity": 2.2303779262657493
+    }
+   },
+   "eras": {
+    "A": {
+     "early": {
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "insufficient": true,
+      "n_days": 0
+     },
+     "late": {
+      "start_date": "2018-10-30",
+      "end_date": "2026-07-27",
+      "years": 7.74,
+      "n_days": 1943,
+      "total_return": 0.6743414693608372,
+      "cagr": 0.06885987965819673,
+      "max_drawdown": -0.11803741620423114,
+      "final_equity": 1.6743414693608372,
+      "time_in_market": 0.15131240349974268,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 2,
+      "n_closed": 2,
+      "win_rate": 1.0
+     }
+    },
+    "B": {
+     "early": {
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "insufficient": true,
+      "n_days": 0
+     },
+     "late": {
+      "start_date": "2018-10-30",
+      "end_date": "2026-07-27",
+      "years": 7.74,
+      "n_days": 1943,
+      "total_return": 0.6743414693608372,
+      "cagr": 0.06885987965819673,
+      "max_drawdown": -0.11803741620423114,
+      "final_equity": 1.6743414693608372,
+      "time_in_market": 0.15131240349974268,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 2,
+      "n_closed": 2,
+      "win_rate": 1.0
+     }
+    },
+    "BH": {
+     "early": {
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "insufficient": true,
+      "n_days": 0
+     },
+     "late": {
+      "start_date": "2018-10-30",
+      "end_date": "2026-07-27",
+      "years": 7.74,
+      "n_days": 1943,
+      "total_return": 1.2303779262657493,
+      "cagr": 0.10920212770381776,
+      "max_drawdown": -0.3698749978905278,
+      "final_equity": 2.2303779262657493,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     }
+    }
+   },
+   "pe_coverage": 1.0,
+   "pe_days_in_period": 1943,
+   "period_days": 1943,
+   "gm_not_applicable": false,
+   "b_fund_exits": 0,
+   "b_fund_exit_detail": []
+  },
+  {
+   "code": "INTC",
+   "yf": "INTC",
+   "name": "英特爾",
+   "market": "US",
+   "group": "美股衰退",
+   "cik": "0000050863",
+   "analysis_start": "2009-11-02",
+   "analysis_end": "2026-07-27",
+   "meta": {
+    "price_start": "2000-01-03",
+    "price_end": "2026-07-27",
+    "price_days": 6680,
+    "pe_source": "自算 trailing PE = 未還原收盤價 / 近四季實際 EPS(adjusted 口徑)",
+    "pe_start": "2003-01-14",
+    "pe_end": "2026-07-23",
+    "pe_days": null,
+    "fs_source": "EPS/共識:yfinance 財報日;毛利率:SEC EDGAR XBRL(Q4 由全年減前三季推導)",
+    "eps_basis": "共識 EPS(可得 98 季),毛利率可得 55 季",
+    "has_consensus": true,
+    "fs_start": "2002-03-31",
+    "fs_end": "2026-09-30",
+    "fs_quarters": 99
+   },
+   "full": {
+    "A": {
+     "start_date": "2009-11-02",
+     "end_date": "2026-07-27",
+     "years": 16.73,
+     "total_return": 1.249858006881185,
+     "cagr": 0.04965856365116683,
+     "max_drawdown": -0.6162617453417767,
+     "mdd_peak_date": "2021-04-09",
+     "mdd_trough_date": "2022-10-11",
+     "n_trades": 1,
+     "n_closed": 1,
+     "n_open": 0,
+     "win_rate": 1.0,
+     "avg_trade_ret": 1.2498580068811802,
+     "best_trade": 1.2498580068811802,
+     "worst_trade": 1.2498580068811802,
+     "time_in_market": 0.7946280009507963,
+     "final_equity": 2.249858006881185
+    },
+    "B": {
+     "start_date": "2009-11-02",
+     "end_date": "2026-07-27",
+     "years": 16.73,
+     "total_return": 1.7606287878241305,
+     "cagr": 0.06257287776607035,
+     "max_drawdown": -0.37887031667447646,
+     "mdd_peak_date": "2020-01-24",
+     "mdd_trough_date": "2022-04-29",
+     "n_trades": 4,
+     "n_closed": 4,
+     "n_open": 0,
+     "win_rate": 0.75,
+     "avg_trade_ret": 0.3252934617291985,
+     "best_trade": 0.7314568411261442,
+     "worst_trade": -0.07721638492258676,
+     "time_in_market": 0.5864036130259092,
+     "final_equity": 2.7606287878241305
+    },
+    "BH": {
+     "start_date": "2009-11-02",
+     "end_date": "2026-07-27",
+     "years": 16.73,
+     "total_return": 6.29156357008116,
+     "cagr": 0.12608237238106557,
+     "max_drawdown": -0.7079731830132323,
+     "mdd_peak_date": "2021-04-09",
+     "mdd_trough_date": "2025-04-08",
+     "n_trades": 0,
+     "n_closed": 0,
+     "n_open": 0,
+     "win_rate": null,
+     "avg_trade_ret": null,
+     "best_trade": null,
+     "worst_trade": null,
+     "time_in_market": 1.0,
+     "final_equity": 7.29156357008116
+    }
+   },
+   "eras": {
+    "A": {
+     "early": {
+      "start_date": "2009-11-02",
+      "end_date": "2016-12-30",
+      "years": 7.16,
+      "n_days": 1804,
+      "total_return": 1.1980829891562328,
+      "cagr": 0.1162847488353882,
+      "max_drawdown": -0.3189216955864934,
+      "final_equity": 2.198082989156233,
+      "time_in_market": 0.9717294900221729,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2403,
+      "total_return": 0.01432594900476869,
+      "cagr": 0.0014889155810491328,
+      "max_drawdown": -0.6162617453417767,
+      "final_equity": 1.0143259490047687,
+      "time_in_market": 0.6620890553474823,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 1,
+      "n_closed": 1,
+      "win_rate": 1.0
+     }
+    },
+    "B": {
+     "early": {
+      "start_date": "2009-11-02",
+      "end_date": "2016-12-30",
+      "years": 7.16,
+      "n_days": 1804,
+      "total_return": 1.1131214231412678,
+      "cagr": 0.11015548098241013,
+      "max_drawdown": -0.2975312997335363,
+      "final_equity": 2.113121423141268,
+      "time_in_market": 0.7644124168514412,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 2,
+      "n_closed": 2,
+      "win_rate": 1.0
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2403,
+      "total_return": 0.29464312972004536,
+      "cagr": 0.027378501207062422,
+      "max_drawdown": -0.37887031667447646,
+      "final_equity": 1.2946431297200454,
+      "time_in_market": 0.4544319600499376,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 2,
+      "n_closed": 2,
+      "win_rate": 0.5
+     }
+    },
+    "BH": {
+     "early": {
+      "start_date": "2009-11-02",
+      "end_date": "2016-12-30",
+      "years": 7.16,
+      "n_days": 1804,
+      "total_return": 1.4240024978128174,
+      "cagr": 0.13164351030266053,
+      "max_drawdown": -0.31892169558649364,
+      "final_equity": 2.4240024978128174,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "early",
+      "era_name": "2008~2016(成長股大噴發前)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2403,
+      "total_return": 1.9809460418980378,
+      "cagr": 0.12102590194007878,
+      "max_drawdown": -0.7079731830132324,
+      "final_equity": 2.980946041898038,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "era": "late",
+      "era_name": "2017~2026(大噴發時代)",
+      "n_trades": 0,
+      "n_closed": 0,
+      "win_rate": null
+     }
+    }
+   },
+   "pe_coverage": 0.9562633705728548,
+   "pe_days_in_period": 4023,
+   "period_days": 4207,
+   "gm_not_applicable": false,
+   "b_fund_exits": 4,
+   "b_fund_exit_detail": [
+    {
+     "entry_date": "2010-01-15",
+     "exit_date": "2012-11-01",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": 0.16934931121994468,
+     "quarter": "2012-09-30"
+    },
+    {
+     "entry_date": "2013-10-29",
+     "exit_date": "2015-10-29",
+     "reasons": [
+      "EPS_DOWN"
+     ],
+     "ret_net": 0.47758407949329196,
+     "quarter": "2015-09-30"
+    },
+    {
+     "entry_date": "2016-05-03",
+     "exit_date": "2020-10-26",
+     "reasons": [
+      "GM_DOWN"
+     ],
+     "ret_net": 0.7314568411261442,
+     "quarter": "2020-09-30"
+    },
+    {
+     "entry_date": "2021-10-25",
+     "exit_date": "2022-05-02",
+     "reasons": [
+      "EPS_DOWN"
+     ],
+     "ret_net": -0.07721638492258676,
+     "quarter": "2022-03-31"
+    }
+   ]
+  }
+ ],
+ "portfolio": {
+  "A": {
+   "full": {
+    "start_date": "2009-07-22",
+    "end_date": "2026-07-27",
+    "years": 17.01,
+    "n_days": 4399,
+    "total_return": 78.98662656096772,
+    "cagr": 0.2937686696956834,
+    "max_drawdown": -0.3638839999412127,
+    "final_equity": 79.98662656096772,
+    "time_in_market": 0.9997726756080928,
+    "insufficient": false,
+    "avg_held": 8.408047283473516
+   },
+   "eras": {
+    "early": {
+     "start_date": "2009-07-22",
+     "end_date": "2016-12-30",
+     "years": 7.44,
+     "n_days": 1920,
+     "total_return": 3.681794312685999,
+     "cagr": 0.23052738041888698,
+     "max_drawdown": -0.22453590328865758,
+     "final_equity": 4.681794312685999,
+     "time_in_market": 0.9994791666666667,
+     "insufficient": false,
+     "avg_held": 8.080208333333333
+    },
+    "late": {
+     "start_date": "2017-01-03",
+     "end_date": "2026-07-27",
+     "years": 9.56,
+     "n_days": 2479,
+     "total_return": 16.006131947001737,
+     "cagr": 0.3449826688940454,
+     "max_drawdown": -0.3638839999412127,
+     "final_equity": 17.006131947001737,
+     "time_in_market": 1.0,
+     "insufficient": false,
+     "avg_held": 8.661960467930617
+    }
+   },
+   "n_stocks": 21
+  },
+  "B": {
+   "full": {
+    "start_date": "2009-07-22",
+    "end_date": "2026-07-27",
+    "years": 17.01,
+    "n_days": 4399,
+    "total_return": 52.054527636369514,
+    "cagr": 0.26292252711932274,
+    "max_drawdown": -0.36093817237639503,
+    "final_equity": 53.054527636369514,
+    "time_in_market": 0.9731757217549443,
+    "insufficient": false,
+    "avg_held": 4.742214139577176
+   },
+   "eras": {
+    "early": {
+     "start_date": "2009-07-22",
+     "end_date": "2016-12-30",
+     "years": 7.44,
+     "n_days": 1920,
+     "total_return": 2.7263990871370507,
+     "cagr": 0.19335855104756816,
+     "max_drawdown": -0.2465010090338039,
+     "final_equity": 3.7263990871370507,
+     "time_in_market": 0.99375,
+     "insufficient": false,
+     "avg_held": 4.466666666666667
+    },
+    "late": {
+     "start_date": "2017-01-03",
+     "end_date": "2026-07-27",
+     "years": 9.56,
+     "n_days": 2479,
+     "total_return": 13.161241800570467,
+     "cagr": 0.3194740358622834,
+     "max_drawdown": -0.36093817237639503,
+     "final_equity": 14.161241800570467,
+     "time_in_market": 0.9572408229124647,
+     "insufficient": false,
+     "avg_held": 4.955627269060105
+    }
+   },
+   "n_stocks": 21
+  },
+  "BH": {
+   "full": {
+    "start_date": "2009-07-23",
+    "end_date": "2026-07-27",
+    "years": 17.01,
+    "n_days": 4398,
+    "total_return": 41.417514505684814,
+    "cagr": 0.2464652319190963,
+    "max_drawdown": -0.3390574392358088,
+    "final_equity": 42.417514505684814,
+    "time_in_market": 1.0,
+    "insufficient": false,
+    "avg_held": 16.3856298317417
+   },
+   "eras": {
+    "early": {
+     "start_date": "2009-07-23",
+     "end_date": "2016-12-30",
+     "years": 7.44,
+     "n_days": 1919,
+     "total_return": 2.4971087368081695,
+     "cagr": 0.18329098984301528,
+     "max_drawdown": -0.20905367413497777,
+     "final_equity": 3.4971087368081695,
+     "time_in_market": 1.0,
+     "insufficient": false,
+     "avg_held": 12.799374674309536
+    },
+    "late": {
+     "start_date": "2017-01-03",
+     "end_date": "2026-07-27",
+     "years": 9.56,
+     "n_days": 2479,
+     "total_return": 11.075461558168138,
+     "cagr": 0.29766634546874826,
+     "max_drawdown": -0.3390574392358089,
+     "final_equity": 12.075461558168138,
+     "time_in_market": 1.0,
+     "insufficient": false,
+     "avg_held": 19.161758773699074
+    }
+   },
+   "n_stocks": 21
+  }
+ },
+ "portfolio_by_group": {
+  "成長": {
+   "A": {
+    "full": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "n_days": 3649,
+     "total_return": 93.38067410201606,
+     "cagr": 0.3555358156862376,
+     "max_drawdown": -0.33713077830153826,
+     "final_equity": 94.38067410201606,
+     "time_in_market": 0.9216223622910387,
+     "insufficient": false,
+     "avg_held": 2.5415182241710057
+    },
+    "eras": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 1.3108057654755507,
+      "cagr": 0.16855726192044473,
+      "max_drawdown": -0.26153101602113493,
+      "final_equity": 2.3108057654755507,
+      "time_in_market": 0.9156626506024096,
+      "insufficient": false,
+      "avg_held": 2.7228915662650603
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 39.681632183902906,
+      "cagr": 0.4734553695251571,
+      "max_drawdown": -0.33713077830153826,
+      "final_equity": 40.681632183902906,
+      "time_in_market": 0.9250323136579061,
+      "insufficient": false,
+      "avg_held": 2.4377423524342956
+     }
+    },
+    "n_stocks": 6
+   },
+   "B": {
+    "full": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "n_days": 3649,
+     "total_return": 17.590962803160192,
+     "cagr": 0.21593599950025655,
+     "max_drawdown": -0.5507718197254219,
+     "final_equity": 18.590962803160192,
+     "time_in_market": 0.7459577966566182,
+     "insufficient": false,
+     "avg_held": 1.2896684023020006
+    },
+    "eras": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 0.5967254892882154,
+      "cagr": 0.09092586893990107,
+      "max_drawdown": -0.33786076229177076,
+      "final_equity": 1.5967254892882154,
+      "time_in_market": 0.6430722891566265,
+      "insufficient": false,
+      "avg_held": 0.9043674698795181
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 10.528354226303112,
+      "cagr": 0.2913882998469428,
+      "max_drawdown": -0.5507718197254219,
+      "final_equity": 11.528354226303112,
+      "time_in_market": 0.8048255062473072,
+      "insufficient": false,
+      "avg_held": 1.5101249461439035
+     }
+    },
+    "n_stocks": 6
+   },
+   "BH": {
+    "full": {
+     "start_date": "2011-08-16",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "n_days": 3648,
+     "total_return": 83.55501398547261,
+     "cagr": 0.3456768095546945,
+     "max_drawdown": -0.35023279642711047,
+     "final_equity": 84.55501398547261,
+     "time_in_market": 1.0,
+     "insufficient": false,
+     "avg_held": 5.57702850877193
+    },
+    "eras": {
+     "early": {
+      "start_date": "2011-08-16",
+      "end_date": "2016-12-30",
+      "years": 5.37,
+      "n_days": 1327,
+      "total_return": 1.0240057385300032,
+      "cagr": 0.14018670969938785,
+      "max_drawdown": -0.3010467405678656,
+      "final_equity": 2.024005738530003,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "avg_held": 5.0
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 40.66018561369578,
+      "cagr": 0.4771231850715505,
+      "max_drawdown": -0.35023279642711047,
+      "final_equity": 41.66018561369578,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "avg_held": 5.906936665230504
+     }
+    },
+    "n_stocks": 6
+   }
+  },
+  "成熟": {
+   "A": {
+    "full": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "n_days": 3649,
+     "total_return": 5.304317449886267,
+     "cagr": 0.1310772629502821,
+     "max_drawdown": -0.23863709991563475,
+     "final_equity": 6.304317449886267,
+     "time_in_market": 0.9394354617703481,
+     "insufficient": false,
+     "avg_held": 2.655796108522883
+    },
+    "eras": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 0.5397110362718422,
+      "cagr": 0.08357391533050262,
+      "max_drawdown": -0.23863709991563475,
+      "final_equity": 1.5397110362718422,
+      "time_in_market": 0.9992469879518072,
+      "insufficient": false,
+      "avg_held": 3.3019578313253013
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 3.0894876173216,
+      "cagr": 0.15871933670335658,
+      "max_drawdown": -0.23726054492612048,
+      "final_equity": 4.0894876173216,
+      "time_in_market": 0.9052132701421801,
+      "insufficient": false,
+      "avg_held": 2.2860835846617835
+     }
+    },
+    "n_stocks": 5
+   },
+   "B": {
+    "full": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "n_days": 3649,
+     "total_return": 1.3350006448829865,
+     "cagr": 0.05836819836029927,
+     "max_drawdown": -0.2560537259329342,
+     "final_equity": 2.3350006448829865,
+     "time_in_market": 0.7856947108796931,
+     "insufficient": false,
+     "avg_held": 1.5812551383940805
+    },
+    "eras": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 0.1833241714217131,
+      "cagr": 0.03179943299876986,
+      "max_drawdown": -0.2560537259329342,
+      "final_equity": 1.183324171421713,
+      "time_in_market": 0.947289156626506,
+      "insufficient": false,
+      "avg_held": 2.0451807228915664
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 0.9708160724942754,
+      "cagr": 0.07354157448998921,
+      "max_drawdown": -0.24942044214571546,
+      "final_equity": 1.9708160724942754,
+      "time_in_market": 0.6932356742783283,
+      "insufficient": false,
+      "avg_held": 1.3158121499353728
+     }
+    },
+    "n_stocks": 5
+   },
+   "BH": {
+    "full": {
+     "start_date": "2011-08-16",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "n_days": 3648,
+     "total_return": 3.0151265608869346,
+     "cagr": 0.09746890314430723,
+     "max_drawdown": -0.18647869379981685,
+     "final_equity": 4.015126560886935,
+     "time_in_market": 1.0,
+     "insufficient": false,
+     "avg_held": 5.0
+    },
+    "eras": {
+     "early": {
+      "start_date": "2011-08-16",
+      "end_date": "2016-12-30",
+      "years": 5.37,
+      "n_days": 1327,
+      "total_return": 0.5090197461833945,
+      "cagr": 0.07956618251920067,
+      "max_drawdown": -0.16658162734615878,
+      "final_equity": 1.5090197461833945,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "avg_held": 5.0
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 1.6535788330045067,
+      "cagr": 0.10746809750066855,
+      "max_drawdown": -0.18647869379981674,
+      "final_equity": 2.6535788330045067,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "avg_held": 5.0
+     }
+    },
+    "n_stocks": 5
+   }
+  },
+  "循環": {
+   "A": {
+    "full": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "n_days": 3649,
+     "total_return": 81.4896607607399,
+     "cagr": 0.3433794607809775,
+     "max_drawdown": -0.4762048843250096,
+     "final_equity": 82.4896607607399,
+     "time_in_market": 0.9482049876678542,
+     "insufficient": false,
+     "avg_held": 2.3633872293779117
+    },
+    "eras": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 1.8947703620302114,
+      "cagr": 0.21856172777970473,
+      "max_drawdown": -0.4421770088370591,
+      "final_equity": 2.8947703620302114,
+      "time_in_market": 0.9051204819277109,
+      "insufficient": false,
+      "avg_held": 1.7176204819277108
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 27.233213967079795,
+      "cagr": 0.4182214363982102,
+      "max_drawdown": -0.4762048843250096,
+      "final_equity": 28.233213967079795,
+      "time_in_market": 0.972856527358897,
+      "insufficient": false,
+      "avg_held": 2.73287376130978
+     }
+    },
+    "n_stocks": 5
+   },
+   "B": {
+    "full": {
+     "start_date": "2011-08-15",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "n_days": 3649,
+     "total_return": 12.042343168976611,
+     "cagr": 0.18744195243580353,
+     "max_drawdown": -0.5817495123491857,
+     "final_equity": 13.042343168976611,
+     "time_in_market": 0.5617977528089888,
+     "insufficient": false,
+     "avg_held": 1.2940531652507536
+    },
+    "eras": {
+     "early": {
+      "start_date": "2011-08-15",
+      "end_date": "2016-12-30",
+      "years": 5.38,
+      "n_days": 1328,
+      "total_return": 1.1152832565369821,
+      "cagr": 0.14950165512496194,
+      "max_drawdown": -0.48189319808731557,
+      "final_equity": 2.115283256536982,
+      "time_in_market": 0.5368975903614458,
+      "insufficient": false,
+      "avg_held": 0.8456325301204819
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 5.165766749522128,
+      "cagr": 0.20956625878926993,
+      "max_drawdown": -0.5817495123491857,
+      "final_equity": 6.165766749522128,
+      "time_in_market": 0.5760448082722964,
+      "insufficient": false,
+      "avg_held": 1.5506247307195173
+     }
+    },
+    "n_stocks": 5
+   },
+   "BH": {
+    "full": {
+     "start_date": "2011-08-16",
+     "end_date": "2026-07-27",
+     "years": 14.95,
+     "n_days": 3648,
+     "total_return": 15.450751828023424,
+     "cagr": 0.20606963715458093,
+     "max_drawdown": -0.4068014124563568,
+     "final_equity": 16.450751828023424,
+     "time_in_market": 1.0,
+     "insufficient": false,
+     "avg_held": 4.824835526315789
+    },
+    "eras": {
+     "early": {
+      "start_date": "2011-08-16",
+      "end_date": "2016-12-30",
+      "years": 5.37,
+      "n_days": 1327,
+      "total_return": 0.5062510979721517,
+      "cagr": 0.07919736073302208,
+      "max_drawdown": -0.3052196194431138,
+      "final_equity": 1.5062510979721517,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "avg_held": 4.519216277317257
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2321,
+      "total_return": 9.848286890358477,
+      "cagr": 0.2832015153282643,
+      "max_drawdown": -0.4068014124563568,
+      "final_equity": 10.848286890358477,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "avg_held": 4.999569151227919
+     }
+    },
+    "n_stocks": 5
+   }
+  },
+  "美股成長": {
+   "A": {
+    "full": {
+     "start_date": "2009-07-22",
+     "end_date": "2026-07-27",
+     "years": 17.01,
+     "n_days": 4279,
+     "total_return": 49.93804268802894,
+     "cagr": 0.2599041116162275,
+     "max_drawdown": -0.7363221754364409,
+     "final_equity": 50.93804268802894,
+     "time_in_market": 0.966347277401262,
+     "insufficient": false,
+     "avg_held": 1.3461089039495209
+    },
+    "eras": {
+     "early": {
+      "start_date": "2009-07-22",
+      "end_date": "2016-12-30",
+      "years": 7.44,
+      "n_days": 1876,
+      "total_return": 4.463009340053343,
+      "cagr": 0.2563119896207102,
+      "max_drawdown": -0.2663531816401158,
+      "final_equity": 5.463009340053343,
+      "time_in_market": 0.9994669509594882,
+      "insufficient": false,
+      "avg_held": 1.8544776119402986
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2403,
+      "total_return": 8.297682415866037,
+      "cagr": 0.2626655569036638,
+      "max_drawdown": -0.7363221754364409,
+      "final_equity": 9.297682415866037,
+      "time_in_market": 0.9404910528506034,
+      "insufficient": false,
+      "avg_held": 0.9492301290054099
+     }
+    },
+    "n_stocks": 3
+   },
+   "B": {
+    "full": {
+     "start_date": "2009-07-22",
+     "end_date": "2026-07-27",
+     "years": 17.01,
+     "n_days": 4279,
+     "total_return": 3.0118814263270988,
+     "cagr": 0.08508543634907317,
+     "max_drawdown": -0.7852077236458956,
+     "final_equity": 4.011881426327099,
+     "time_in_market": 0.5590091142790372,
+     "insufficient": false,
+     "avg_held": 0.6772610422996027
+    },
+    "eras": {
+     "early": {
+      "start_date": "2009-07-22",
+      "end_date": "2016-12-30",
+      "years": 7.44,
+      "n_days": 1876,
+      "total_return": 4.181613268613022,
+      "cagr": 0.24741557584039708,
+      "max_drawdown": -0.3044377228203665,
+      "final_equity": 5.181613268613022,
+      "time_in_market": 0.8800639658848614,
+      "insufficient": false,
+      "avg_held": 1.1497867803837953
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2403,
+      "total_return": -0.22574665102303726,
+      "cagr": -0.026406666436561088,
+      "max_drawdown": -0.7852077236458956,
+      "final_equity": 0.7742533489769627,
+      "time_in_market": 0.3083645443196005,
+      "insufficient": false,
+      "avg_held": 0.3083645443196005
+     }
+    },
+    "n_stocks": 3
+   },
+   "BH": {
+    "full": {
+     "start_date": "2009-07-23",
+     "end_date": "2026-07-27",
+     "years": 17.01,
+     "n_days": 4278,
+     "total_return": 61.96915648101617,
+     "cagr": 0.2757546933553978,
+     "max_drawdown": -0.47799368889247895,
+     "final_equity": 62.96915648101617,
+     "time_in_market": 1.0,
+     "insufficient": false,
+     "avg_held": 2.2744273024777932
+    },
+    "eras": {
+     "early": {
+      "start_date": "2009-07-23",
+      "end_date": "2016-12-30",
+      "years": 7.44,
+      "n_days": 1875,
+      "total_return": 4.458955134166982,
+      "cagr": 0.25629211658303563,
+      "max_drawdown": -0.2663531816401147,
+      "final_equity": 5.458955134166982,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "avg_held": 1.8624
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2403,
+      "total_return": 10.478028993980557,
+      "cagr": 0.290797498330007,
+      "max_drawdown": -0.47799368889247906,
+      "final_equity": 11.478028993980557,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "avg_held": 2.59592176446109
+     }
+    },
+    "n_stocks": 3
+   }
+  },
+  "美股成熟": {
+   "A": {
+    "full": {
+     "start_date": "2018-10-30",
+     "end_date": "2026-07-27",
+     "years": 7.74,
+     "n_days": 1943,
+     "total_return": 0.6743414693608372,
+     "cagr": 0.06885987965819673,
+     "max_drawdown": -0.11803741620423114,
+     "final_equity": 1.6743414693608372,
+     "time_in_market": 0.15131240349974268,
+     "insufficient": false,
+     "avg_held": 0.15131240349974268
+    },
+    "eras": {
+     "early": {
+      "insufficient": true,
+      "n_days": 0
+     },
+     "late": {
+      "start_date": "2018-10-30",
+      "end_date": "2026-07-27",
+      "years": 7.74,
+      "n_days": 1943,
+      "total_return": 0.6743414693608372,
+      "cagr": 0.06885987965819673,
+      "max_drawdown": -0.11803741620423114,
+      "final_equity": 1.6743414693608372,
+      "time_in_market": 0.15131240349974268,
+      "insufficient": false,
+      "avg_held": 0.15131240349974268
+     }
+    },
+    "n_stocks": 1
+   },
+   "B": {
+    "full": {
+     "start_date": "2018-10-30",
+     "end_date": "2026-07-27",
+     "years": 7.74,
+     "n_days": 1943,
+     "total_return": 0.6743414693608372,
+     "cagr": 0.06885987965819673,
+     "max_drawdown": -0.11803741620423114,
+     "final_equity": 1.6743414693608372,
+     "time_in_market": 0.15131240349974268,
+     "insufficient": false,
+     "avg_held": 0.15131240349974268
+    },
+    "eras": {
+     "early": {
+      "insufficient": true,
+      "n_days": 0
+     },
+     "late": {
+      "start_date": "2018-10-30",
+      "end_date": "2026-07-27",
+      "years": 7.74,
+      "n_days": 1943,
+      "total_return": 0.6743414693608372,
+      "cagr": 0.06885987965819673,
+      "max_drawdown": -0.11803741620423114,
+      "final_equity": 1.6743414693608372,
+      "time_in_market": 0.15131240349974268,
+      "insufficient": false,
+      "avg_held": 0.15131240349974268
+     }
+    },
+    "n_stocks": 1
+   },
+   "BH": {
+    "full": {
+     "start_date": "2018-10-31",
+     "end_date": "2026-07-27",
+     "years": 7.74,
+     "n_days": 1942,
+     "total_return": 1.218732739937494,
+     "cagr": 0.1084925643372796,
+     "max_drawdown": -0.3698749978905279,
+     "final_equity": 2.218732739937494,
+     "time_in_market": 1.0,
+     "insufficient": false,
+     "avg_held": 1.0
+    },
+    "eras": {
+     "early": {
+      "insufficient": true,
+      "n_days": 0
+     },
+     "late": {
+      "start_date": "2018-10-31",
+      "end_date": "2026-07-27",
+      "years": 7.74,
+      "n_days": 1942,
+      "total_return": 1.218732739937494,
+      "cagr": 0.1084925643372796,
+      "max_drawdown": -0.3698749978905279,
+      "final_equity": 2.218732739937494,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "avg_held": 1.0
+     }
+    },
+    "n_stocks": 1
+   }
+  },
+  "美股衰退": {
+   "A": {
+    "full": {
+     "start_date": "2009-11-02",
+     "end_date": "2026-07-27",
+     "years": 16.73,
+     "n_days": 4207,
+     "total_return": 1.249858006881185,
+     "cagr": 0.04965856365116683,
+     "max_drawdown": -0.6162617453417767,
+     "final_equity": 2.249858006881185,
+     "time_in_market": 0.7948657000237699,
+     "insufficient": false,
+     "avg_held": 0.7948657000237699
+    },
+    "eras": {
+     "early": {
+      "start_date": "2009-11-02",
+      "end_date": "2016-12-30",
+      "years": 7.16,
+      "n_days": 1804,
+      "total_return": 1.1980829891562328,
+      "cagr": 0.1162847488353882,
+      "max_drawdown": -0.3189216955864934,
+      "final_equity": 2.198082989156233,
+      "time_in_market": 0.9717294900221729,
+      "insufficient": false,
+      "avg_held": 0.9717294900221729
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2403,
+      "total_return": 0.01432594900476869,
+      "cagr": 0.0014889155810491328,
+      "max_drawdown": -0.6162617453417767,
+      "final_equity": 1.0143259490047687,
+      "time_in_market": 0.6620890553474823,
+      "insufficient": false,
+      "avg_held": 0.6620890553474823
+     }
+    },
+    "n_stocks": 1
+   },
+   "B": {
+    "full": {
+     "start_date": "2009-11-02",
+     "end_date": "2026-07-27",
+     "years": 16.73,
+     "n_days": 4207,
+     "total_return": 1.7606287878241305,
+     "cagr": 0.06257287776607035,
+     "max_drawdown": -0.37887031667447646,
+     "final_equity": 2.7606287878241305,
+     "time_in_market": 0.5873544093178037,
+     "insufficient": false,
+     "avg_held": 0.5873544093178037
+    },
+    "eras": {
+     "early": {
+      "start_date": "2009-11-02",
+      "end_date": "2016-12-30",
+      "years": 7.16,
+      "n_days": 1804,
+      "total_return": 1.1131214231412678,
+      "cagr": 0.11015548098241013,
+      "max_drawdown": -0.2975312997335363,
+      "final_equity": 2.113121423141268,
+      "time_in_market": 0.7644124168514412,
+      "insufficient": false,
+      "avg_held": 0.7644124168514412
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2403,
+      "total_return": 0.29464312972004536,
+      "cagr": 0.027378501207062422,
+      "max_drawdown": -0.37887031667447646,
+      "final_equity": 1.2946431297200454,
+      "time_in_market": 0.4544319600499376,
+      "insufficient": false,
+      "avg_held": 0.4544319600499376
+     }
+    },
+    "n_stocks": 1
+   },
+   "BH": {
+    "full": {
+     "start_date": "2009-11-03",
+     "end_date": "2026-07-27",
+     "years": 16.73,
+     "n_days": 4206,
+     "total_return": 6.492573040599998,
+     "cagr": 0.12793639456255423,
+     "max_drawdown": -0.7079731830132325,
+     "final_equity": 7.492573040599998,
+     "time_in_market": 1.0,
+     "insufficient": false,
+     "avg_held": 1.0
+    },
+    "eras": {
+     "early": {
+      "start_date": "2009-11-03",
+      "end_date": "2016-12-30",
+      "years": 7.16,
+      "n_days": 1803,
+      "total_return": 1.4908259512379582,
+      "cagr": 0.1360054656553502,
+      "max_drawdown": -0.3189216955864933,
+      "final_equity": 2.4908259512379582,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "avg_held": 1.0
+     },
+     "late": {
+      "start_date": "2017-01-03",
+      "end_date": "2026-07-27",
+      "years": 9.56,
+      "n_days": 2403,
+      "total_return": 1.9809460418980254,
+      "cagr": 0.12102590194007812,
+      "max_drawdown": -0.7079731830132325,
+      "final_equity": 2.9809460418980254,
+      "time_in_market": 1.0,
+      "insufficient": false,
+      "avg_held": 1.0
+     }
+    },
+    "n_stocks": 1
+   }
+  }
+ }
+}

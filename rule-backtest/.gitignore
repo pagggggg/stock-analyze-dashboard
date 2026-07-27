@@ -1,0 +1,17 @@
+# 虛擬環境
+.venv/
+
+# API 原始資料快取(可刪,刪了會重抓;檔案多且大,不進版控)
+cache/
+
+# 執行產生的日誌
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+
+# 產出(可由 run.py 重新生成;若想保留報告版本歷史,把下面兩行註解掉)
+# rule_backtest.md
+# data/
+logs/

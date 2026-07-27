@@ -1,0 +1,22 @@
+# 回測相依套件(以 Python 3.9 實測可跑)
+#
+# 安裝:
+#   python3 -m venv .venv
+#   .venv/bin/pip install -r requirements.txt
+
+# 股價(台股/美股皆用,取還原股利收盤價)+ 美股共識/實際 EPS
+yfinance>=0.2.40
+
+# 台股季財報(EPS、毛利率);免費版有每小時請求上限
+FinMind>=2.0
+
+# TWSE 每日本益比(公開端點,不吃 FinMind 額度)
+requests>=2.28
+
+# FinMind / yfinance 相依
+pandas>=2.0
+numpy<2
+lxml<5.0
+loguru>=0.7
+
+# 註:SEC EDGAR(美股毛利率)只用標準庫 urllib,無額外相依。
