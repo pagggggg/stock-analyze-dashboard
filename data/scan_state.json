@@ -190,7 +190,7 @@
     }
   },
   "8454": {
-    "eps_y0": 10.61,
+    "eps_y0": 10.33799,
     "eps_y1": 9.97818,
     "forward_pe_verdict": "便宜",
     "peg_verdict": "資料不足",
@@ -278,7 +278,7 @@
     }
   },
   "8464": {
-    "eps_y0": 25.49965,
+    "eps_y0": 25.68413,
     "eps_y1": 27.02262,
     "forward_pe_verdict": "便宜",
     "peg_verdict": "貴",
@@ -401,7 +401,7 @@
   "6414": {
     "eps_y0": 27.39972,
     "eps_y1": 30.08997,
-    "forward_pe_verdict": "貴",
+    "forward_pe_verdict": "合理",
     "peg_verdict": "偏貴",
     "fcf_lights": {
       "dio": "yellow",
