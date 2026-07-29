@@ -66,6 +66,28 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      # 快取種子:CI 第一次跑(或快取被 GitHub 清掉)時,cache/ 是空的,
+      # build_site 會為 239 檔重抓財報 → 直接撞爆 FinMind 每小時上限 → 大量分析失敗。
+      # (實際發生過:產出的網站只剩 28 個詳情頁,原本 222。)
+      # 財報是 point-in-time 的公開資料且 TTL 30 天,先從 Release 下載一份種子最省事。
+      - name: Seed financial cache (only if missing)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p cache
+          n=$(ls cache/finmind_fs_long_*.json 2>/dev/null | wc -l | tr -d ' ')
+          echo "現有財報快取:$n 檔"
+          if [ "$n" -lt 200 ]; then
+            echo "不足,從 Release 下載種子快取…"
+            if gh release download cache-seed -p fincache.tar.gz -O /tmp/fincache.tar.gz \
+                 -R "$GITHUB_REPOSITORY" 2>/dev/null; then
+              tar -xzf /tmp/fincache.tar.gz -C cache
+              echo "已解壓:$(ls cache/finmind_fs_long_*.json 2>/dev/null | wc -l | tr -d ' ') 檔"
+            else
+              echo "::warning::找不到 cache-seed release,本次可能因限流而資料不全(品質檢查會擋下部署)"
+            fi
+          fi
+
       # 決定本次要不要抓資料、抓多深
       - name: Decide mode
         id: mode
