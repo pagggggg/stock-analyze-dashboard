@@ -98,7 +98,10 @@ jobs:
           elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "refresh=${{ inputs.refresh }}" >> $GITHUB_OUTPUT
           elif [ "${{ github.event.schedule }}" = "0 19 * * 5" ]; then
-            echo "refresh=all" >> $GITHUB_OUTPUT
+            # 週六:同樣只抓股價。財報不需要在這裡硬抓 ——
+            # 財報快取 TTL 為 30~44 天(依代號打散),每天會有十幾檔自然到期並更新,
+            # 若這裡用 --refresh all 反而會一次強制重抓 717 次,必定撞爆每小時上限。
+            echo "refresh=prices" >> $GITHUB_OUTPUT
           else
             echo "refresh=prices" >> $GITHUB_OUTPUT
           fi
@@ -207,3 +210,25 @@ jobs:
               -c user.email="github-actions[bot]@users.noreply.github.com" \
               commit -q -m "deploy: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
           git push -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" gh-pages
+
+      # 種子自動更新:把這次(已通過品質檢查)的財報/月營收快取回存到 Release,
+      # 讓下一次「快取被 GitHub 清掉」的執行仍能拿到新鮮的種子。
+      # 只在整個流程都成功後才更新 —— 否則會把限流當下殘缺的快取存成種子,
+      # 之後每次執行都從壞種子開始,越用越糟。
+      - name: Refresh cache seed
+        if: steps.mode.outputs.refresh != 'none'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd cache
+          ls finmind_fs_long_*.json finmind_bs_*.json finmind_cf_*.json \
+             finmind_mrev_*.json > /tmp/seed.txt 2>/dev/null || true
+          n=$(wc -l < /tmp/seed.txt | tr -d ' ')
+          if [ "$n" -lt 800 ]; then
+            echo "::warning::快取僅 $n 檔(<800),不更新種子,避免把殘缺快取存成種子"
+            exit 0
+          fi
+          tar -czf /tmp/fincache.tar.gz -T /tmp/seed.txt
+          cd ..
+          gh release upload cache-seed /tmp/fincache.tar.gz --clobber -R "$GITHUB_REPOSITORY"
+          echo "種子已更新:$n 檔,$(du -h /tmp/fincache.tar.gz | cut -f1)"

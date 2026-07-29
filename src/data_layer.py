@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import csv
 import os
+import zlib
 import statistics
 import time
 from datetime import date
@@ -724,12 +725,19 @@ def _finmind_pivot(
 
     ★ TTL 為何是 30 天(原本 12 小時,是設計缺陷):
       季報一年只公布 4 次,12 小時的 TTL 會讓「每日排程」每天把 239 檔的
-      三張財報全部重抓一次 —— 這違背 run_daily.sh「只更新股價、不重抓財報」的分工,
+      三張財報全部重抓一次 —— 這違背「每日只更新股價」的分工,
       既拖慢每日更新,又白白消耗 FinMind 額度(實測每日更新因此變成數十分鐘)。
-      新財報的更新改由 run_weekly.sh 的 `--refresh all` 負責(它會直接刪快取強制重抓),
-      所以最壞情況是財報延遲到當週週六才反映,對季報而言完全可接受。
+
+    ★ 為什麼還要加 jitter(依股票代號打散 0~14 天):
+      固定 30 天 TTL 會讓「同一批抓下來的 239 檔」在**同一天一起過期**,
+      那天的排程就得一次補抓 717 次財報,必定撞爆每小時 600 次上限
+      (這正是本專案已經踩過兩次的坑)。加上依 stock_id 決定的固定偏移後,
+      過期日被攤平到 30~44 天之間,平均每天只有十幾檔需要更新,
+      不會有「大批一起到期」的尖峰。偏移是**依代號決定的定值**,不是亂數,
+      所以同一檔股票每次執行結果一致、可重現。
     """
-    cached = cache_get(cache_key, ttl_seconds=ttl_seconds)
+    jitter = (zlib.crc32(str(stock_id).encode()) % 15) * 24 * 3600
+    cached = cache_get(cache_key, ttl_seconds=ttl_seconds + jitter)
     if cached is not None:
         return cached["data"], cached["fetched_date"]
 
