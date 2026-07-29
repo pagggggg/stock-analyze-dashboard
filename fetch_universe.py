@@ -231,9 +231,38 @@ def build_and_save(stock: dict, cfg: dict) -> dict:
 
 
 def _save(rec: dict) -> None:
+    """寫入紀錄,但**絕不用殘缺資料覆蓋既有的完整資料**。
+
+    為什麼需要這個保護:build_and_save 對每個區塊都是 best-effort —— 抓不到就記進
+    errors 繼續跑。若當次遇到 FinMind 額度用盡(雲端 CI 首次執行沒有本地快取時很容易發生),
+    財報區塊會整批抓不到,rec 就少了 annual/annual_bs/… ,直接寫檔會把 repo 裡
+    原本完整的 240 檔資料**洗成殘缺**,而且不會報錯 —— 這正是先前 TWSE 空快取那類
+    「靜默資料損壞」的翻版。
+    作法:逐區塊比對,新的抓不到就沿用舊值,並在 errors 註記「沿用前次資料」。
+    """
     UNIVERSE_DIR.mkdir(parents=True, exist_ok=True)
-    (UNIVERSE_DIR / f"{rec['stock_id']}.json").write_text(
-        json.dumps(rec, ensure_ascii=False), encoding="utf-8")
+    path = UNIVERSE_DIR / f"{rec['stock_id']}.json"
+
+    if path.exists():
+        try:
+            old = json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            old = None
+        if isinstance(old, dict):
+            kept = []
+            # 這些區塊「有比沒有好」:新的缺、舊的有 → 保留舊的
+            for k in ("annual", "annual_bs", "annual_ocf", "latest_bs", "ocf_q",
+                      "pe_hist", "valuation", "hist_peg", "mrev",
+                      "first_report", "latest_report"):
+                if not rec.get(k) and old.get(k):
+                    rec[k] = old[k]
+                    kept.append(k)
+            if kept:
+                rec.setdefault("errors", []).append(
+                    "本次抓取缺漏,沿用前次資料:" + "、".join(kept))
+                rec["partial_update"] = True
+
+    path.write_text(json.dumps(rec, ensure_ascii=False), encoding="utf-8")
 
 
 def run(args) -> None:

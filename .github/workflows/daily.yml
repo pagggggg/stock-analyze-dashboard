@@ -1,34 +1,46 @@
 # ============================================================================
-# 輕量重建 + 部署(GitHub Actions)—— 只在「你 push 程式碼 / 手動」時跑
+# 每日/每週自動更新 + 部署(GitHub Actions)
 # ----------------------------------------------------------------------------
-# 分工(和 Mac mini launchd 不重複):
-#   • Mac mini(scripts/*.sh + launchd)負責「重活」:每日股價、每週財報/共識、
-#     每月重建母體、以及部署;其資料 commit 都帶 [skip ci],故【不會】觸發本 workflow。
-#   • 本 CI 只負責:你從別台電腦 push 程式碼、或手動按 Run 時,重建網站 + 部署一次。
-#     ★ 已移除每日 schedule → 不再和 Mac mini 每天重複抓取。
+# 為什麼改成雲端排程:原本靠本機 launchd,但那台是 MacBook Pro ——
+# 合蓋/睡眠/關機就會錯過排程(實測:排程從未被安裝,網站 4 天沒更新)。
+# 雲端 cron 不受你的電腦開關機影響,這是「每天自動更新」唯一可靠的作法。
 #
-# 注意:本 CI 會 build --from-universe(讀 config/universe.yaml)。母體很大時這步會較久,
-#       屆時可改成手動(把下方 push 觸發拿掉,只留 workflow_dispatch)。
-# 首次:Settings → Pages → Source 選「Deploy from a branch」→ gh-pages /(root)。
-# (選填)Secrets 新增 FINMIND_TOKEN 提高抓取額度。
+# 三種觸發、做的事不同:
+#   schedule(每日 台灣 14:30) 更新股價 + 重算指標 + 重建 + commit 資料 + 部署
+#   schedule(每週六 台灣 03:00)連財報/共識一起重抓(--refresh all)
+#   push / 手動                 只用 repo 現有資料重建 + 部署(不抓資料,快)
+#
+# 注意:cron 用 UTC。台灣 = UTC+8 → 台灣 14:30 = UTC 06:30。
+# GitHub 的排程在尖峰時可能延遲數分鐘至數十分鐘,這是平台特性,不保證準點。
 # ============================================================================
-name: rebuild-deploy
+name: daily-update
 
 on:
+  schedule:
+    - cron: "30 6 * * 1-5"    # 台灣 14:30(週一~週五,台股盤後)→ 只更新股價
+    - cron: "0 19 * * 5"      # 台灣 週六 03:00 → 連財報一起重抓
   push:
-    branches: [main]          # 你 push 程式碼時重建部署(Mac mini 的資料 commit 帶 [skip ci],不觸發)
-  workflow_dispatch: {}       # 手動:Mac mini 沒開時的備援部署
+    branches: [main]          # 你 push 程式碼時重建部署(資料 commit 帶 [skip ci] 不會觸發)
+  workflow_dispatch:
+    inputs:
+      refresh:
+        description: "抓取模式:none=只重建 / prices=更新股價 / all=連財報"
+        required: false
+        default: "prices"
+        type: choice
+        options: [none, prices, all]
 
 permissions:
-  contents: write             # 只用來推 gh-pages(不 commit 資料回 main —— 資料由 Mac mini 主管)
+  contents: write             # 需要寫入:把更新後的 data/ commit 回 main
 
 concurrency:
-  group: "deploy"
-  cancel-in-progress: true
+  group: daily-update
+  cancel-in-progress: false   # 排程不互相取消,避免資料寫到一半被中斷
 
 jobs:
-  build-deploy:
+  update:
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -39,17 +51,101 @@ jobs:
           python-version: "3.12"
           cache: "pip"
 
+      # 快取 FinMind/TWSE/yfinance 的原始資料:沒有它,每次都要重抓全部財報,
+      # 會直接撞爆 FinMind 每小時上限(財報快取 TTL 已設 30 天,所以跨日仍有效)
+      - name: Restore data cache
+        uses: actions/cache@v4
+        with:
+          path: cache
+          key: apicache-${{ github.run_id }}
+          restore-keys: |
+            apicache-
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Build site (母體;--no-record 不動資料狀態,狀態由 Mac mini 主管)
+      # 決定本次要不要抓資料、抓多深
+      - name: Decide mode
+        id: mode
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "refresh=none" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "refresh=${{ inputs.refresh }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event.schedule }}" = "0 19 * * 5" ]; then
+            echo "refresh=all" >> $GITHUB_OUTPUT
+          else
+            echo "refresh=prices" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Fetch market data
+        if: steps.mode.outputs.refresh != 'none'
         env:
           FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
-        run: python build_site.py --from-universe --no-record --out public
+        run: |
+          python fetch_universe.py --from-universe --refresh ${{ steps.mode.outputs.refresh }}
 
-      - name: Deploy public/ to gh-pages
+      - name: Screen
+        if: steps.mode.outputs.refresh != 'none'
+        env:
+          FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
+        run: python screen.py
+
+      # push 觸發時用 --no-record:那只是程式碼重建,不該產生「今天的訊號」
+      - name: Build site
+        env:
+          FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
+        run: |
+          if [ "${{ steps.mode.outputs.refresh }}" = "none" ]; then
+            python build_site.py --from-universe --no-record --out public
+          else
+            python build_site.py --from-universe --out public
+          fi
+
+      # 資料完整性檢查:CI 若撞到 FinMind 額度,fetch 會大量缺漏。
+      # _save() 已保護「不用殘缺覆蓋完整」,這裡再做一道把關 ——
+      # 缺漏太多就不要把資料 commit 回去,避免慢慢劣化 repo 裡的資料。
+      - name: Data sanity check
+        if: steps.mode.outputs.refresh != 'none'
+        id: sanity
+        run: |
+          python - <<'PY'
+          import glob, json, os
+          tot = ok = partial = 0
+          for p in glob.glob("data/universe/*.json"):
+              d = json.load(open(p)); tot += 1
+              if d.get("annual"): ok += 1
+              if d.get("partial_update"): partial += 1
+          pct = ok / tot * 100 if tot else 0
+          print(f"共 {tot} 檔｜有財報 {ok} ({pct:.1f}%)｜本次沿用舊資料 {partial}")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"healthy={'true' if pct >= 90 else 'false'}\n")
+              f.write(f"summary={tot} 檔, 完整 {ok}, 沿用舊值 {partial}\n")
+          PY
+
+      - name: Commit updated data
+        if: steps.mode.outputs.refresh != 'none' && steps.sanity.outputs.healthy == 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/ reports/ || true
+          if git diff --cached --quiet; then
+            echo "資料無變動,略過 commit"
+          else
+            git commit -m "chore(data): 自動更新 $(date -u '+%F %H:%M')Z [skip ci]"
+            git pull --rebase -q origin main || true
+            git push origin main
+          fi
+
+      - name: Warn if data unhealthy
+        if: steps.mode.outputs.refresh != 'none' && steps.sanity.outputs.healthy != 'true'
+        run: |
+          echo "::warning::資料完整度不足(${{ steps.sanity.outputs.summary }}),已略過 commit。"
+          echo "多半是撞到 FinMind 每小時上限;快取會保留,下次排程會自動補齊。"
+
+      - name: Deploy to gh-pages
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -60,5 +156,5 @@ jobs:
           git add -A
           git -c user.name="github-actions[bot]" \
               -c user.email="github-actions[bot]@users.noreply.github.com" \
-              commit -q -m "deploy(ci): $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+              commit -q -m "deploy: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
           git push -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" gh-pages
