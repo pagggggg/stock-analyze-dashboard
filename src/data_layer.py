@@ -843,10 +843,14 @@ def fetch_month_revenue(
     導致 PEG / 盈餘修正動能無值。月營收是台股特有的『高頻公開揭露』,
     覆蓋接近全市場、每月更新,可作為**獨立的營收動能訊號**——
     ★ 它是『實際已發生的營收』,與分析師『未來共識』口徑不同,不可混為一談。
-    快取 24 小時(每月只更新一次,不需頻繁抓)。
+
+    快取 7 天:月營收每月只公布一次(次月 10 日前),24 小時 TTL 會讓每日排程
+    每天為全母體多打 239 次請求,和股價加起來直接逼近 FinMind 每小時上限
+    (實測:雲端排程因此限流,個股分析大量失敗)。7 天 TTL 最多延遲一週反映新月營收,
+    對這個「看趨勢」的指標完全足夠。
     """
     key = f"finmind_mrev_{stock_id}"
-    cached = cache_get(key, ttl_seconds=24 * 3600)
+    cached = cache_get(key, ttl_seconds=7 * 24 * 3600)
     if cached is not None:
         return cached["data"], cached["fetched_date"]
 

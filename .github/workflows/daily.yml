@@ -75,14 +75,15 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p cache
-          n=$(ls cache/finmind_fs_long_*.json 2>/dev/null | wc -l | tr -d ' ')
-          echo "現有財報快取:$n 檔"
-          if [ "$n" -lt 200 ]; then
+          fs=$(ls cache/finmind_fs_long_*.json 2>/dev/null | wc -l | tr -d ' ')
+          mr=$(ls cache/finmind_mrev_*.json 2>/dev/null | wc -l | tr -d ' ')
+          echo "現有快取:財報 $fs 檔、月營收 $mr 檔"
+          if [ "$fs" -lt 200 ] || [ "$mr" -lt 200 ]; then
             echo "不足,從 Release 下載種子快取…"
             if gh release download cache-seed -p fincache.tar.gz -O /tmp/fincache.tar.gz \
                  -R "$GITHUB_REPOSITORY" 2>/dev/null; then
-              tar -xzf /tmp/fincache.tar.gz -C cache
-              echo "已解壓:$(ls cache/finmind_fs_long_*.json 2>/dev/null | wc -l | tr -d ' ') 檔"
+              tar -xzf /tmp/fincache.tar.gz -C cache 2>/dev/null
+              echo "已解壓:財報 $(ls cache/finmind_fs_long_*.json 2>/dev/null | wc -l | tr -d ' ') 檔、月營收 $(ls cache/finmind_mrev_*.json 2>/dev/null | wc -l | tr -d ' ') 檔"
             else
               echo "::warning::找不到 cache-seed release,本次可能因限流而資料不全(品質檢查會擋下部署)"
             fi
