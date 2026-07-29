@@ -715,12 +715,19 @@ def _finmind_pivot(
     stock_id: str,
     start_date: str,
     cache_key: str,
-    ttl_seconds: int = 12 * 3600,
+    ttl_seconds: int = 30 * 24 * 3600,
 ) -> tuple[dict, str]:
     """通用:抓 FinMind『date/type/value』型資料表 → {季末日期: {科目: 值}}。
 
     財報 / 資產負債 / 現金流三張表結構相同(都有 date、type、value),故共用。
     回傳 (pivot, 抓取日期)。快取命中就不連網。
+
+    ★ TTL 為何是 30 天(原本 12 小時,是設計缺陷):
+      季報一年只公布 4 次,12 小時的 TTL 會讓「每日排程」每天把 239 檔的
+      三張財報全部重抓一次 —— 這違背 run_daily.sh「只更新股價、不重抓財報」的分工,
+      既拖慢每日更新,又白白消耗 FinMind 額度(實測每日更新因此變成數十分鐘)。
+      新財報的更新改由 run_weekly.sh 的 `--refresh all` 負責(它會直接刪快取強制重抓),
+      所以最壞情況是財報延遲到當週週六才反映,對季報而言完全可接受。
     """
     cached = cache_get(cache_key, ttl_seconds=ttl_seconds)
     if cached is not None:
