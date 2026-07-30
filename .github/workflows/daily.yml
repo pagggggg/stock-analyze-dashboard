@@ -175,29 +175,43 @@ jobs:
       # 踩過的坑:CI 首次執行沒有 API 快取,build_site 要為 239 檔重抓財報,
       # 撞到 FinMind 每小時上限 → 大量個股分析失敗 → 產出的網站只剩 28 個詳情頁,
       # 但 build_site 本身 exit 0,CI 也就「成功」地把劣化的網站部署上線了。
-      # 教訓:步驟成功 ≠ 產出可用。這裡直接檢查產物,明顯退步就中止,不覆蓋線上好版本。
+      # 教訓:步驟成功 ≠ 產出可用。這裡直接檢查產物,明顯退步就跳過部署。
+      #
+      # ★ 為什麼「不合格」不讓 job 失敗:
+      #   資料源限流是暫時的、會自己恢復,下次排程通常就正常了。
+      #   若每次自我保護都讓 workflow 變成 failure,GitHub 就會寄一封
+      #   「All jobs have failed」的信 —— 信裡看不出是「保護生效」還是「真的壞了」,
+      #   寄久了只會讓人對通知麻痺,真正出事時反而被忽略。
+      #   所以:品質不足 → 記 warning、跳過部署、job 仍算成功(不寄信);
+      #         真正的錯誤(抓取/建站崩潰)→ 該步驟自然失敗 → 才寄信。
       - name: Verify built site quality
         id: quality
         run: |
           python - <<'PY'
-          import glob, re, sys
-          # ★ 不能用 glob("public/stock_*.html") 計數:build_site 不會刪除舊檔,
-          #   上一版留下的詳情頁還在,會把數字灌到看起來很正常(實測:實際只成功 72 檔,
-          #   但目錄裡有 222 個檔案)。要看的是「首頁真正連得到幾檔」。
+          import glob, os, re
           idx = open("public/index.html", encoding="utf-8").read()
-          linked = len(set(re.findall(r'href="stock_(\d+|\w+)\.html"', idx)))
+          # 不能用 glob("public/stock_*.html") 計數:build_site 不刪舊檔,
+          # 上一版的詳情頁還在,會把數字灌到看起來正常(實測目錄 222 個檔,
+          # 首頁實際只連得到 72 檔)。要看的是「首頁真正連得到幾檔」。
+          linked = len(set(re.findall(r'href="stock_(\w+)\.html"', idx)))
           n_universe = len(glob.glob("data/universe/*.json"))
           floor = int(n_universe * 0.7)
+          ok = linked >= floor
           print(f"母體 {n_universe} 檔;首頁實際連得到 {linked} 檔;最低要求 {floor} 檔")
-          if linked < floor:
-              sys.exit(
-                  f"::error::首頁只連得到 {linked} 檔(<{floor}),多半是資料源限流導致"
-                  f"大量個股分析失敗。中止部署,保留線上現有版本。"
-              )
-          print("品質檢查通過。")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"ok={'true' if ok else 'false'}\n")
+              f.write(f"linked={linked}\nfloor={floor}\n")
+          print("品質檢查通過。" if ok else "品質不足,將跳過部署。")
           PY
 
+      - name: Skip deploy (quality gate)
+        if: steps.quality.outputs.ok != 'true'
+        run: |
+          echo "::warning title=已跳過部署(保護機制)::首頁只連得到 ${{ steps.quality.outputs.linked }} 檔,低於門檻 ${{ steps.quality.outputs.floor }} 檔。多半是 FinMind 每小時額度用盡導致個股分析失敗。線上網站維持前一版不變,下次排程會自動重試。"
+          echo "這不是故障,是保護機制:寧可不更新,也不要用殘缺版本覆蓋線上好版本。"
+
       - name: Deploy to gh-pages
+        if: steps.quality.outputs.ok == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -216,7 +230,7 @@ jobs:
       # 只在整個流程都成功後才更新 —— 否則會把限流當下殘缺的快取存成種子,
       # 之後每次執行都從壞種子開始,越用越糟。
       - name: Refresh cache seed
-        if: steps.mode.outputs.refresh != 'none'
+        if: steps.mode.outputs.refresh != 'none' && steps.quality.outputs.ok == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
