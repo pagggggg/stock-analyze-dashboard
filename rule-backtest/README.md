@@ -25,6 +25,13 @@
 |---|---|
 | **`rule_backtest.md`** | 純 PE 出場夠不夠?還是必須加上「基本面轉壞」才能控制風險? |
 | **`era_robustness.md`** | **A/B/買進持有的結論,是不是只是「成長股大時代」的產物?** |
+| **`entry_rule_backtest.md`** | 「PE<20 且 歷史PE百分位<50%」進場、持有1/3/5年,有沒有選時價值? |
+| **`expected_value_backtest.md`** | 「期望值+安全邊際」(每季重算、三情境外推)進場,有沒有比較好? |
+
+後兩份的共同結論值得先知道:**兩套規則相對「同期間隨便挑一天進場」都沒有展現穩定優勢**。
+PE 規則在 12 組比較中輸 10 組;期望值法是 7 勝 5 負,但樣本小到與丟硬幣無異。
+這個「任意日進場」基準是判斷擇時規則有無價值的關鍵對照 —— 少了它,
+90~100% 的勝率會讓人誤以為規則很神,實際上那只是標的本身在這段期間上漲。
 
 `era_robustness.md` 的三個擴充:
 1. **樣本擴大**到 21 檔、混入成長/成熟/循環/美股
@@ -41,6 +48,8 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 .venv/bin/python fetch_data.py    # 抓資料;FinMind 有每小時上限,撞到就稍後重跑(可續跑)
 .venv/bin/python run.py           # 主回測 → rule_backtest.md
 .venv/bin/python run_era.py       # 時代穩健性 → era_robustness.md
+.venv/bin/python entry_rule_run.py       # 進場規則 → entry_rule_backtest.md
+.venv/bin/python expected_value_run.py   # 期望值+安全邊際 → expected_value_backtest.md
 ```
 
 ## 資料源(為什麼這樣選,實測後的決定)
