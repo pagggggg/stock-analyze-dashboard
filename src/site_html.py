@@ -16,7 +16,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import plotly.graph_objects as go
@@ -44,6 +44,8 @@ from .dashboard_html import (
     _placeholder,
     _VERDICT_COLOR,
 )
+
+_TW_TZ = timezone(timedelta(hours=8))   # 台北時間(資料是台股,一律用當地時區顯示)
 
 _MOM = {
     "up": (C_CHEAP, "↑ 上修"),
@@ -157,7 +159,7 @@ def _scan_table(rows: list[tuple]) -> str:
             "</tr>"
         )
     heads = [
-        ("代號", 0), ("名稱", 1), ("現價", 2), ("前瞻PE", 3), ("PEG", 4),
+        ("代號", 0), ("名稱", 1), ("收盤價", 2), ("前瞻PE", 3), ("PEG", 4),
         ("FCF Yield", 5), ("EV/EBITDA", 6), ("盈餘修正動能", 7), ("月營收動能", 8),
     ]
     th = "".join(f'<th onclick="sortTable({i})">{_esc(h)} ⇅</th>' for h, i in heads)
@@ -253,6 +255,9 @@ def build_index_html(
     scolor, stitle, sdesc = _STATUS.get(status, _STATUS["green"])
     n_red = sum(1 for e in events if e.level == "red")
     n_yellow = sum(1 for e in events if e.level == "yellow")
+    # 價格是「哪一個交易日的收盤價」——不標出來,使用者會誤以為是即時報價
+    pdates = sorted({a.price_date for a, _, _ in rows if getattr(a, "price_date", None)})
+    price_day = pdates[-1] if pdates else None
     count_txt = ""
     if not first_run:
         # 狀態燈是彩色底(綠/黃/紅),計數若再用紅/黃字會「紅底紅字」看不見 →
@@ -287,6 +292,11 @@ def build_index_html(
   <header>
     <h1>個人選股分析儀表板</h1>
     <div class="meta">更新時間 {generated}　|　觀察清單 {len(rows)} 檔　|　資料:FinMind + yfinance(公開市場數據)</div>
+    <div class="notice">🕐 <b>本站不是即時報價。</b>表中「收盤價」為
+      <b>{_esc(price_day) if price_day else "最近交易日"}</b> 的收盤價,
+      每個交易日收盤後(約下午,實際時間視雲端排程而定)更新一次。
+      <b>盤中看到的數字不會跟著跳動</b> —— 所有指標(前瞻PE / PEG / FCF Yield / EV·EBITDA)
+      都是用這個收盤價算的,下單前請自行以券商即時報價為準。</div>
     <div class="warn">⚠️ 全站僅為<b>公開數據估值研究</b>,無任何持倉或交易紀錄;所有數字請回原始來源核實,<b>不構成投資建議</b>。</div>
   </header>
 
@@ -424,7 +434,9 @@ def write_site(analyses: list, status: str, events: list, first_run: bool,
     """把 index / 各詳情頁 / plotly.min.js / style.css 全部寫到 out_dir。回傳統計。"""
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
-    generated = datetime.now().strftime("%Y-%m-%d %H:%M")
+    # 一律用台北時間顯示:CI 跑在 UTC,直接印 datetime.now() 會變成
+    # 「更新時間 09:28」而實際是台灣 17:28 —— 看的人會以為早上更新過。
+    generated = datetime.now(_TW_TZ).strftime("%Y-%m-%d %H:%M") + " (台北時間)"
 
     # 排序:先成功、四指標齊全的在前(方便看);盈餘修正動能一併算好
     from .scan_state import revision_momentum
@@ -550,6 +562,8 @@ code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: .85
 .os-go { float: right; color: #2563eb; font-size: .85rem; opacity: .85; }
 .os-none { padding: 14px 16px; color: #64748b; font-size: .9rem; }
 .os-none a { color: #2563eb; }
+.notice { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e3a8a;
+  padding: 10px 12px; border-radius: 8px; font-size: .9rem; margin: 10px 0 4px; line-height: 1.6; }
 .swipe-hint { display: none; }
 @media (max-width: 640px) {
   .swipe-hint { display: block; font-size: .72rem; color: #94a3b8; margin: 2px 2px 5px; text-align: right; }
