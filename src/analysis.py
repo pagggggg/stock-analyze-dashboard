@@ -72,6 +72,7 @@ class StockAnalysis:
 
     ann_eps: float | None = None                   # 前瞻PE 用的年化EPS(共識優先)
     ann_eps_source: str = ""
+    yf_raw: dict | None = None                     # yfinance 原始指標(供前端「換個價格試算」重算用)
     mrev: dict | None = None                       # 月營收動能(不需分析師共識;台股每月公告)
     errors: list[str] = field(default_factory=list)
 
@@ -152,6 +153,7 @@ def analyze_stock(
         a.errors.append(f"yfinance 抓取失敗:{e}")
 
     if yf:
+        a.yf_raw = yf
         a.eps_q0 = yf.get("eps_q0")
         a.eps_y0 = yf.get("eps_y0")
         a.eps_y1 = yf.get("eps_y1")

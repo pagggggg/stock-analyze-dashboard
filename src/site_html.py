@@ -344,6 +344,126 @@ def build_index_html(
 # ======================================================================
 # 個股詳情 stock_<id>.html
 # ======================================================================
+_CALC_JS = """
+function whatIf(sid){
+  var P = WHATIF[sid]; if(!P) return;
+  var el = document.getElementById('wi-price');
+  var p = parseFloat(el.value);
+  var box = document.getElementById('wi-out');
+  if(!(p > 0)){ box.innerHTML = '<span class="wi-none">請輸入大於 0 的價格。</span>'; return; }
+
+  function cell(label, val, unit, verdict, note){
+    var col = {'便宜':'#16a34a','合理':'#6b7280','偏貴':'#ea580c','貴':'#dc2626','資料不足':'#9ca3af'}[verdict]||'#6b7280';
+    var v = (val===null||val===undefined||!isFinite(val)) ? 'N/A' : (val.toFixed(unit==='' ? 2 : 1) + unit);
+    return '<div class="wi-card"><div class="wi-name">'+label+'</div>'
+         + '<div class="wi-val" style="color:'+col+'">'+v+'</div>'
+         + '<div class="wi-badge" style="background:'+col+'">'+verdict+'</div>'
+         + (note ? '<div class="wi-note">'+note+'</div>' : '') + '</div>';
+  }
+
+  var out = '';
+  // 1) 前瞻PE:判讀門檻與後端一致(近10年PE區間切三段)
+  var fpe = P.ann_eps ? p / P.ann_eps : null, peV = '資料不足';
+  if(fpe !== null && P.pe_low !== null){
+    var lo = (P.pe_low + P.pe_mid)/2, hi = (P.pe_mid + P.pe_high)/2;
+    peV = fpe <= lo ? '便宜' : (fpe >= hi ? '貴' : '合理');
+  }
+  out += cell('前瞻PE', fpe, 'x', peV, P.ann_eps ? ('÷ 年化EPS ' + P.ann_eps.toFixed(2)) : '');
+
+  // 2) PEG
+  var peg = (fpe && P.growth_pct > 0) ? fpe / P.growth_pct : null, pgV='資料不足';
+  if(peg !== null){ pgV = peg < 1 ? '便宜' : (peg <= 1.5 ? '合理' : (peg <= 2 ? '偏貴' : '貴')); }
+  out += cell('PEG', peg, '', pgV, P.growth_pct ? ('成長率 ' + P.growth_pct.toFixed(1) + '%') : '無成長率');
+
+  // 3) FCF Yield(市值隨價格變 → 這欄會跟著動)
+  var mcap = P.shares_bn ? p * P.shares_bn : null;
+  var fy = (mcap && P.fcf_bn !== null) ? (P.fcf_bn / mcap * 100) : null, fyV='資料不足';
+  if(fy !== null){ fyV = fy > 4 ? '便宜' : (fy >= 2 ? '合理' : '偏貴'); }
+  out += cell('FCF Yield', fy, '%', fyV, mcap ? ('市值 ' + mcap.toFixed(0) + ' 十億') : '');
+
+  // 4) EV/EBITDA
+  var ev = (mcap !== null && P.debt_bn !== null && P.cash_bn !== null) ? (mcap + P.debt_bn - P.cash_bn) : null;
+  var eve = (ev !== null && P.ebitda_bn) ? ev / P.ebitda_bn : null, evV='資料不足';
+  if(eve !== null){ evV = eve < 12 ? '便宜' : (eve <= 18 ? '合理' : '貴'); }
+  out += cell('EV/EBITDA', eve, 'x', evV, '');
+
+  var diff = P.base_price ? ((p / P.base_price - 1) * 100) : null;
+  var d = (diff === null) ? '' :
+     ('<div class="wi-diff">輸入價 ' + p.toLocaleString() + ' vs 收盤價 ' + P.base_price.toLocaleString()
+      + '(' + (diff>=0?'+':'') + diff.toFixed(1) + '%)</div>');
+  box.innerHTML = d + '<div class="wi-grid">' + out + '</div>';
+}
+function whatIfReset(sid){
+  var P = WHATIF[sid]; if(!P) return;
+  document.getElementById('wi-price').value = P.base_price;
+  whatIf(sid);
+}
+"""
+
+
+def _whatif_block(a) -> str:
+    """『換一個價格,估值變多少』試算器。
+
+    為什麼是「手動輸入」而不是自動抓即時價:
+      證交所 MIS 即時報價**沒有 CORS 標頭、也不支援 JSONP**(已實測),
+      瀏覽器無法直接取用;要自動抓就得自己架 proxy,等於讓網站依賴一台常駐機器。
+      改成輸入價格即時重算,不但零依賴,還能回答「如果跌到 X,PE 剩多少」——
+      這比單純顯示當下報價更有用。
+    ★ 計算與判讀門檻和後端完全一致(見 metrics.build_dashboard),只是把價格換掉。
+    """
+    import json as _json
+
+    yf = getattr(a, "yf_raw", None) or {}
+    pb = a.pe_band
+    if not a.price or not a.ann_eps:
+        return ""
+
+    def _bn(x):
+        return (x / 1e9) if isinstance(x, (int, float)) else None
+
+    params = {
+        "base_price": a.price,
+        "ann_eps": a.ann_eps,
+        "shares_bn": a.shares_bn,
+        "growth_pct": a.growth_pct,
+        "fcf_bn": _bn(yf.get("fcf_ttm")),
+        "debt_bn": _bn(yf.get("totalDebt")),
+        "cash_bn": _bn(yf.get("totalCash")),
+        "ebitda_bn": _bn(yf.get("ebitda")),
+        "pe_low": pb.pe_low if pb else None,
+        "pe_mid": pb.pe_mid if pb else None,
+        "pe_high": pb.pe_high if pb else None,
+    }
+    data = _json.dumps({a.stock_id: params}, ensure_ascii=False)
+    sid = _esc(a.stock_id)
+    mis = f"https://mis.twse.com.tw/stock/fibest.jsp?stock={sid}"
+    yhoo = f"https://tw.stock.yahoo.com/quote/{sid}.TW"
+    return f"""
+  <section>
+    <h2>換個價格試算(即時報價可用這裡換算)</h2>
+    <div class="notice">本站的收盤價每日更新一次、<b>盤中不會跳動</b>。
+      想知道「現在這個價位」的估值,先到
+      <a href="{mis}" target="_blank" rel="noopener">證交所即時報價</a> 或
+      <a href="{yhoo}" target="_blank" rel="noopener">Yahoo 股市</a> 看現價,
+      再填進下面欄位,四個指標會<b>立刻用新價格重算</b>(判讀門檻與本頁完全相同)。
+      也可以直接試算「如果跌到 X / 漲到 Y」。</div>
+    <div class="wi-bar">
+      <label for="wi-price">價格 NT$</label>
+      <input id="wi-price" type="number" step="0.01" min="0" value="{a.price}"
+             oninput="whatIf('{sid}')" onkeydown="if(event.key==='Enter')whatIf('{sid}')">
+      <button onclick="whatIf('{sid}')">試算</button>
+      <button class="wi-sec" onclick="whatIfReset('{sid}')">回到收盤價</button>
+    </div>
+    <div id="wi-out"></div>
+    {_note('只有<b>跟價格連動</b>的指標會變(前瞻PE、PEG、FCF Yield、EV/EBITDA);'
+           'EPS、自由現金流、負債等來自財報,不會因為股價變動而改變。'
+           '<b>這是試算工具,不是預測</b> —— 它只回答「這個價格對應的估值是多少」。')}
+  </section>
+  <script>var WHATIF={data};{_CALC_JS}
+  document.addEventListener('DOMContentLoaded',function(){{whatIf('{sid}');}});</script>
+"""
+
+
 def build_detail_html(a, generated: str) -> str:
     # 頂部小摘要
     parts = []
@@ -418,7 +538,7 @@ def build_detail_html(a, generated: str) -> str:
     {cons_div}
     {_note('<span style="color:'+C_CHEAP+'">▲上修</span>/<span style="color:'+C_EXP+'">▼下修</span>;每日重跑會累積更長折線。')}
   </section>
-
+{_whatif_block(a)}
   <footer><div><a class="back" href="index.html">← 回總表</a>　|　資料:FinMind + yfinance,不構成投資建議。</div></footer>
 </div>
 """
@@ -564,6 +684,22 @@ code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: .85
 .os-none a { color: #2563eb; }
 .notice { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e3a8a;
   padding: 10px 12px; border-radius: 8px; font-size: .9rem; margin: 10px 0 4px; line-height: 1.6; }
+.wi-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 12px 0 6px; }
+.wi-bar label { font-weight: 700; color: #334155; }
+.wi-bar input { padding: 10px 12px; font-size: 1.05rem; border: 2px solid #cbd5e1; border-radius: 10px;
+  width: 150px; font-variant-numeric: tabular-nums; }
+.wi-bar input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+.wi-bar button { padding: 10px 16px; font-size: .95rem; font-weight: 700; color: #fff; background: #2563eb;
+  border: 0; border-radius: 10px; cursor: pointer; }
+.wi-bar button.wi-sec { background: #64748b; }
+.wi-diff { color: #475569; font-size: .9rem; margin: 6px 2px; }
+.wi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 6px; }
+.wi-card { border: 1px solid #eef2f7; border-radius: 12px; padding: 12px; background: #fff; }
+.wi-name { font-size: .82rem; color: #6b7280; }
+.wi-val { font-size: 1.6rem; font-weight: 800; margin: 2px 0 6px; font-variant-numeric: tabular-nums; }
+.wi-badge { display: inline-block; color: #fff; font-size: .75rem; font-weight: 700; padding: 2px 10px; border-radius: 999px; }
+.wi-note { font-size: .78rem; color: #64748b; margin-top: 6px; }
+.wi-none { color: #64748b; }
 .swipe-hint { display: none; }
 @media (max-width: 640px) {
   .swipe-hint { display: block; font-size: .72rem; color: #94a3b8; margin: 2px 2px 5px; text-align: right; }
