@@ -11,8 +11,8 @@
     }
   },
   "2454": {
-    "eps_y0": 68.6048,
-    "eps_y1": 138.76494,
+    "eps_y0": 68.31812,
+    "eps_y1": 143.12227,
     "forward_pe_verdict": "貴",
     "peg_verdict": "便宜",
     "fcf_lights": {
@@ -33,8 +33,8 @@
     }
   },
   "2308": {
-    "eps_y0": 40.6458,
-    "eps_y1": 64.15255,
+    "eps_y0": 40.75008,
+    "eps_y1": 64.4447,
     "forward_pe_verdict": "貴",
     "peg_verdict": "便宜",
     "fcf_lights": {
@@ -66,8 +66,8 @@
     }
   },
   "2379": {
-    "eps_y0": 31.95704,
-    "eps_y1": 37.18201,
+    "eps_y0": 31.50377,
+    "eps_y1": 37.54654,
     "forward_pe_verdict": "貴",
     "peg_verdict": "合理",
     "fcf_lights": {
@@ -190,10 +190,10 @@
     }
   },
   "8454": {
-    "eps_y0": 10.33799,
-    "eps_y1": 9.97818,
+    "eps_y0": 10.22822,
+    "eps_y1": 10.32113,
     "forward_pe_verdict": "便宜",
-    "peg_verdict": "資料不足",
+    "peg_verdict": "貴",
     "fcf_lights": {
       "dio": "green",
       "dso": "green",
@@ -223,8 +223,8 @@
     }
   },
   "9910": {
-    "eps_y0": 4.70107,
-    "eps_y1": 5.31375,
+    "eps_y0": 4.75817,
+    "eps_y1": 5.33495,
     "forward_pe_verdict": "便宜",
     "peg_verdict": "合理",
     "fcf_lights": {
@@ -291,7 +291,7 @@
   "6409": {
     "eps_y0": 34.96702,
     "eps_y1": 42.97228,
-    "forward_pe_verdict": "便宜",
+    "forward_pe_verdict": "合理",
     "peg_verdict": "合理",
     "fcf_lights": {
       "dio": "green",
@@ -410,8 +410,8 @@
     }
   },
   "6412": {
-    "eps_y0": 5.8627,
-    "eps_y1": 7.963,
+    "eps_y0": 5.57587,
+    "eps_y1": 6.90663,
     "forward_pe_verdict": "合理",
     "peg_verdict": "便宜",
     "fcf_lights": {
@@ -520,9 +520,9 @@
     }
   },
   "6196": {
-    "eps_y0": 22.74329,
-    "eps_y1": 26.68385,
-    "forward_pe_verdict": "貴",
+    "eps_y0": 24.46663,
+    "eps_y1": 28.15052,
+    "forward_pe_verdict": "合理",
     "peg_verdict": "合理",
     "fcf_lights": {
       "dio": "red",
@@ -545,7 +545,7 @@
     "eps_y0": 9.38,
     "eps_y1": 10.41,
     "forward_pe_verdict": "貴",
-    "peg_verdict": "偏貴",
+    "peg_verdict": "貴",
     "fcf_lights": {
       "dio": "red",
       "dso": "green",
@@ -564,8 +564,8 @@
     }
   },
   "6239": {
-    "eps_y0": 12.86661,
-    "eps_y1": 18.53969,
+    "eps_y0": 12.75709,
+    "eps_y1": 18.27473,
     "forward_pe_verdict": "貴",
     "peg_verdict": "便宜",
     "fcf_lights": {
@@ -604,10 +604,10 @@
     }
   },
   "6176": {
-    "eps_y0": 9.06,
-    "eps_y1": 7.83,
-    "forward_pe_verdict": "合理",
-    "peg_verdict": "資料不足",
+    "eps_y0": 6.57,
+    "eps_y1": 7.41,
+    "forward_pe_verdict": "貴",
+    "peg_verdict": "合理",
     "fcf_lights": {
       "dio": "green",
       "dso": "green",
@@ -810,7 +810,7 @@
   "8210": {
     "eps_y0": 49.71931,
     "eps_y1": 66.66767,
-    "forward_pe_verdict": "合理",
+    "forward_pe_verdict": "貴",
     "peg_verdict": "便宜",
     "fcf_lights": {
       "dio": "red",
@@ -961,10 +961,10 @@
     }
   },
   "2006": {
-    "eps_y0": 6.73667,
-    "eps_y1": 6.74,
+    "eps_y0": 7.42,
+    "eps_y1": 7.17,
     "forward_pe_verdict": "合理",
-    "peg_verdict": "貴",
+    "peg_verdict": "資料不足",
     "fcf_lights": {
       "dio": "green",
       "dso": "green",
@@ -983,8 +983,8 @@
     }
   },
   "1560": {
-    "eps_y0": 13.84363,
-    "eps_y1": 18.74392,
+    "eps_y0": 13.77817,
+    "eps_y1": 18.69218,
     "forward_pe_verdict": "貴",
     "peg_verdict": "合理",
     "fcf_lights": {
@@ -994,8 +994,8 @@
     }
   },
   "1519": {
-    "eps_y0": 22.96059,
-    "eps_y1": 27.53412,
+    "eps_y0": 19.61789,
+    "eps_y1": 24.51042,
     "forward_pe_verdict": "合理",
     "peg_verdict": "合理",
     "fcf_lights": {
@@ -1005,8 +1005,8 @@
     }
   },
   "1477": {
-    "eps_y0": 15.35765,
-    "eps_y1": 17.47339,
+    "eps_y0": 15.42678,
+    "eps_y1": 17.31143,
     "forward_pe_verdict": "便宜",
     "peg_verdict": "合理",
     "fcf_lights": {
@@ -1071,8 +1071,8 @@
     }
   },
   "1590": {
-    "eps_y0": 58.68197,
-    "eps_y1": 66.65174,
+    "eps_y0": 58.73297,
+    "eps_y1": 66.62108,
     "forward_pe_verdict": "合理",
     "peg_verdict": "偏貴",
     "fcf_lights": {
@@ -1104,8 +1104,8 @@
     }
   },
   "2395": {
-    "eps_y0": 15.75242,
-    "eps_y1": 18.33323,
+    "eps_y0": 16.92528,
+    "eps_y1": 19.91372,
     "forward_pe_verdict": "貴",
     "peg_verdict": "貴",
     "fcf_lights": {
@@ -1117,7 +1117,7 @@
   "2404": {
     "eps_y0": 75.42,
     "eps_y1": 91.17,
-    "forward_pe_verdict": "合理",
+    "forward_pe_verdict": "貴",
     "peg_verdict": "便宜",
     "fcf_lights": {
       "dio": "green",
@@ -1170,8 +1170,8 @@
     }
   },
   "2383": {
-    "eps_y0": 114.69815,
-    "eps_y1": 206.74214,
+    "eps_y0": 114.98953,
+    "eps_y1": 212.43248,
     "forward_pe_verdict": "貴",
     "peg_verdict": "便宜",
     "fcf_lights": {
@@ -1214,8 +1214,8 @@
     }
   },
   "2449": {
-    "eps_y0": 9.28323,
-    "eps_y1": 14.68791,
+    "eps_y0": 9.31631,
+    "eps_y1": 14.73041,
     "forward_pe_verdict": "貴",
     "peg_verdict": "便宜",
     "fcf_lights": {
@@ -1258,10 +1258,10 @@
     }
   },
   "2301": {
-    "eps_y0": 10.88758,
-    "eps_y1": 13.27341,
+    "eps_y0": 10.72227,
+    "eps_y1": 14.04229,
     "forward_pe_verdict": "貴",
-    "peg_verdict": "合理",
+    "peg_verdict": "便宜",
     "fcf_lights": {
       "dio": "yellow",
       "dso": "green",
@@ -1271,7 +1271,7 @@
   "2354": {
     "eps_y0": 3.93,
     "eps_y1": null,
-    "forward_pe_verdict": "便宜",
+    "forward_pe_verdict": "合理",
     "peg_verdict": "資料不足",
     "fcf_lights": {
       "dio": "green",
@@ -1291,8 +1291,8 @@
     }
   },
   "2360": {
-    "eps_y0": 43.99135,
-    "eps_y1": 66.70636,
+    "eps_y0": 44.83625,
+    "eps_y1": 67.32305,
     "forward_pe_verdict": "貴",
     "peg_verdict": "便宜",
     "fcf_lights": {
@@ -1335,8 +1335,8 @@
     }
   },
   "2337": {
-    "eps_y0": 19.84321,
-    "eps_y1": 34.6828,
+    "eps_y0": 18.82628,
+    "eps_y1": 36.46513,
     "forward_pe_verdict": "便宜",
     "peg_verdict": "便宜",
     "fcf_lights": {
@@ -1392,7 +1392,7 @@
   "1215": {
     "eps_y0": 8.09,
     "eps_y1": null,
-    "forward_pe_verdict": "便宜",
+    "forward_pe_verdict": "合理",
     "peg_verdict": "資料不足",
     "fcf_lights": {
       "dio": "red",
@@ -1463,8 +1463,8 @@
     }
   },
   "1303": {
-    "eps_y0": 10.9673,
-    "eps_y1": 13.2762,
+    "eps_y0": 11.29797,
+    "eps_y1": 13.73296,
     "forward_pe_verdict": "便宜",
     "peg_verdict": "便宜",
     "fcf_lights": {
@@ -1518,8 +1518,8 @@
     }
   },
   "3653": {
-    "eps_y0": 58.98059,
-    "eps_y1": 124.54138,
+    "eps_y0": 59.68184,
+    "eps_y1": 126.44888,
     "forward_pe_verdict": "貴",
     "peg_verdict": "便宜",
     "fcf_lights": {
@@ -1540,8 +1540,8 @@
     }
   },
   "3665": {
-    "eps_y0": 66.85755,
-    "eps_y1": 111.31086,
+    "eps_y0": 66.88942,
+    "eps_y1": 111.24003,
     "forward_pe_verdict": "貴",
     "peg_verdict": "便宜",
     "fcf_lights": {
@@ -1553,7 +1553,7 @@
   "3596": {
     "eps_y0": 14.47,
     "eps_y1": 16.385,
-    "forward_pe_verdict": "合理",
+    "forward_pe_verdict": "便宜",
     "peg_verdict": "便宜",
     "fcf_lights": {
       "dio": "red",
@@ -1617,8 +1617,8 @@
     }
   },
   "3376": {
-    "eps_y0": 6.26333,
-    "eps_y1": 13.063,
+    "eps_y0": 6.40986,
+    "eps_y1": 13.01415,
     "forward_pe_verdict": "合理",
     "peg_verdict": "便宜",
     "fcf_lights": {
@@ -1650,8 +1650,8 @@
     }
   },
   "3443": {
-    "eps_y0": 51.81423,
-    "eps_y1": 100.37962,
+    "eps_y0": 52.1069,
+    "eps_y1": 113.53252,
     "forward_pe_verdict": "貴",
     "peg_verdict": "便宜",
     "fcf_lights": {
@@ -1694,8 +1694,8 @@
     }
   },
   "3533": {
-    "eps_y0": 96.10804,
-    "eps_y1": 129.83421,
+    "eps_y0": 94.40655,
+    "eps_y1": 129.53564,
     "forward_pe_verdict": "合理",
     "peg_verdict": "便宜",
     "fcf_lights": {
@@ -1769,7 +1769,7 @@
   "2880": {
     "eps_y0": 2.13809,
     "eps_y1": 2.22663,
-    "forward_pe_verdict": "合理",
+    "forward_pe_verdict": "貴",
     "peg_verdict": "貴",
     "fcf_lights": {}
   },
@@ -1781,8 +1781,8 @@
     "fcf_lights": {}
   },
   "2912": {
-    "eps_y0": 11.57685,
-    "eps_y1": 12.41336,
+    "eps_y0": 11.64948,
+    "eps_y1": 12.42854,
     "forward_pe_verdict": "便宜",
     "peg_verdict": "貴",
     "fcf_lights": {
@@ -1824,8 +1824,8 @@
     "fcf_lights": {}
   },
   "2886": {
-    "eps_y0": 2.64193,
-    "eps_y1": 2.68008,
+    "eps_y0": 2.66918,
+    "eps_y1": 2.7284,
     "forward_pe_verdict": "合理",
     "peg_verdict": "貴",
     "fcf_lights": {}
@@ -1840,7 +1840,7 @@
   "2890": {
     "eps_y0": 2.88116,
     "eps_y1": 2.83128,
-    "forward_pe_verdict": "貴",
+    "forward_pe_verdict": "合理",
     "peg_verdict": "資料不足",
     "fcf_lights": {}
   },
@@ -1852,8 +1852,8 @@
     "fcf_lights": {}
   },
   "2481": {
-    "eps_y0": 4.80678,
-    "eps_y1": 6.78479,
+    "eps_y0": 4.75649,
+    "eps_y1": 6.78326,
     "forward_pe_verdict": "貴",
     "peg_verdict": "便宜",
     "fcf_lights": {
@@ -2028,8 +2028,8 @@
     }
   },
   "2637": {
-    "eps_y0": 7.78,
-    "eps_y1": 6.745,
+    "eps_y0": 8.128,
+    "eps_y1": 7.51667,
     "forward_pe_verdict": "合理",
     "peg_verdict": "資料不足",
     "fcf_lights": {
@@ -2105,8 +2105,8 @@
     }
   },
   "3189": {
-    "eps_y0": 10.90831,
-    "eps_y1": 26.6869,
+    "eps_y0": 10.74098,
+    "eps_y1": 26.24169,
     "forward_pe_verdict": "合理",
     "peg_verdict": "便宜",
     "fcf_lights": {
@@ -2116,8 +2116,8 @@
     }
   },
   "3231": {
-    "eps_y0": 14.16131,
-    "eps_y1": 18.196,
+    "eps_y0": 15.53429,
+    "eps_y1": 22.81716,
     "forward_pe_verdict": "合理",
     "peg_verdict": "便宜",
     "fcf_lights": {
@@ -2160,8 +2160,8 @@
     }
   },
   "3035": {
-    "eps_y0": 3.11971,
-    "eps_y1": 6.28938,
+    "eps_y0": 3.20307,
+    "eps_y1": 6.35833,
     "forward_pe_verdict": "合理",
     "peg_verdict": "便宜",
     "fcf_lights": {
@@ -2215,9 +2215,9 @@
     }
   },
   "3017": {
-    "eps_y0": 95.80658,
-    "eps_y1": 137.55446,
-    "forward_pe_verdict": "合理",
+    "eps_y0": 96.83301,
+    "eps_y1": 140.21303,
+    "forward_pe_verdict": "貴",
     "peg_verdict": "便宜",
     "fcf_lights": {
       "dio": "green",
@@ -2248,8 +2248,8 @@
     }
   },
   "3042": {
-    "eps_y0": 6.255,
-    "eps_y1": 8.17,
+    "eps_y0": 6.265,
+    "eps_y1": 8.07,
     "forward_pe_verdict": "貴",
     "peg_verdict": "便宜",
     "fcf_lights": {
