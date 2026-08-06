@@ -110,20 +110,17 @@ def build_pe_river(
     if not pts:
         raise ValueError("河流圖:股價與 EPS 沒有重疊區間")
 
-    last_ttm = ttm[-1][1]
     cp = float(current_price) if current_price else pts[-1][1]
     cd = current_date or pts[-1][0]
-    cpe = cp / last_ttm if last_ttm else None
+    current_ttm = _ttm_asof(ttm, date.fromisoformat(cd))
+    cpe = cp / current_ttm if current_ttm else None
 
-    # 河道邊界:以「近N年本益比區間(pe_band,如 P10/P50/P90)」為底,
-    # 但必要時往外擴張,確保『所有畫出來的股價點 + 現價』都落在河道內——
-    # 這樣股價線永遠貼著河道跑,不會像先前那樣衝出上緣(現價 PE 超過 P90 時)。
-    pool = implied + ([cpe] if cpe else [])
-    pe_lo = min(pe_band.pe_low, min(pool))
-    pe_hi = max(pe_band.pe_high, max(pool))
-    pe_mid = min(max(pe_band.pe_mid, pe_lo), pe_hi)   # 中線夾在上下緣之間
+    # 河道必須忠實保留歷史分位(P10/P50/P90)。過去為了讓圖「好看」而
+    # 向外擴張至包住所有股價，會把真正的極端高估/低估抹掉，並讓圖例仍誤稱
+    # 原始分位。現在允許股價線超出河道；超出本身就是應被看見的資訊。
+    pe_lo, pe_mid, pe_hi = pe_band.pe_low, pe_band.pe_mid, pe_band.pe_high
 
-    # 第二遍:用(可能擴張後的)本益比畫河道三線
+    # 第二遍:用原始歷史分位畫河道三線
     dates: list[str] = []
     price: list[float] = []
     lo: list[float] = []

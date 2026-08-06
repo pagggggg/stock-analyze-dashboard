@@ -23,7 +23,7 @@ def _flag(r) -> str:
 
 
 def _val_rows(results: list[ScreenResult], with_market: bool = True) -> str:
-    """估值明細列:代號|名稱|(市場)|🚩旗標|前瞻PE|近5年中位|近5年P90|PE百分位|PEG|共識覆蓋。"""
+    """估值明細列:歷史位階一律 trailing 對 trailing；前瞻欄獨立。"""
     out = []
     for r in results:
         m = r.metrics
@@ -36,15 +36,15 @@ def _val_rows(results: list[ScreenResult], with_market: bool = True) -> str:
         cov_s = "—" if cov is None else (f"{cov} ⚠低覆蓋" if low else str(cov))
         out.append(
             f"| {r.stock_id} | {r.name} |{mcell} {_flag(r)} | "
-            f"{_fv(m.get('forward_pe'), 'x')} | {_fv(m.get('pe_median'), 'x')} | "
+            f"{_fv(m.get('forward_pe'), 'x')} | {_fv(m.get('trailing_pe'), 'x')} | {_fv(m.get('pe_median'), 'x')} | "
             f"{_fv(m.get('pe_p90'), 'x')} | {(str(int(pct)) + '%') if pct is not None else '—'} | "
             f"{peg_s} | {cov_s} |"
         )
     return "\n".join(out)
 
 
-_VAL_HEAD = ("| 代號 | 名稱 | 市場 | 🚩旗標 | 前瞻PE | 近5年PE中位 | 近5年P90 | PE百分位 | PEG | 共識覆蓋 |\n"
-             "| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |")
+_VAL_HEAD = ("| 代號 | 名稱 | 市場 | 🚩旗標 | 前瞻PE | 目前trailing PE | 近5年trailing中位 | 近5年trailing P90 | trailing百分位 | 前瞻PEG | 共識覆蓋 |\n"
+             "| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
 
 
 def _cell(cond) -> str:
@@ -121,10 +121,10 @@ def build_screener_report(results, funnel, cfg, generated: str, universe_desc: s
     vf = cfg.get("valuation_flag", {})
     w("**估值旗標層(只加旗標,不淘汰任何標的):**")
     w("")
-    w(f"- 🟢 合理偏低:PEG < **{vf.get('green_peg_below', 1)}** 且 前瞻PE < 該股近{vf.get('pe_history_years', 5)}年PE中位數")
-    w(f"- 🔴 高估值警戒:前瞻PE > 該股近{vf.get('pe_history_years', 5)}年PE的90百分位,"
-      f"或 PEG > **{vf.get('red_peg_above', 2)}**,或 前瞻PE > **{vf.get('red_pe_above', 60)}x**")
-    w("- 🟡 一般:其餘;⚪ 估值資料不足:無共識前瞻PE")
+    w(f"- 🟢 合理偏低:前瞻PEG < **{vf.get('green_peg_below', 1)}** 且目前 trailing PE < 該股近{vf.get('pe_history_years', 5)}年 trailing PE 中位")
+    w(f"- 🔴 高估值警戒:目前 trailing PE > 該股近{vf.get('pe_history_years', 5)}年 trailing P90,"
+      f"或前瞻PEG > **{vf.get('red_peg_above', 2)}**,或前瞻PE > **{vf.get('red_pe_above', 60)}x**")
+    w("- 🟡 一般:其餘;⚪ 估值資料不足:無可同口徑比較的 trailing PE")
     w("")
     w("> ★ PE 百分位一律用**個股自己的歷史**,不用全市場平均(不同產業 PE 水準天生不同)。")
     w("")
@@ -235,9 +235,8 @@ def build_screener_report(results, funnel, cfg, generated: str, universe_desc: s
         w(_VAL_HEAD)
         w(_val_rows(show))
         w("")
-        w("> 旗標門檻:🟢=PEG<1 且 前瞻PE<個股近5年PE中位;"
-          "🔴=前瞻PE>近5年P90 或 PEG>2 或 前瞻PE>60;🟡=其餘;⚪=無共識前瞻PE。"
-          "前瞻PE=現價÷今年共識EPS;PE百分位=前瞻PE 落在個股近5年每日PE分布的第幾百分位。")
+        w("> 旗標門檻:歷史位階使用 trailing PE 對 trailing PE；前瞻PE/PEG是獨立條件。"
+          "不再用 forward PE 比較歷史 trailing 分布。")
         w(">")
         w("> ⚠️ **共識覆蓋 < 3 家(標「⚠低覆蓋」)者:PEG 與修正動能僅供參考,不得作為判斷依據**"
           "——這兩個訊號全靠分析師共識,覆蓋薄時不可信(母體不因此刪股,由資料自我標記)。")
@@ -275,9 +274,9 @@ def build_screener_report(results, funnel, cfg, generated: str, universe_desc: s
             peg = r.metrics.get("peg")
             fy = r.metrics.get("fcf_yield")
             pct = r.metrics.get("pe_pct")
-            pct_txt = (f"、現價位於個股近5年PE第 {int(pct)} 百分位" if pct is not None else "")
-            w(f"**估值旗標:{_flag(r)}** — 前瞻PE {_fv(fpe, 'x')}(近5年中位 "
-              f"{_fv(r.metrics.get('pe_median'), 'x')} / P90 {_fv(r.metrics.get('pe_p90'), 'x')})、"
+            pct_txt = (f"、目前 trailing PE 位於近5年第 {int(pct)} 百分位" if pct is not None else "")
+            w(f"**估值旗標:{_flag(r)}** — 前瞻PE {_fv(fpe, 'x')}、trailing PE {_fv(r.metrics.get('trailing_pe'), 'x')}"
+              f"(近5年 trailing 中位 {_fv(r.metrics.get('pe_median'), 'x')} / P90 {_fv(r.metrics.get('pe_p90'), 'x')})、"
               f"PEG {_fv(peg, '', 2)}、FCF Yield {_fv(fy, '%')}{pct_txt}")
             w("")
             verd = []

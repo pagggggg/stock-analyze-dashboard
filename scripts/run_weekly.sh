@@ -10,6 +10,5 @@ retry python3 fetch_universe.py --from-universe --refresh all || { fail "fetch a
 retry python3 screen.py || { fail "screen 失敗"; exit 1; }
 # 3) 重建儀表板
 retry python3 build_site.py --from-universe || { fail "build_site 失敗"; exit 1; }
-git_sync "chore(data): 每週財報/共識/篩選更新"
-deploy_ghpages
-log "================ 每週更新完成 ================"
+log "本機結果已更新(public/ + reports/)，未寫入遠端；GitHub Actions 是唯一 writer/deployer。"
+log "================ 每週本機測試完成 ================"

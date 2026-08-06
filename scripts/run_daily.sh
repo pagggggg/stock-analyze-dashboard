@@ -11,7 +11,6 @@ retry python3 fetch_universe.py --from-universe --refresh prices || { fail "fetc
 retry python3 screen.py || log "screen 有誤,續跑"
 # 3) 重建儀表板(掃描總表四指標、詳情頁、狀態燈/訊號流水;訊號仍只看訊號級變化)
 retry python3 build_site.py --from-universe || { fail "build_site 失敗"; exit 1; }
-# 4) 同步 + 部署
-git_sync "chore(data): 每日股價更新"
-deploy_ghpages
-log "================ 每日更新完成 ================"
+# 本機只產生結果供人工檢查，不 commit、不 push、不部署。
+log "本機結果已更新(public/ + reports/)，未寫入遠端；GitHub Actions 是唯一 writer/deployer。"
+log "================ 每日本機測試完成 ================"

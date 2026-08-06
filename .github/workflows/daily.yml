@@ -7,8 +7,11 @@
 #
 # 三種觸發、做的事不同:
 #   schedule(每日 台灣 14:30) 更新股價 + 重算指標 + 重建 + commit 資料 + 部署
-#   schedule(每週六 台灣 03:00)連財報/共識一起重抓(--refresh all)
-#   push / 手動                 只用 repo 現有資料重建 + 部署(不抓資料,快)
+#   schedule(每週六 台灣 03:00)同樣更新價格；財報依 30~44 天 TTL 分散自然更新
+#   push                         只重建 + 部署；手動可選 none/prices/all
+#
+# ★ 單一 writer 原則:本 workflow 是 data/main/gh-pages 的唯一寫入者。
+#   本機 scripts 只供開發與手動驗證，不得 commit、push 或部署。
 #
 # 注意:cron 用 UTC。台灣 = UTC+8 → 台灣 14:30 = UTC 06:30。
 # GitHub 的排程在尖峰時可能延遲數分鐘至數十分鐘,這是平台特性,不保證準點。
@@ -18,7 +21,7 @@ name: daily-update
 on:
   schedule:
     - cron: "30 6 * * 1-5"    # 台灣 14:30(週一~週五,台股盤後)→ 只更新股價
-    - cron: "0 19 * * 5"      # 台灣 週六 03:00 → 連財報一起重抓
+    - cron: "0 19 * * 5"      # 台灣 週六 03:00 → 價格補跑；財報由 TTL 分散更新
   push:
     branches: [main]          # 你 push 程式碼時重建部署(資料 commit 帶 [skip ci] 不會觸發)
   workflow_dispatch:
@@ -138,17 +141,24 @@ jobs:
         id: sanity
         run: |
           python - <<'PY'
-          import glob, json, os
+          import glob, json, os, yaml
+          doc = yaml.safe_load(open("config/universe.yaml", encoding="utf-8")) or {}
+          expected = {str(x["stock_id"]) for k in ("twse", "us") for x in (doc.get(k) or [])}
+          actual = set()
           tot = ok = partial = 0
           for p in glob.glob("data/universe/*.json"):
-              d = json.load(open(p)); tot += 1
+              d = json.load(open(p)); tot += 1; actual.add(str(d.get("stock_id")))
               if d.get("annual"): ok += 1
               if d.get("partial_update"): partial += 1
           pct = ok / tot * 100 if tot else 0
-          print(f"共 {tot} 檔｜有財報 {ok} ({pct:.1f}%)｜本次沿用舊資料 {partial}")
+          same_set = expected == actual
+          print(f"共 {tot} 檔｜有財報 {ok} ({pct:.1f}%)｜本次沿用舊資料 {partial}｜母體集合一致 {same_set}")
+          if not same_set:
+              print(f"缺少:{sorted(expected-actual)}｜多餘:{sorted(actual-expected)}")
+          healthy = pct >= 90 and same_set
           with open(os.environ["GITHUB_OUTPUT"], "a") as f:
-              f.write(f"healthy={'true' if pct >= 90 else 'false'}\n")
-              f.write(f"summary={tot} 檔, 完整 {ok}, 沿用舊值 {partial}\n")
+              f.write(f"healthy={'true' if healthy else 'false'}\n")
+              f.write(f"summary={tot} 檔, 完整 {ok}, 沿用舊值 {partial}, 集合一致 {same_set}\n")
           PY
 
       - name: Commit updated data

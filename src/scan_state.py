@@ -7,9 +7,9 @@
   第一層 頂端狀態燈:
      🟢 綠 = 無訊號級變化
      🟡 黃 = 有共識EPS異動,或 FCF 品質燈變色
-     🔴 紅 = 有股票『跨越估值門檻』(前瞻PE 判讀等級改變,如 合理→貴)
+     🔴 紅 = 保留給未來明確定義的高優先級同口徑訊號
   第二層 訊號流水:
-     只收「共識上下修 / FCF 燈變色 / 估值門檻跨越」這類事件,
+     只收「共識上下修 / FCF 燈變色」事件,
      **不放股價漲跌雜訊**(股價每天在動,不是訊號)。
 
 狀態持久化:`data/scan_state.json`(每檔上次快照)、`data/signal_log.csv`(事件日誌)。
@@ -162,13 +162,7 @@ def diff_snapshots(stock_id: str, name: str, prev: dict, cur: dict, today: str) 
                 f"FCF品質・{zh} 燈號 {_LIGHT_ZH.get(pv, pv)}→{_LIGHT_ZH.get(cv, cv)}",
             ))
 
-    # 3) 跨越估值門檻(前瞻PE 判讀等級改變)—— 紅色
-    pv, cv = prev.get("forward_pe_verdict"), cur.get("forward_pe_verdict")
-    if pv and cv and pv != cv:
-        events.append(Event(
-            today, stock_id, name, "valuation", "red",
-            f"前瞻PE 判讀【{pv}→{cv}】跨越估值門檻",
-        ))
+    # forward PE 不再拿 trailing 歷史河道判級，因此不產生混口徑的跨級事件。
 
     return events
 

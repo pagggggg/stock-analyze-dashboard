@@ -42,28 +42,21 @@ def build_dashboard(
 
     # ---- 1. 前瞻 PE = 現價 ÷ 年化EPS -------------------------------
     fpe = price / ann_eps if ann_eps else None
-    # 門檻以近10年本益比區間切三段:低-中中點以下=便宜,中-高中點以上=貴
-    cut_lo = (pe_band.pe_low + pe_band.pe_mid) / 2
-    cut_hi = (pe_band.pe_mid + pe_band.pe_high) / 2
     if fpe is None:
         pe_verdict = "資料不足"
-    elif fpe <= cut_lo:
-        pe_verdict = "便宜"
-    elif fpe >= cut_hi:
-        pe_verdict = "貴"
     else:
-        pe_verdict = "合理"
+        pe_verdict = "前瞻參考"
     metrics.append(ValuationMetric(
         key="forward_pe",
         name="前瞻本益比 (Forward PE)",
         value=fpe, unit="x",
         formula=f"現價 {price:,.0f} ÷ 年化EPS {ann_eps:,.2f} = {fpe:,.1f}x" if fpe else "—",
         measures="市場願意為每 1 元(未來一年)盈餘付幾元;越高=越貴 / 市場越樂觀。",
-        reference=f"近10年 {pe_band.pe_low:.1f}~{pe_band.pe_high:.1f}x(中樞 {pe_band.pe_mid:.1f}x)",
+        reference="forward PE 僅與同口徑的未來預估或同業 forward PE 比較",
         verdict=pe_verdict,
-        thresholds=f"便宜 <{cut_lo:.0f}x｜合理 {cut_lo:.0f}~{cut_hi:.0f}x｜貴 >{cut_hi:.0f}x(對照近10年區間)",
+        thresholds="不以 trailing 歷史河道判讀 forward PE",
         driven_by="現價(日變) + 我的年化EPS(法說指引→試算,季變)",
-        source="現價 TWSE + 年化EPS 本工具試算 + 區間 TWSE 近10年",
+        source="現價 TWSE + 年化EPS(共識/本工具試算)",
     ))
 
     # ---- 2. PEG = 前瞻PE ÷ 盈餘成長率 -------------------------------

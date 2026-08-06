@@ -28,6 +28,7 @@ from src.universe_builder import _U_LABELS, build, fetch_meeting_ids_tw
 ROOT = Path(__file__).resolve().parent
 UNIVERSE_YAML = ROOT / "config/universe.yaml"
 REPORT = ROOT / "reports/universe_report.md"
+UNIVERSE_DATA_DIR = ROOT / "data/universe"
 
 
 def _load_dotenv(path: Path) -> None:
@@ -88,9 +89,25 @@ def _save_universe_yaml(market: str, passed: list) -> dict:
     UNIVERSE_YAML.parent.mkdir(parents=True, exist_ok=True)
     UNIVERSE_YAML.write_text(
         "# 可分析母體(build_universe.py 產出)。篩選器讀這份當基礎池。\n"
-        "# 只含『有分析師覆蓋、有法說會、資訊揭露充分』的中大型股。\n"
+        "# 覆蓋家數只標記、不守門；守門條件見 config/screener.yaml。\n"
         + yaml.safe_dump(doc, allow_unicode=True, sort_keys=False), encoding="utf-8")
     return doc
+
+
+def _prune_data_files(doc: dict) -> list[str]:
+    """母體更新後刪除已退出母體的逐檔 JSON。
+
+    只刪多餘檔；新進母體但尚未抓取的檔案由 fetch_universe 補齊。
+    """
+    expected = {str(x["stock_id"]) for k in ("twse", "us") for x in (doc.get(k) or [])}
+    removed: list[str] = []
+    if not UNIVERSE_DATA_DIR.exists():
+        return removed
+    for p in sorted(UNIVERSE_DATA_DIR.glob("*.json")):
+        if p.stem not in expected:
+            p.unlink()
+            removed.append(p.stem)
+    return removed
 
 
 def _write_report(market: str, results: list, stats: dict, cfg: dict, doc: dict) -> None:
@@ -273,6 +290,11 @@ def run(args) -> None:
     results, stats = build(candidates, market, cfg, meeting_ids, progress=_prog)
     passed = [r for r in results if r.passed]
     doc = _save_universe_yaml(market, passed)
+    # 只有正式全市場台股建構或美股母體建構才清理。台股測試清單不可刪正式母體資料。
+    if args.full or market == "us":
+        removed = _prune_data_files(doc)
+        if removed:
+            print(f"母體清理:移除 {len(removed)} 個已退出母體的舊資料檔:{','.join(removed)}")
     _write_report(market, results, stats, cfg, doc)
 
     print("─" * 56)

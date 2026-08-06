@@ -432,11 +432,15 @@ def evaluate(rec: dict, cfg: dict) -> ScreenResult:
     r.metrics["fcf_yield"] = v.get("fcf_yield")
     # 估值旗標(只加旗標、不淘汰):用個股近N年PE分布
     ph = rec.get("pe_hist") or {}
+    same_basis = ph.get("basis") == "trailing_pe"
     r.metrics["pe_median"] = ph.get("median")
     r.metrics["pe_p90"] = ph.get("p90")
-    r.metrics["pe_pct"] = ph.get("percentile")
+    # 舊 schema 的 percentile 是 forward PE 對 trailing 歷史分布；不可沿用。
+    r.metrics["pe_pct"] = ph.get("percentile") if same_basis else None
+    r.metrics["trailing_pe"] = ph.get("current_trailing_pe") if same_basis else None
     from .valuation_flag import compute_flag
-    r.metrics["flag"] = compute_flag(v.get("forward_pe"), v.get("peg"),
+    r.metrics["flag"] = compute_flag(ph.get("current_trailing_pe"),
+                                     v.get("forward_pe"), v.get("peg"),
                                      ph.get("median"), ph.get("p90"), cfg)
     # 共識覆蓋家數 + 是否「低覆蓋」(下游 PEG/修正動能 標記僅供參考,不刪資料)
     cov = v.get("coverage")
@@ -484,12 +488,15 @@ def load_records(universe_dir: str | Path) -> list[dict]:
     """
     d = Path(universe_dir)
     out: list[dict] = []
+    errors: list[str] = []
     for p in sorted(d.glob("*.json")):
         try:
             rec = json.loads(p.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError):
+        except (json.JSONDecodeError, OSError) as e:
+            errors.append(f"{p.name}: {e}")
             continue
         if not isinstance(rec, dict):
+            errors.append(f"{p.name}: 最外層不是 JSON object")
             continue
         # 缺哪塊就補空容器 → 該條件自然判成 na(資料不足),不 crash、也不會被當通過
         for k in ("annual", "annual_bs", "annual_ocf", "latest_bs", "valuation", "pe_hist"):
@@ -497,6 +504,13 @@ def load_records(universe_dir: str | Path) -> list[dict]:
         for k in ("quarters", "ocf_q", "errors"):
             rec.setdefault(k, [])
         out.append(rec)
+    if errors:
+        sample = "\n  - ".join(errors[:10])
+        more = f"\n  ...另有 {len(errors) - 10} 檔" if len(errors) > 10 else ""
+        raise ValueError(
+            f"data/universe 有 {len(errors)} 個無法解析的 JSON；已中止篩選，"
+            f"不可靜默略過股票：\n  - {sample}{more}"
+        )
     return out
 
 

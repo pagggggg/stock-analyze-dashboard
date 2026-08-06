@@ -3,10 +3,10 @@
 =============================
 只加旗標、不淘汰任何標的。用「個股自己的近N年每日本益比分布」給三段旗標:
 
-  🟢 合理偏低:PEG < green_peg_below  且  前瞻PE < 該股近N年PE中位數
-  🔴 高估值警戒:前瞻PE > 該股近N年PE的90百分位,或 PEG > red_peg_above,或 前瞻PE > red_pe_above
+  🟢 合理偏低:前瞻PEG < green_peg_below 且目前 trailing PE < 歷史 trailing PE 中位
+  🔴 高估值警戒:目前 trailing PE > 歷史 trailing PE P90，或前瞻 PEG/PE 過高
   🟡 一般:其餘
-  ⚪ 估值資料不足:沒有前瞻PE(共識缺)
+  ⚪ 估值資料不足:沒有可同口徑比較的目前 trailing PE
 
 ★ 百分位一律用「個股自己的歷史」,不用全市場平均——不同產業 PE 水準天生不同。
 """
@@ -31,9 +31,13 @@ RED_WARNING = (
 )
 
 
-def pe_history_stats(pe_series: list, forward_pe: float | None,
-                     years: int = 5, min_days: int = 60) -> dict | None:
-    """由 [(date, pe)] 每日本益比序列,算近 N 年的中位數 / 90百分位 / 前瞻PE 所在百分位。"""
+def pe_history_stats(pe_series: list, current_trailing_pe: float | None,
+                      years: int = 5, min_days: int = 60) -> dict | None:
+    """由 trailing PE 序列算近 N 年分布與「目前 trailing PE」所在百分位。
+
+    歷史序列是收盤價÷當時 TTM 實際 EPS，因此只能和目前 trailing PE 比；
+    把 forward PE 放進來會使成長股系統性顯得較便宜，是已知的口徑混用。
+    """
     cut = date.today().year - years + 1
     vals = sorted(pe for d, pe in pe_series if int(d[:4]) >= cut and pe and pe > 0)
     if len(vals) < min_days:                      # 近N年不足就退而用全部可得
@@ -43,9 +47,11 @@ def pe_history_stats(pe_series: list, forward_pe: float | None,
     median = round(_percentile(vals, 0.5), 1)
     p90 = round(_percentile(vals, 0.9), 1)
     pct = None
-    if forward_pe and forward_pe > 0:
-        pct = round(sum(1 for v in vals if v < forward_pe) / len(vals) * 100, 0)
-    return {"median": median, "p90": p90, "percentile": pct, "years": years, "n": len(vals)}
+    if current_trailing_pe and current_trailing_pe > 0:
+        pct = round(sum(1 for v in vals if v < current_trailing_pe) / len(vals) * 100, 0)
+    return {"median": median, "p90": p90, "percentile": pct,
+            "current_trailing_pe": round(current_trailing_pe, 1) if current_trailing_pe else None,
+            "years": years, "n": len(vals), "basis": "trailing_pe"}
 
 
 def historical_peg(annual: dict, price: float | None, years: int = 5) -> dict | None:
@@ -114,19 +120,20 @@ def pe_series_us(hist, annual_eps: dict, years: int = 5) -> list:
     return out
 
 
-def compute_flag(forward_pe: float | None, peg: float | None,
-                 pe_median: float | None, pe_p90: float | None, cfg: dict) -> str:
+def compute_flag(current_trailing_pe: float | None, forward_pe: float | None,
+                 forward_peg: float | None, pe_median: float | None,
+                 pe_p90: float | None, cfg: dict) -> str:
     """回傳 green / yellow / red / na。"""
     vf = cfg.get("valuation_flag", {})
-    if forward_pe is None:
+    if current_trailing_pe is None:
         return "na"
-    # 🔴 高估值警戒(任一成立)
-    if ((vf.get("red_pe_above_p90", True) and pe_p90 is not None and forward_pe > pe_p90)
-            or (peg is not None and peg > vf.get("red_peg_above", 2.0))
-            or (forward_pe > vf.get("red_pe_above", 60))):
+    # 歷史位階只用 trailing 對 trailing；forward PE / PEG 是獨立前瞻警戒。
+    if ((vf.get("red_pe_above_p90", True) and pe_p90 is not None
+         and current_trailing_pe > pe_p90)
+            or (forward_peg is not None and forward_peg > vf.get("red_peg_above", 2.0))
+            or (forward_pe is not None and forward_pe > vf.get("red_pe_above", 60))):
         return "red"
-    # 🟢 合理偏低(兩者皆需成立)
-    if (peg is not None and peg < vf.get("green_peg_below", 1.0)
-            and pe_median is not None and forward_pe < pe_median):
+    if (forward_peg is not None and forward_peg < vf.get("green_peg_below", 1.0)
+            and pe_median is not None and current_trailing_pe < pe_median):
         return "green"
     return "yellow"

@@ -10,7 +10,7 @@
 
 內含 6 塊:
   0) 三行摘要(置頂,大字)
-  1) 估值儀表板:4 指標卡片(便宜綠 / 合理灰 / 貴紅)
+  1) 估值儀表板:4 指標卡片(forward PE 僅參考;其餘依各自門檻著色)
   2) 本益比河流圖(股價 vs 低/中/高本益比河道 + 現價標記)
   3) EPS 走勢(近8季實際 + 3Q26 三情境試算)
   4) 共識EPS監控(2026/2027 共識歷史折線 + 上修/下修標記)
@@ -39,7 +39,8 @@ C_PRICE = "#111827"   # 股價線 / 近黑
 C_BLUE = "#2563eb"    # 中性 / 藍
 
 _VERDICT_COLOR = {
-    "便宜": C_CHEAP, "合理": C_FAIR, "偏貴": C_PRICEY, "貴": C_EXP, "資料不足": C_NA,
+    "便宜": C_CHEAP, "合理": C_FAIR, "偏貴": C_PRICEY, "貴": C_EXP,
+    "前瞻參考": C_BLUE, "資料不足": C_NA,
 }
 _LIGHT_COLOR = {"green": C_CHEAP, "yellow": "#eab308", "red": C_EXP, "gray": C_NA}
 _LIGHT_WORD = {"green": "綠 · 健康", "yellow": "黃 · 留意", "red": "紅 · 警訊", "gray": "— · 資料不足"}
@@ -393,7 +394,8 @@ def build_html_dashboard(
     <h2>② 本益比河流圖(現在位於歷史估值哪一段?)</h2>
     {river_div}
     {_note('河道 = 「當時的近四季實際EPS」×(低/中/高 本益比);EPS 成長會讓整條河道往上抬。'
-           '股價線貼近<b style="color:'+C_CHEAP+'">綠(低本益比)</b>相對便宜、貼近<b style="color:'+C_EXP+'">紅(高本益比)</b>'
+           '<b>河道保留原始歷史分位,不為包住股價而擴張</b>;股價可超出上下緣。'
+           '股價線貼近<b style="color:'+C_CHEAP+'">綠(低本益比)</b>相對便宜、貼近或超過<b style="color:'+C_EXP+'">紅(高本益比)</b>'
            '相對貴。' + river_note_extra + ' 口徑為 trailing(過去4季),與摘要的前瞻PE 略有差異屬正常。')}
   </section>
 

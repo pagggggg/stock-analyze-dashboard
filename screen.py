@@ -15,6 +15,8 @@ import argparse
 from datetime import datetime
 from pathlib import Path
 
+import yaml
+
 from src.screener import load_config, load_records, screen_all
 from src.screener_report import build_screener_report
 
@@ -23,14 +25,32 @@ ROOT = Path(__file__).resolve().parent
 
 def run(args) -> None:
     cfg = load_config(args.config)
-    records = load_records(ROOT / "data/universe")
+    universe_dir = ROOT / "data/universe"
+    try:
+        records = load_records(universe_dir)
+    except ValueError as e:
+        raise SystemExit(str(e)) from e
     if not records:
         raise SystemExit("找不到本地全市場資料(data/universe/ 為空)。"
                          "請先執行:python fetch_universe.py")
 
+    # data/universe 必須與母體定義一致。台股來自 universe.yaml；美股以同一檔
+    # 的 us 清單為準。多一檔或少一檔都中止，避免舊檔持續參與篩選。
+    up = ROOT / "config/universe.yaml"
+    doc = yaml.safe_load(up.read_text(encoding="utf-8")) or {}
+    expected = {str(x["stock_id"]) for k in ("twse", "us") for x in (doc.get(k) or [])}
+    actual = {str(r.get("stock_id")) for r in records}
+    missing, extra = sorted(expected - actual), sorted(actual - expected)
+    if missing or extra:
+        raise SystemExit(
+            "data/universe 與 config/universe.yaml 不一致；請先執行 "
+            "python fetch_universe.py --from-universe。"
+            f"\n缺少:{missing or '無'}\n多餘:{extra or '無'}"
+        )
+
     results, funnel = screen_all(records, cfg)
 
-    deep = sum(1 for r in records if "annual" in r)
+    deep = sum(1 for r in records if r.get("annual"))
     universe_desc = (f"本地 {len(records)} 檔（深抓財報 {deep} 檔）"
                      f"｜市場 {cfg['universe']['market']}")
     md = build_screener_report(results, funnel, cfg,

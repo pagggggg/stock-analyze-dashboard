@@ -95,7 +95,8 @@ class StockAnalysis:
         return {
             "eps_y0": self.eps_y0,
             "eps_y1": self.eps_y1,
-            "forward_pe_verdict": fpe.verdict if fpe else None,
+            # forward PE 不再拿 trailing 歷史河道判級，因此不產生估值跨級事件。
+            "forward_pe_verdict": None,
             "peg_verdict": peg.verdict if peg else None,
             "fcf_lights": lights,
         }

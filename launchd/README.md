@@ -1,6 +1,10 @@
-# 本機排程(Mac mini / macOS launchd)
+# 本機排程(已停用；僅保留手動測試說明)
 
-這套排程讓 **Mac mini 負責重活**(全市場抓取、完整篩選、部署),GitHub Actions 只在你 push 程式碼時輕量重建(見 `.github/workflows/daily.yml` 註解)。
+> **現況:daily / weekly / monthly 全部停用。** GitHub Actions 是唯一資料 writer 與部署者。
+> 本機只能做開發或手動測試，`scripts/*.sh` 不會 commit、push 或部署。
+>
+> 2026-08-01 曾因 GitHub Actions 與本機 monthly 同時寫 `data/`、`main`、`gh-pages`，
+> 造成 211 個合併衝突。除非先重新設計跨環境鎖，**不得重新載入這些 plist**。
 
 ## 分工
 
@@ -10,7 +14,7 @@
 | **每週** | 週六 03:00 | 重抓母體全體**財報 + 共識**,重跑完整兩層篩選 | `scripts/run_weekly.sh` |
 | **每月** | 1 號 04:00 | **重建可分析母體**(全上市逐檔:市值/覆蓋/法說會)→ 全量更新 | `scripts/run_monthly.sh` |
 
-每支跑完都會:`git commit`(帶 `[skip ci]` 避免觸發 CI 重抓)→ push `main` → 部署 `gh-pages`。都有 log、失敗重試、error log(見 `logs/`)。
+三支腳本目前都只更新本機 `data/`、`reports/`、`public/`,並寫 log；不 commit、不 push、不部署。
 
 ## 前置(只做一次)
 
@@ -18,31 +22,26 @@
    ```
    FINMIND_TOKEN=你的token
    ```
-2. **git 推送權限**:Mac mini 需能 `git push`(你已用 `gh auth login`,git 憑證會存在 keychain,launchd 下也能用)。
-3. 確認 `python3` 在 `/opt/homebrew/bin`(`scripts/_common.sh` 已把它加進 PATH)。
+2. 確認 `python3` 在 `/opt/homebrew/bin`(`scripts/_common.sh` 已把它加進 PATH)。
 
-## 安裝(載入排程)
+## 不要安裝或載入排程
+
+若舊機器曾載入，停用方式：
 
 ```bash
-cd /Users/kaochihping/Stock_analyze
-chmod +x scripts/*.sh
-cp launchd/com.stockanalyze.*.plist ~/Library/LaunchAgents/
-launchctl load ~/Library/LaunchAgents/com.stockanalyze.daily.plist
-launchctl load ~/Library/LaunchAgents/com.stockanalyze.weekly.plist
-launchctl load ~/Library/LaunchAgents/com.stockanalyze.monthly.plist
+uid=$(id -u)
+for j in daily weekly monthly; do
+  launchctl bootout gui/$uid "$HOME/Library/LaunchAgents/com.stockanalyze.$j.plist" 2>/dev/null || true
+  launchctl disable gui/$uid/com.stockanalyze.$j
+done
 ```
 
 ## 常用指令
 
 ```bash
 launchctl list | grep stockanalyze          # 看有沒有載入
-launchctl start com.stockanalyze.daily       # 立即手動跑一次(不等排程)
-tail -f logs/daily.log                        # 看即時 log
-cat logs/daily.error.log                      # 只看錯誤
-
-# 改了 plist 要先 unload 再 load
-launchctl unload ~/Library/LaunchAgents/com.stockanalyze.daily.plist
-launchctl load   ~/Library/LaunchAgents/com.stockanalyze.daily.plist
+launchctl print-disabled gui/$(id -u) | grep stockanalyze
+bash scripts/run_daily.sh                    # 僅本機產出，絕不寫遠端
 ```
 
 ## 第一次全市場母體(建議手動先跑一次,確認順)
@@ -55,7 +54,7 @@ python3 build_universe.py --market us            # 美股測試清單
 python3 fetch_universe.py --from-universe --refresh all
 python3 screen.py
 python3 build_site.py --from-universe
-# 沒問題後,再讓 launchctl start com.stockanalyze.monthly 或等排程自動跑
+# 本機結果只供檢查；正式資料與網站由 GitHub Actions 寫入
 ```
 
-> Mac mini 記得到「系統設定 → 電池/節能」把「網路存取時喚醒」「防止自動睡眠」打開,排程才不會因睡眠錯過。
+> 不要把本機排程當正式資料來源。需要母體重建時，先在本機測試，確認後以明確流程交由唯一 writer 寫入。

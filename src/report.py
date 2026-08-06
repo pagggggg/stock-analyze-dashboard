@@ -276,38 +276,25 @@ def build_report(
     A("")
 
     # ---- 現價 vs 估值 (NEW) -----------------------------------------
-    A("## 五、現價 vs 估值(市場現在買貴還是買便宜?)")
+    A("## 五、現價 vs 模型情境(異口徑,僅供參考)")
     A("")
-    A("> 💡 **溢價 / 折價**=市場現在給的本益比,比歷史常態「高」就是溢價(偏貴)、「低」就是折價(偏便宜)。")
+    A("> ⚠️ 這裡的 forward PE 使用含本季試算的年化 EPS,歷史中樞則是 trailing PE。"
+      "兩者不是同口徑,差值只能視為模型情境,不能當成精準的溢價/折價判定。")
     A("")
     if price is None:
         A("_(未取得現價,略過。用 `--data-mode auto` 自動抓 TWSE 收盤,或在 config 填 `valuation.current_price`。)_")
     else:
-        vs_word = "貴" if price_vs_center >= 0 else "便宜"
-        pd_word = "溢價" if premium >= 0 else "折價"
         A("| 指標 | 數值 | 說明 |")
         A("| --- | ---: | --- |")
         A(f"| 目前股價 | NT$ {_n(price, 0)} | {price_src} |")
         A(f"| 我的估值中樞(中性) | NT$ {_n(mid_price, 0)} | 中性年化EPS {_n(ann, 2)} × 歷史中樞PE {_n(pb.pe_mid, 1)}x |")
-        A(f"| 現價 vs 中樞 | {_signed_pct(price_vs_center)} | 現價比我的合理中樞**{vs_word}** {_pct(abs(price_vs_center))} |")
+        A(f"| 現價 vs 模型中樞 | {_signed_pct(price_vs_center)} | 僅表示現價相對這組模型假設的差距 |")
         A(f"| 市場給的本益比 | {_n(market_pe, 1)}x | 現價 {_n(price, 0)} ÷ 年化EPS {_n(ann, 2)} |")
         A(f"| 歷史中樞本益比 | {_n(pb.pe_mid, 1)}x | 近10年每日本益比平均({pb.years_covered}) |")
-        A(f"| 溢價 / 折價 | {_signed_pct(premium)} | 市場PE 比歷史中樞**{'高' if premium >= 0 else '低'}** {_pct(abs(premium))} → **{pd_word}** |")
+        A(f"| 異口徑 PE 差值 | {_signed_pct(premium)} | forward PE 與歷史 trailing 中樞的差值,僅供參考 |")
         A("")
-        # 白話結論
-        if premium >= 0:
-            A(f"**白話結論**:市場現在用約 **{_n(market_pe, 1)} 倍**本益比買台積電,"
-              f"比近10年常態的 {_n(pb.pe_mid, 1)} 倍**高出約 {_pct(abs(premium), 0)}**,屬於**溢價**——"
-              "代表市場願意為它的成長多付一點錢。若你認為成長能延續,溢價有其道理;"
-              "若擔心景氣或競爭,這段溢價就是潛在的回檔空間。")
-        else:
-            A(f"**白話結論**:市場現在用約 **{_n(market_pe, 1)} 倍**本益比買台積電,"
-              f"比近10年常態的 {_n(pb.pe_mid, 1)} 倍**低約 {_pct(abs(premium), 0)}**,屬於**折價**——"
-              "市場對它相對保守。若基本面沒有惡化,折價可能是機會;但也要留意市場是否在反映某種擔憂。")
-        A("")
-        A("> ⚠️ 口徑提醒:這裡的本益比用「年化EPS(含本季試算)」= 前瞻本益比;"
-          "歷史區間是 TWSE 以「過去4季實際」計算。成長期的前瞻PE 通常會比歷史trailing PE 低一些,"
-          "兩者非完全同口徑,**看相對高低與趨勢即可,別當精準門檻**。")
+        A("**解讀**:模型中樞取決於法說指引、人工假設與歷史 PE；任一假設變動,結果就會改變。"
+          "真正的歷史估值位階請看 trailing-to-trailing 河流圖/篩選旗標。")
     A("")
 
     # ---- 六、估值儀表板 (功能1) ------------------------------------

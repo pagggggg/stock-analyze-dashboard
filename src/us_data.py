@@ -164,7 +164,10 @@ def build_us_record(ticker: str, name: str, cfg: dict) -> dict:
         from .valuation_flag import pe_history_stats, pe_series_us
         annual_eps = {y: a["eps"] for y, a in annual.items() if a.get("eps")}
         pe_ser = pe_series_us(hist, annual_eps, years=cfg["valuation_flag"]["pe_history_years"])
-        fpe = (rec.get("valuation") or {}).get("forward_pe")
-        rec["pe_hist"] = pe_history_stats(pe_ser, fpe, years=cfg["valuation_flag"]["pe_history_years"])
+        current_tpe = pe_ser[-1][1] if pe_ser else None
+        rec["pe_hist"] = pe_history_stats(
+            pe_ser, current_tpe, years=cfg["valuation_flag"]["pe_history_years"])
+        if rec["pe_hist"] is None:
+            rec["pe_hist"] = {"basis": "trailing_pe", "status": "insufficient"}
 
     return rec

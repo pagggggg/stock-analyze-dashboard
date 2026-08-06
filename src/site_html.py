@@ -5,8 +5,8 @@
 
   index.html          三層儀表板首頁
     第一層:頂端狀態燈(綠/黃/紅)
-    第二層:訊號流水(共識上下修 / FCF 燈變色 / 估值門檻跨越;不放股價雜訊)
-    掃描總表:所有股票四指標一覽,可點欄位排序,標便宜/合理/貴 + 盈餘修正動能欄
+    第二層:訊號流水(共識上下修 / FCF 燈變色;不放股價雜訊)
+    掃描總表:所有股票四指標一覽,可點欄位排序;forward PE 僅顯示參考值
   stock_<id>.html     第三層:個股詳情(四指標卡 + 河流圖 + FCF三燈 + FCF雙線 + EPS走勢 + 共識折線)
   plotly.min.js       圖表函式庫(本地一份,所有頁共用 → 離線可開、不重複下載)
   style.css           共用樣式
@@ -57,7 +57,7 @@ _STATUS = {
     "green": ("#15803d", "🟢 無訊號級變化", "觀察清單目前沒有需要注意的基本面訊號。"),
     # 黃燈底色刻意用較深的琥珀(#a16207)而非亮黃:亮黃配白字對比不足,手機戶外幾乎看不見。
     "yellow": ("#a16207", "🟡 有共識異動 / FCF 燈變色", "有『訊號級』變化,詳見下方訊號流水。"),
-    "red": ("#dc2626", "🔴 有股票跨越估值門檻", "有股票前瞻PE 判讀等級改變,詳見下方訊號流水。"),
+    "red": ("#dc2626", "🔴 有高優先級訊號", "有高優先級基本面訊號,詳見下方訊號流水。"),
 }
 
 
@@ -310,13 +310,15 @@ def build_index_html(
   <div class="layer-tag">第二層 · 訊號流水(只看訊號,不看股價雜訊)</div>
   <section>
     {stream}
-    {_note('這裡只收<b>基本面訊號</b>:共識EPS 上/下修、FCF 品質燈變色、前瞻PE 跨越估值門檻。'
+    {_note('這裡只收<b>基本面訊號</b>:共識EPS 上/下修、FCF 品質燈變色。'
+           '估值位階改由篩選器的 trailing-to-trailing 同口徑旗標顯示,不再把 forward PE 對 trailing 歷史河道的變化當事件。'
            '<b>股價每日漲跌屬雜訊,刻意不列</b>——真正該花時間研究的是這些訊號背後的原因。')}
   </section>
 
   <div class="layer-tag">掃描總表 · 縮小研究範圍用</div>
   <section>
-    <div class="table-warn">📌 本表僅供<b>縮小研究範圍</b>,<b>非買進清單</b>。點欄位標題可排序;顏色為估值判讀(綠便宜/灰合理/橘偏貴/紅貴),僅為經驗法則。</div>
+    <div class="table-warn">📌 本表僅供<b>縮小研究範圍</b>,<b>非買進清單</b>。點欄位標題可排序。
+      <b>前瞻PE為藍色參考值,不拿它對照 trailing 歷史河道判便宜/貴</b>;其他顏色仍為經驗法則。</div>
     <div class="swipe-hint">← 手機可左右滑動看更多欄位 →</div>
     <div class="table-scroll">{table}</div>
     {_note('<b>前瞻PE</b>=現價÷今年共識EPS;<b>PEG</b>=前瞻PE÷盈餘成長率;'
@@ -353,7 +355,7 @@ function whatIf(sid){
   if(!(p > 0)){ box.innerHTML = '<span class="wi-none">請輸入大於 0 的價格。</span>'; return; }
 
   function cell(label, val, unit, verdict, note){
-    var col = {'便宜':'#16a34a','合理':'#6b7280','偏貴':'#ea580c','貴':'#dc2626','資料不足':'#9ca3af'}[verdict]||'#6b7280';
+    var col = {'便宜':'#16a34a','合理':'#6b7280','偏貴':'#ea580c','貴':'#dc2626','前瞻參考':'#2563eb','資料不足':'#9ca3af'}[verdict]||'#6b7280';
     var v = (val===null||val===undefined||!isFinite(val)) ? 'N/A' : (val.toFixed(unit==='' ? 2 : 1) + unit);
     return '<div class="wi-card"><div class="wi-name">'+label+'</div>'
          + '<div class="wi-val" style="color:'+col+'">'+v+'</div>'
@@ -362,12 +364,8 @@ function whatIf(sid){
   }
 
   var out = '';
-  // 1) 前瞻PE:判讀門檻與後端一致(近10年PE區間切三段)
-  var fpe = P.ann_eps ? p / P.ann_eps : null, peV = '資料不足';
-  if(fpe !== null && P.pe_low !== null){
-    var lo = (P.pe_low + P.pe_mid)/2, hi = (P.pe_mid + P.pe_high)/2;
-    peV = fpe <= lo ? '便宜' : (fpe >= hi ? '貴' : '合理');
-  }
+  // 1) 前瞻PE只顯示數值；歷史河道是 trailing 口徑,不可據此判便宜/貴。
+  var fpe = P.ann_eps ? p / P.ann_eps : null, peV = fpe === null ? '資料不足' : '前瞻參考';
   out += cell('前瞻PE', fpe, 'x', peV, P.ann_eps ? ('÷ 年化EPS ' + P.ann_eps.toFixed(2)) : '');
 
   // 2) PEG
@@ -508,16 +506,17 @@ def build_detail_html(a, generated: str) -> str:
   </header>
 
   <section>
-    <h2>四指標(即時連動現價)</h2>
+    <h2>四指標(連動收盤價/試算價)</h2>
     {_cards_html(a.dashboard)}
-    {_note('綠便宜/灰合理/橘偏貴/紅貴,單一指標不下結論,務必交叉看。')}
+    {_note('前瞻PE只顯示藍色參考值;PEG/FCF Yield/EV·EBITDA 依各自同口徑門檻著色。單一指標不下結論。')}
   </section>
 
   <section>
     <h2>本益比河流圖</h2>
     {river_div}
-    {_note('河道 =「當時近四季實際EPS」×(近10年低/中/高本益比,必要時擴張以含括現價)。'
-           '股價貼近<b style="color:'+C_CHEAP+'">綠</b>相對便宜、貼近<b style="color:'+C_EXP+'">紅</b>相對貴。' + river_zone)}
+    {_note('河道 =「當時近四季實際EPS」×近10年 trailing PE 的 P10/P50/P90。'
+           '<b>河道不再為了包住股價而向外擴張</b>;股價超出上緣/下緣是極端估值訊號,不是繪圖錯誤。'
+           '股價貼近<b style="color:'+C_CHEAP+'">綠</b>相對便宜、貼近或超過<b style="color:'+C_EXP+'">紅</b>相對貴。' + river_zone)}
   </section>
 
   <section>

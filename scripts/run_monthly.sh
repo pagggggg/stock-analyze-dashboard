@@ -16,6 +16,5 @@ retry python3 fetch_universe.py --from-universe --refresh all || { fail "fetch_u
 # 3) 完整篩選 + 重建站
 retry python3 screen.py || { fail "screen 失敗"; exit 1; }
 retry python3 build_site.py --from-universe || { fail "build_site 失敗"; exit 1; }
-git_sync "chore(data): 每月母體重建 + 全量更新"
-deploy_ghpages
-log "================ 每月母體重建完成 ================"
+log "本機母體與網站已重建，未寫入遠端；GitHub Actions 是唯一 writer/deployer。"
+log "================ 每月本機測試完成 ================"

@@ -24,7 +24,9 @@ RETRY_MAX="${RETRY_MAX:-3}"
 if [ -f "$ROOT/.env" ]; then set -a; . "$ROOT/.env"; set +a; fi
 
 log()  { echo "[$(date '+%F %T')] $*" | tee -a "$LOG"; }
-fail() { echo "[$(date '+%F %T')] ERROR: $*" | tee -a "$LOG" "$ERR" >&2; }
+# 必須回傳非零。過去 fail() 只印訊息、仍回 0，造成 git push 失敗後腳本
+# 繼續 force-push gh-pages，launchd 最後也錯誤顯示成功。
+fail() { echo "[$(date '+%F %T')] ERROR: $*" | tee -a "$LOG" "$ERR" >&2; return 1; }
 
 # pull_latest :跑之前先拉最新程式碼(你從別台 push 的變更也會生效)
 pull_latest() {
@@ -43,25 +45,13 @@ retry() {
   done
 }
 
-# git_sync <commit訊息> :把 data/ 狀態與報告 commit 回 main(帶 [skip ci])
+# GitHub Actions 是唯一資料 writer / 部署者。本機函式保留名稱，是為了讓舊腳本
+# 若誤呼叫時明確失敗，而不是悄悄改遠端。要部署請手動觸發 GitHub Actions。
 git_sync() {
-  git add data/ config/universe.yaml reports/screener_result.md reports/universe_report.md 2>/dev/null || true
-  if git diff --cached --quiet; then
-    log "無資料變動,略過 commit"
-  else
-    git commit -q -m "$1 $(date '+%F %H:%M') [skip ci]" || { fail "git commit 失敗"; return 1; }
-    retry git pull --rebase -q origin main && retry git push -q origin main && log "已 push data 到 main" || fail "git push 失敗"
-  fi
+  fail "本機禁止 git_sync：GitHub Actions 是唯一 writer。請檢查本地結果後手動觸發 workflow。"
 }
 
 # deploy_ghpages :把 public/ 強推到 gh-pages(GitHub Pages 部署)
 deploy_ghpages() {
-  local tmp; tmp="$(mktemp -d)" || { fail "mktemp 失敗"; return 1; }
-  cp -R "$ROOT/public/." "$tmp/" && touch "$tmp/.nojekyll"
-  ( cd "$tmp" \
-    && git init -q && git checkout -q -b gh-pages && git add -A \
-    && git -c user.email="mac-mini@local" -c user.name="mac-mini" commit -q -m "deploy $(date '+%F %H:%M')" \
-    && retry git push -f -q "https://github.com/pagggggg/stock-analyze-dashboard.git" gh-pages ) \
-    && log "gh-pages 已部署" || fail "gh-pages 部署失敗"
-  rm -rf "$tmp"
+  fail "本機禁止 deploy_ghpages：GitHub Actions 是唯一部署者。"
 }

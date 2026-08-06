@@ -137,11 +137,42 @@ def load_from_universe(cfg: dict) -> list[dict]:
             for s in items]
 
 
+def _universe_doc() -> dict:
+    """讀取母體產物。集中在一處，避免台股/美股/清檔各自解讀不同。"""
+    import yaml
+
+    path = ROOT / "config/universe.yaml"
+    if not path.exists():
+        raise SystemExit("找不到 config/universe.yaml,請先執行 python build_universe.py --market tw")
+    return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+
+
+def _sync_universe_files(expected: set[str]) -> list[str]:
+    """移除不在母體的舊 JSON，回傳被移除的代號。
+
+    只由完整的 --from-universe 執行呼叫；測試用 --limit/--stock-ids 絕不能清檔。
+    這使 data/universe 不再累積已被母體淘汰的股票，避免 screen.py 繼續評估舊檔。
+    """
+    removed: list[str] = []
+    if not UNIVERSE_DIR.exists():
+        return removed
+    for p in sorted(UNIVERSE_DIR.glob("*.json")):
+        if p.stem not in expected:
+            p.unlink()
+            removed.append(p.stem)
+    return removed
+
+
 def _fresh(path: Path, days: int) -> bool:
     if not path.exists():
         return False
     try:
-        f = json.loads(path.read_text(encoding="utf-8")).get("fetched")
+        rec = json.loads(path.read_text(encoding="utf-8"))
+        # schema 變更也視為不新鮮。目前歷史位階必須保存 trailing 口徑；
+        # 舊檔的 percentile 是 forward 對 trailing，不能因 fetched 日期新就沿用。
+        if rec.get("annual") and (rec.get("pe_hist") or {}).get("basis") != "trailing_pe":
+            return False
+        f = rec.get("fetched")
         return f is not None and (date.today() - date.fromisoformat(f)).days <= days
     except (json.JSONDecodeError, OSError, ValueError):
         return False
@@ -208,9 +239,11 @@ def build_and_save(stock: dict, cfg: dict) -> dict:
                 try:
                     px_long = fetch_price_daily_finmind(sid)[0]      # ~10 年日收盤(有快取)
                     pe_ser = daily_pe_series(px_long, inc[0])
-                    fpe = (rec.get("valuation") or {}).get("forward_pe")
+                    current_tpe = pe_ser[-1][1] if pe_ser else None
                     rec["pe_hist"] = pe_history_stats(
-                        pe_ser, fpe, years=cfg["valuation_flag"]["pe_history_years"])
+                        pe_ser, current_tpe, years=cfg["valuation_flag"]["pe_history_years"])
+                    if rec["pe_hist"] is None:
+                        rec["pe_hist"] = {"basis": "trailing_pe", "status": "insufficient"}
                 except Exception as e:  # noqa: BLE001
                     errors.append(f"pe_hist:{e}")
 
@@ -253,7 +286,8 @@ def _save(rec: dict) -> None:
             # 這些區塊「有比沒有好」:新的缺、舊的有 → 保留舊的
             for k in ("annual", "annual_bs", "annual_ocf", "latest_bs", "ocf_q",
                       "pe_hist", "valuation", "hist_peg", "mrev",
-                      "first_report", "latest_report"):
+                      "first_report", "latest_report",
+                      "price_last", "price_date", "liq_avg_value", "liq_days"):
                 if not rec.get(k) and old.get(k):
                     rec[k] = old[k]
                     kept.append(k)
@@ -306,8 +340,13 @@ def run(args) -> None:
     print(f"完成:新抓 {done}、沿用本地 {skipped}、其中深抓財報 {liquid_deep};"
           f"本地資料夾 {UNIVERSE_DIR}")
 
-    # ---- 額外美股(yfinance,測試用)----
-    us = cfg["universe"].get("extra_us") or []
+    # ---- 額外美股(yfinance)----
+    # --from-universe 時以 config/universe.yaml 的 us 清單為唯一真相；
+    # 非母體模式才沿用 screener.yaml 的 extra_us 測試清單。
+    if args.from_universe:
+        us = [str(x["stock_id"]) for x in (_universe_doc().get("us") or [])]
+    else:
+        us = [str(x) for x in (cfg["universe"].get("extra_us") or [])]
     if us:
         print(f"美股測試({len(us)} 檔,yfinance):")
         for j, ticker in enumerate(us, 1):
@@ -324,6 +363,14 @@ def run(args) -> None:
                   + (f"　前瞻PE {val:.0f}x" if val else "")
                   + (f"　! {len(rec['errors'])} err" if rec["errors"] else ""))
             time.sleep(sleep_s)
+
+    # 完整母體執行才同步刪除舊檔。先抓後刪，避免抓取中斷時先破壞既有資料。
+    if args.from_universe and not args.stock_ids and not args.limit:
+        doc = _universe_doc()
+        expected = {str(x["stock_id"]) for k in ("twse", "us") for x in (doc.get(k) or [])}
+        removed = _sync_universe_files(expected)
+        if removed:
+            print(f"母體清理:移除 {len(removed)} 個已不在 universe.yaml 的舊檔:{','.join(removed)}")
 
 
 def main() -> None:
