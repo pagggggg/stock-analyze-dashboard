@@ -15,6 +15,7 @@ cloud_capex:
           direction: unchanged
           source: "Microsoft FY27 Q1 Outlook 簡報；2026-07-29 法說會"
           source_date: "2026-07-29"
+          key_point: "維持原指引；數字含租賃分類變更影響"
           note: "約 1,750 億美元；含使用年限變更對租賃分類的影響。"
         - amount: {kind: minimum, value: 50.0, unit: "USD bn"}
           period: {basis: quarter, label: "FY27 Q1（2026年7–9月）"}
@@ -35,6 +36,7 @@ cloud_capex:
           direction: up
           source: "Alphabet Q2 2026 法說會；CFO Anat Ashkenazi"
           source_date: "2026-07"
+          key_point: "前次 180–190；加速產能交付"
           note: "上調自前次 180–190 USD bn；原因為加速產能交付以滿足需求成長。Q2 單季 Capex 44.9 USD bn、自由現金流 -5.9 USD bn、Cloud backlog 514.0 USD bn。"
         - amount: {kind: undisclosed, text: "預期顯著增加，未揭露具體金額", unit: "USD bn"}
           period: {basis: calendar_year, label: "日曆年 2027"}
@@ -49,6 +51,7 @@ cloud_capex:
           direction: not_stated
           source: "Amazon Q2 2026 財報 Financial Guidance"
           source_date: "2026-07-30"
+          key_point: "公司只提供下一季營收與營業利益指引"
           note: "Financial Guidance 僅提供下一季營收與營業利益,不提供 Capex 指引。"
       reported_actuals:
         - metric: net_capex
@@ -65,6 +68,7 @@ cloud_capex:
           direction: up
           source: "Meta Q2 2026 財報 CFO Outlook"
           source_date: "2026-07-29"
+          key_point: "下緣 125→130，上緣維持 145"
           note: "含融資租賃本金。區間收窄,下緣由 125.0 USD bn 上調至 130.0 USD bn,上緣維持 145.0 USD bn,屬實質微幅上調。Q2 單季 Capex 31.08 USD bn；單季自由現金流僅 0.784 USD bn（去年同期 8.55 USD bn）。"
 
 cyclical_definition:

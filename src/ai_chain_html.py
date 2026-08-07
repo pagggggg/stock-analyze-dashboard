@@ -43,6 +43,72 @@ def _auto_ttm_capex(cloud: dict, ticker: str) -> dict | None:
     return (cloud.get("companies", {}).get(ticker) or {}).get("ttm_capex")
 
 
+def _guidance_card(ticker: str, company: dict, cloud: dict) -> str:
+    entries = company.get("entries") or []
+    numeric_calendar = [x for x in entries if x["period"]["basis"] == "calendar_year"
+                        and x["amount"]["kind"] != "undisclosed"]
+    calendar_any = [x for x in entries if x["period"]["basis"] == "calendar_year"]
+    primary = (sorted(numeric_calendar, key=lambda x: (x["period"]["label"], x["source_date"]))[-1]
+               if numeric_calendar else
+               sorted(calendar_any, key=lambda x: (x["period"]["label"], x["source_date"]))[-1]
+               if calendar_any else None)
+
+    if primary:
+        amount = _guidance_amount(primary)
+        period = escape(primary["period"]["label"])
+        direction = DIRECTION[primary["direction"]]
+        comparable = primary["amount"]["kind"] != "undisclosed"
+        key_point = escape(primary.get("key_point") or "")
+        source_date = escape(str(primary["source_date"]))
+    else:
+        amount, period, direction = "待補", "日曆年資料", "未填"
+        comparable, key_point, source_date = False, escape(company.get("note") or ""), "—"
+
+    extra = []
+    for entry in entries:
+        if entry is primary:
+            continue
+        extra.append(
+            f'<li><b>{escape(entry["period"]["label"])}</b>　{_guidance_amount(entry)}'
+            f'<span>{DIRECTION[entry["direction"]]}</span></li>')
+
+    actual_lines = []
+    for actual in company.get("reported_actuals") or []:
+        auto = _auto_ttm_capex(cloud, ticker)
+        line = (f'<b>TTM 實際</b> {_n(actual["amount"]["value"], 1)} {escape(actual["amount"]["unit"])}'
+                f'　<span>YoY {_n(actual["yoy_pct"], 1, "%")}</span>')
+        if auto:
+            line += f'<br><small>yfinance 自動值 {_n(auto["value"] / 1e9, 1)} USD bn（{escape(auto["date"]) }）</small>'
+        actual_lines.append(f'<div class="guidance-actual">{line}</div>')
+
+    detail_items = []
+    for entry in entries:
+        detail_items.append(
+            f'<li><b>{escape(entry["period"]["label"])}</b>｜{escape(entry["source"])}｜'
+            f'{escape(str(entry["source_date"]))}<br><span>{escape(entry.get("note") or "—")}</span></li>')
+    for actual in company.get("reported_actuals") or []:
+        detail_items.append(
+            f'<li><b>{escape(actual["period"]["label"])}</b>｜{escape(actual["source"])}｜'
+            f'{escape(str(actual["source_date"]))}<br><span>{escape(actual.get("note") or "—")}</span></li>')
+    details = (f'<details class="guidance-source"><summary>查看來源與口徑</summary><ul>{"".join(detail_items)}</ul></details>'
+               if detail_items else '')
+
+    direction_class = ("up" if primary and primary["direction"] in ("up", "yoy_increase")
+                       else "flat" if primary and primary["direction"] == "unchanged" else "na")
+    return f'''
+    <article class="guidance-card">
+      <div class="guidance-head"><b>{ticker}</b><span class="direction {direction_class}">{escape(direction)}</span></div>
+      <div class="guidance-amount">{amount}</div>
+      <div class="guidance-period">{period}</div>
+      <div class="guidance-compare {'yes' if comparable else 'no'}">{'可跨公司比較' if comparable else '不可直接比較'}</div>
+      {f'<p class="guidance-point">{key_point}</p>' if key_point else ''}
+      {f'<ul class="guidance-extra">{"".join(extra)}</ul>' if extra else ''}
+      {''.join(actual_lines)}
+      <div class="guidance-date">資料日期 {source_date}</div>
+      {details}
+    </article>'''
+
+
 def _capex_fig(cloud: dict) -> str:
     rows = cloud.get("combined") or []
     yoy = {x["quarter"]: x["yoy"] for x in cloud.get("yoy") or []}
@@ -120,50 +186,10 @@ def build_ai_chain_page(data: dict, generated: str, detail_ids: set[str]) -> str
     cloud = data["cloud"]
     guidance = data.get("guidance") or {}
     errors = cloud.get("errors") or {}
-    guide_rows = []
-    comparable_rows = []
-    actual_rows = []
+    guidance_cards = []
     for ticker in ("MSFT", "GOOGL", "AMZN", "META"):
         company = guidance.get(ticker) or {}
-        entries = company.get("entries") or []
-        if not entries:
-            guide_rows.append(
-                f'<tr class="unavailable"><td>{ticker}</td><td colspan="6">⚠ 未填　'
-                f'{escape(company.get("note") or "待補最新法說 Capex 指引")}</td></tr>')
-        for entry in entries:
-            period = entry["period"]
-            comparable = (period["basis"] == "calendar_year"
-                          and entry["amount"]["kind"] != "undisclosed")
-            guide_rows.append(
-                f"<tr><td>{ticker}</td><td><b>{_guidance_amount(entry)}</b>（{escape(period['label'])}）</td>"
-                f"<td>{BASIS[period['basis']]}</td><td>{DIRECTION[entry['direction']]}</td>"
-                f"<td>{'✅可跨公司比較' if comparable else '⚠不可直接比較'}</td>"
-                f"<td>{escape(entry['source'])}<br>{escape(str(entry['source_date']))}</td>"
-                f"<td>{escape(entry.get('note') or '—')}</td></tr>"
-            )
-        # 跨公司「金額」比較只能選有具體金額的日曆年指引；
-        # 較晚但未揭露數字的定性指引仍留在完整表,不可覆蓋可比數值。
-        calendars = [x for x in entries if x["period"]["basis"] == "calendar_year"
-                     and x["amount"]["kind"] != "undisclosed"]
-        if calendars:
-            latest = sorted(calendars, key=lambda x: (x["period"]["label"], x["source_date"]))[-1]
-            comparable_rows.append(
-                f"<tr><td>{ticker}</td><td><b>{_guidance_amount(latest)}</b>（{escape(latest['period']['label'])}）</td>"
-                f"<td>{DIRECTION[latest['direction']]}</td><td>{escape(str(latest['source_date']))}</td></tr>")
-        else:
-            comparable_rows.append(
-                f'<tr class="unavailable"><td>{ticker}</td><td colspan="3">'
-                f'⚠ 無日曆年金額，不可直接跨公司比較</td></tr>')
-        for actual in company.get("reported_actuals") or []:
-            amount, period = actual["amount"], actual["period"]
-            auto = _auto_ttm_capex(cloud, ticker)
-            auto_txt = (f"{_n(auto['value'] / 1e9, 1)} USD bn（截至 {escape(auto['date'])}）"
-                        if auto else "—")
-            actual_rows.append(
-                f"<tr><td>{ticker}</td><td><b>{_n(amount['value'], 1)} {escape(amount['unit'])}</b>"
-                f"（{escape(period['label'])}）</td><td>{_n(actual['yoy_pct'], 1, '%')}</td>"
-                f"<td>{auto_txt}</td><td>{escape(actual['source'])}<br>{escape(str(actual['source_date']))}</td>"
-                f"<td>{escape(actual.get('note') or '—')}</td></tr>")
+        guidance_cards.append(_guidance_card(ticker, company, cloud))
 
     layer_html = []
     for i, layer in enumerate(data["layers"], 1):
@@ -207,20 +233,9 @@ def build_ai_chain_page(data: dict, generated: str, detail_ids: set[str]) -> str
     <div class="note">資料源:{escape(cloud.get('source', ''))}。yfinance 免費端目前通常只提供約 5 季;
       各季柱狀圖 hover 會顯示涵蓋幾家公司,只有前後兩期都四家齊全才計算合計 YoY。
       Capex YoY 與落後期相關性若樣本不足會直接標示,不外推。抓取狀態:{escape(source_note)}</div>
-    <h3>法說口頭指引(人工輸入)</h3>
-    <div class="note">期間口徑必須和金額一起閱讀。Microsoft 會計年度不同於其他三家；
-      <b>跨公司比較只使用日曆年欄位</b>。只有會計年度或單季資料時,明確標示不可比。</div>
-    <div class="swipe-hint">← 手機可左右滑動看更多欄位 →</div>
-    <div class="table-scroll"><table class="tbl ai-guidance"><thead><tr>
-      <th>公司</th><th>金額／揭露狀態（期間）</th><th>期間口徑</th><th>相對前次方向</th>
-      <th>跨公司可比性</th><th>來源與日期</th><th>備註</th></tr></thead>
-      <tbody>{''.join(guide_rows)}</tbody></table></div>
-    <h3>日曆年跨公司可比欄</h3>
-    <div class="table-scroll"><table class="tbl"><thead><tr><th>公司</th><th>日曆年 Capex 指引</th>
-      <th>方向</th><th>來源日期</th></tr></thead><tbody>{''.join(comparable_rows)}</tbody></table></div>
-    {('<h3>財報實際 TTM Capex（不是指引）</h3><div class="note">公司財報揭露值與 yfinance 自動值可能因「淨額」/Purchase of PPE 定義不同而有差異,不可混成同一口徑。</div>'
-      '<div class="table-scroll"><table class="tbl ai-guidance"><thead><tr><th>公司</th><th>公司財報揭露</th><th>YoY</th><th>yfinance 自動值</th><th>來源與日期</th><th>口徑備註</th></tr></thead><tbody>'
-      + ''.join(actual_rows) + '</tbody></table></div>' if actual_rows else '')}
+    <h3>2026 Capex 指引重點</h3>
+    <div class="note"><b>跨公司只比較日曆年金額。</b>會計年度、單季與未揭露金額的定性指引只作補充。</div>
+    <div class="guidance-grid">{''.join(guidance_cards)}</div>
   </section>
 
   <div class="chain-flow">{''.join(layer_html)}</div>
