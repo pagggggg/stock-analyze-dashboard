@@ -56,6 +56,12 @@ class StockAnalysis:
     dashboard: DashboardResult | None = None       # 四指標
     pe_band: PEBand | None = None
     river: RiverSeries | None = None
+    # 由 build_site 的同一次 screen_all() 回填，確保個股頁與 screener 表格同源。
+    trailing_pe: float | None = None
+    pe_median: float | None = None
+    pe_p90: float | None = None
+    pe_percentile: float | None = None
+    valuation_flag: str = "na"
     fcf: FcfQualityResult | None = None
     quarters: list[QuarterFinancials] = field(default_factory=list)  # 近8季實際
     scenarios: dict[str, EPSScenario] | None = None  # 有法說指引才有

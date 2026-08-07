@@ -490,6 +490,23 @@ def build_detail_html(a, generated: str) -> str:
             z = f'約在<span style="color:{C_FAIR}">中樞附近</span>'
         river_zone = f' 目前 trailing PE ≈ <b>{r.current_pe:g}x</b>,位階{z}。'
 
+    flag_map = {
+        "green": ("🟢", "合理偏低", C_CHEAP),
+        "yellow": ("🟡", "一般", "#a16207"),
+        "red": ("🔴", "高估值警戒", C_EXP),
+        "na": ("⚪", "資料不足", C_NA),
+    }
+    fem, flab, fcol = flag_map.get(getattr(a, "valuation_flag", "na"), flag_map["na"])
+    pct_txt = (f"{a.pe_percentile:.0f}%" if a.pe_percentile is not None else "—")
+    position = (
+        '<div class="pe-position">'
+        f'<b style="color:{fcol}">{fem}{_esc(flab)}</b>　'
+        f'目前 trailing PE <b>{_n(a.trailing_pe, 1)}x</b>　|　'
+        f'近5年 P50 <b>{_n(a.pe_median, 1)}x</b>　|　P90 <b>{_n(a.pe_p90, 1)}x</b>　|　'
+        f'百分位 <b>{pct_txt}</b>'
+        '</div>'
+    )
+
     err = ""
     if a.errors:
         err = ('<div class="warn">部分資料抓取失敗(該區塊以「資料不足」顯示):'
@@ -513,8 +530,10 @@ def build_detail_html(a, generated: str) -> str:
 
   <section>
     <h2>本益比河流圖</h2>
+    {position}
     {river_div}
-    {_note('河道 =「當時近四季實際EPS」×近10年 trailing PE 的 P10/P50/P90。'
+    {_note('河道 =「當時近四季實際EPS」×歷史期間 trailing PE 的 P10/P50/P90。'
+           '歷史期間依篩選器設定,目前為 '+_esc(a.pe_band.years_covered if a.pe_band else '資料不足')+'。'
            '<b>河道不再為了包住股價而向外擴張</b>;股價超出上緣/下緣是極端估值訊號,不是繪圖錯誤。'
            '股價貼近<b style="color:'+C_CHEAP+'">綠</b>相對便宜、貼近或超過<b style="color:'+C_EXP+'">紅</b>相對貴。' + river_zone)}
   </section>
@@ -683,6 +702,9 @@ code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: .85
 .os-none a { color: #2563eb; }
 .notice { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e3a8a;
   padding: 10px 12px; border-radius: 8px; font-size: .9rem; margin: 10px 0 4px; line-height: 1.6; }
+.pe-position { background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px;
+  padding:10px 12px; margin:2px 0 10px; color:#334155; font-size:.9rem;
+  font-variant-numeric:tabular-nums; }
 .wi-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 12px 0 6px; }
 .wi-bar label { font-weight: 700; color: #334155; }
 .wi-bar input { padding: 10px 12px; font-size: 1.05rem; border: 2px solid #cbd5e1; border-radius: 10px;

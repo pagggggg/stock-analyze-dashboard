@@ -76,7 +76,11 @@ def load_universe_stocks() -> list[dict]:
 def run(args) -> None:
     _load_dotenv(ROOT / ".env")
     if args.from_universe:
-        stocks, settings = load_universe_stocks(), {}
+        stocks = load_universe_stocks()
+        # 河流圖與篩選器必須使用相同歷史期間；以 screener.yaml 的估值旗標設定
+        # 為單一真相來源，避免河流圖10年、篩選器5年的 P90 看起來互相矛盾。
+        scfg = load_screener_config(ROOT / "config/screener.yaml")
+        settings = {"pe_years": (scfg.get("valuation_flag") or {}).get("pe_history_years", 5)}
         src = f"母體 universe.yaml({len(stocks)} 檔)"
     else:
         stocks, settings = load_watchlist(args.watchlist)
@@ -123,6 +127,16 @@ def run(args) -> None:
             from datetime import datetime as _dt
             scfg = load_screener_config(ROOT / "config/screener.yaml")
             sres, sfun = screen_all(recs, scfg)
+            by_id = {r.stock_id: r for r in sres}
+            for a in analyses:
+                r = by_id.get(a.stock_id)
+                if not r:
+                    continue
+                a.trailing_pe = r.metrics.get("trailing_pe")
+                a.pe_median = r.metrics.get("pe_median")
+                a.pe_p90 = r.metrics.get("pe_p90")
+                a.pe_percentile = r.metrics.get("pe_pct")
+                a.valuation_flag = r.metrics.get("flag") or "na"
             screener_html = build_screener_page(sres, sfun, scfg, _dt.now().strftime("%Y-%m-%d %H:%M"))
             screener_info = {"layer1_pass": sfun["layer1_pass"], "both_pass": sfun["both_pass"]}
             print(f"[screener] screener.html:評估 {len(recs)} 檔,通過第一層 {sfun['layer1_pass']}、"

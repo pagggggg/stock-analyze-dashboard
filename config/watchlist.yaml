@@ -29,4 +29,4 @@ stocks:
     name: "中華電"
 
 settings:
-  pe_years: 10          # 本益比河道 / 區間取近幾年
+  pe_years: 5           # 與篩選器 valuation_flag.pe_history_years 同口徑
