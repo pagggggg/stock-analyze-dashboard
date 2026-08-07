@@ -43,7 +43,14 @@ cloud_capex:
           source_date: "2026-07"
           note: "只有方向、沒有具體金額；因此不能和其他公司的日曆年金額做數值比較。"
     AMZN: {entries: [], note: "待補最新法說 Capex 指引"}
-    META: {entries: [], note: "待補最新法說 Capex 指引"}
+    META:
+      entries:
+        - amount: {kind: range, low: 130.0, high: 145.0, unit: "USD bn"}
+          period: {basis: calendar_year, label: "日曆年 2026"}
+          direction: up
+          source: "Meta Q2 2026 財報 CFO Outlook"
+          source_date: "2026-07-29"
+          note: "含融資租賃本金。區間收窄,下緣由 125.0 USD bn 上調至 130.0 USD bn,上緣維持 145.0 USD bn,屬實質微幅上調。Q2 單季 Capex 31.08 USD bn；單季自由現金流僅 0.784 USD bn（去年同期 8.55 USD bn）。"
 
 cyclical_definition:
   lookback_years: 10
