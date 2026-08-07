@@ -43,13 +43,14 @@ def cache_get(key: str, ttl_seconds: float | None = None) -> dict | None:
     return obj
 
 
-def cache_set(key: str, data) -> dict:
+def cache_set(key: str, data, **metadata) -> dict:
     """寫快取,回傳寫入的物件(含 fetched_date 供標註來源用)。"""
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     obj = {
         "fetched_at": time.time(),
         "fetched_date": time.strftime("%Y-%m-%d"),
         "data": data,
+        **metadata,
     }
     _path(key).write_text(json.dumps(obj, ensure_ascii=False), encoding="utf-8")
     return obj

@@ -432,16 +432,23 @@ def evaluate(rec: dict, cfg: dict) -> ScreenResult:
     r.metrics["fcf_yield"] = v.get("fcf_yield")
     # 估值旗標(只加旗標、不淘汰):用個股近N年PE分布
     ph = rec.get("pe_hist") or {}
-    same_basis = ph.get("basis") == "trailing_pe"
-    r.metrics["pe_median"] = ph.get("median")
-    r.metrics["pe_p90"] = ph.get("p90")
+    from .valuation_flag import pe_history_is_compatible
+    years = cfg.get("valuation_flag", {}).get("pe_history_years", 5)
+    current_ok = (ph.get("status") == "ok"
+                  and pe_history_is_compatible(ph, rec.get("market", "twse"),
+                                               rec.get("price_date"), years))
+    r.metrics["pe_median"] = ph.get("median") if current_ok else None
+    r.metrics["pe_p90"] = ph.get("p90") if current_ok else None
     # 舊 schema 的 percentile 是 forward PE 對 trailing 歷史分布；不可沿用。
-    r.metrics["pe_pct"] = ph.get("percentile") if same_basis else None
-    r.metrics["trailing_pe"] = ph.get("current_trailing_pe") if same_basis else None
+    r.metrics["pe_pct"] = ph.get("percentile") if current_ok else None
+    r.metrics["trailing_pe"] = ph.get("current_trailing_pe") if current_ok else None
+    r.metrics["pe_basis_label"] = (
+        "Yahoo 調整後EPS" if rec.get("market") == "us" else "FinMind basic EPS")
     from .valuation_flag import compute_flag
-    r.metrics["flag"] = compute_flag(ph.get("current_trailing_pe"),
+    r.metrics["flag"] = compute_flag(r.metrics["trailing_pe"],
                                      v.get("forward_pe"), v.get("peg"),
-                                     ph.get("median"), ph.get("p90"), cfg)
+                                     r.metrics["pe_median"] if current_ok else None,
+                                     r.metrics["pe_p90"] if current_ok else None, cfg)
     # 共識覆蓋家數 + 是否「低覆蓋」(下游 PEG/修正動能 標記僅供參考,不刪資料)
     cov = v.get("coverage")
     rc = (cfg.get("universe_builder") or {}).get("reliable_coverage", 3)

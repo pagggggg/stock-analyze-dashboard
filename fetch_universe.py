@@ -38,10 +38,12 @@ from src.data_layer import (
     fetch_price_daily_finmind,
     month_revenue_momentum,
 )
-from src.river import daily_pe_series
+from src.river import current_trailing_pe, daily_pe_series, supports_tw_filing_fallback
 from src.screener import extract_metrics, load_config
 from src.us_data import build_us_record, compute_valuation
-from src.valuation_flag import historical_peg, pe_history_stats
+from src.valuation_flag import (historical_peg, pe_history_is_compatible,
+                                pe_history_stats, pe_source_regressed,
+                                tw_pe_source_coverage)
 
 ROOT = Path(__file__).resolve().parent
 UNIVERSE_DIR = ROOT / "data/universe"
@@ -163,19 +165,44 @@ def _sync_universe_files(expected: set[str]) -> list[str]:
     return removed
 
 
-def _fresh(path: Path, days: int) -> bool:
+def _fresh(path: Path, days: int, pe_years: int = 5) -> bool:
     if not path.exists():
         return False
     try:
         rec = json.loads(path.read_text(encoding="utf-8"))
         # schema 變更也視為不新鮮。目前歷史位階必須保存 trailing 口徑；
         # 舊檔的 percentile 是 forward 對 trailing，不能因 fetched 日期新就沿用。
-        if rec.get("annual") and (rec.get("pe_hist") or {}).get("basis") != "trailing_pe":
+        ph = rec.get("pe_hist") or {}
+        if rec.get("pe_refresh_error") or not pe_history_is_compatible(
+                ph, rec.get("market", "twse"), rec.get("price_date"), pe_years):
             return False
         f = rec.get("fetched")
         return f is not None and (date.today() - date.fromisoformat(f)).days <= days
     except (json.JSONDecodeError, OSError, ValueError):
         return False
+
+
+def _tw_pe_source_error(price_rows: list[dict], income: dict,
+                        current_date: str | None, years: int) -> str | None:
+    """Reject malformed/truncated FinMind inputs before honest insufficiency handling."""
+    coverage = tw_pe_source_coverage(price_rows, income, years)
+    if coverage["price_n"] < 60:
+        return "price_history_truncated"
+    if not coverage["eps_n"]:
+        return "income_eps_invalid"
+
+    as_of = date.fromisoformat(current_date or coverage["price_end"])
+    if date.fromisoformat(coverage["price_end"]) < as_of - timedelta(days=7):
+        return "price_history_stale"
+    try:
+        cutoff = as_of.replace(year=as_of.year - years)
+    except ValueError:
+        cutoff = as_of.replace(year=as_of.year - years, day=28)
+    price_start = date.fromisoformat(coverage["price_start"])
+    eps_start = date.fromisoformat(coverage["eps_start"])
+    if price_start <= cutoff - timedelta(days=365) and eps_start > cutoff + timedelta(days=270):
+        return "income_history_truncated"
+    return None
 
 
 def _retry(fn, cfg, tag, errors):
@@ -200,6 +227,7 @@ def build_and_save(stock: dict, cfg: dict) -> dict:
                  "market": cfg["universe"]["market"], "currency": "TWD",
                  "fetched": date.today().isoformat(), "errors": []}
     errors = rec["errors"]
+    inc = None
 
     # --- 流動性(近 N 日均成交金額)---
     look = (date.today() - timedelta(days=cfg["fetch"]["price_lookback_days"])).isoformat()
@@ -238,14 +266,27 @@ def build_and_save(stock: dict, cfg: dict) -> dict:
             if inc:
                 try:
                     px_long = fetch_price_daily_finmind(sid)[0]      # ~10 年日收盤(有快取)
-                    pe_ser = daily_pe_series(px_long, inc[0])
-                    current_tpe = pe_ser[-1][1] if pe_ser else None
+                    latest = max(px_long, key=lambda x: x["date"])
+                    if not rec.get("price_date") or latest["date"] > rec["price_date"]:
+                        rec["price_last"], rec["price_date"] = latest["close"], latest["date"]
+                    source_error = _tw_pe_source_error(
+                        px_long, inc[0], rec.get("price_date"),
+                        cfg["valuation_flag"]["pe_history_years"])
+                    if source_error:
+                        raise ValueError(source_error)
+                    fallback_ok = supports_tw_filing_fallback(stock["name"])
+                    pe_ser = daily_pe_series(px_long, inc[0], fallback_ok)
+                    current_tpe, current_date = current_trailing_pe(
+                        px_long, inc[0], fallback_ok, rec.get("price_last"), rec.get("price_date"))
+                    reason = None if fallback_ok else "unsupported_foreign_issuer_filing_deadline"
                     rec["pe_hist"] = pe_history_stats(
-                        pe_ser, current_tpe, years=cfg["valuation_flag"]["pe_history_years"])
-                    if rec["pe_hist"] is None:
-                        rec["pe_hist"] = {"basis": "trailing_pe", "status": "insufficient"}
+                        pe_ser, current_tpe, years=cfg["valuation_flag"]["pe_history_years"],
+                        current_date=current_date, market="twse", insufficient_reason=reason,
+                        source_coverage=tw_pe_source_coverage(
+                            px_long, inc[0], cfg["valuation_flag"]["pe_history_years"]))
                 except Exception as e:  # noqa: BLE001
                     errors.append(f"pe_hist:{e}")
+                    rec["pe_refresh_error"] = f"calculation_error:{type(e).__name__}"
 
         # --- 月營收動能(台股每月10日前公告;不依賴分析師覆蓋,近全市場都有)---
         if cfg["fetch"].get("month_revenue", True):
@@ -258,6 +299,19 @@ def build_and_save(stock: dict, cfg: dict) -> dict:
                 errors.append(f"month_revenue:{e}")
     else:
         rec["skipped_financials"] = True
+
+    if cfg["fetch"].get("valuation", True) and "pe_hist" not in rec:
+        if not liquid and rec.get("price_date"):
+            rec["pe_hist"] = pe_history_stats(
+                [], None, years=cfg["valuation_flag"]["pe_history_years"],
+                current_date=rec["price_date"], market="twse",
+                insufficient_reason="financials_not_fetched",
+                source_coverage={"price_start": rec["price_date"],
+                                 "price_end": rec["price_date"], "price_n": rec.get("liq_days", 0),
+                                 "eps_start": None, "eps_end": None, "eps_n": 0})
+        else:
+            rec.setdefault("pe_refresh_error",
+                           "price_fetch_error" if not rec.get("price_date") else "income_fetch_error")
 
     _save(rec)
     return rec
@@ -282,6 +336,13 @@ def _save(rec: dict) -> None:
         except (json.JSONDecodeError, OSError):
             old = None
         if isinstance(old, dict):
+            new_ph = rec.get("pe_hist") or {}
+            old_ph = old.get("pe_hist") or {}
+            if not rec.get("pe_refresh_error") and pe_source_regressed(old_ph, new_ph):
+                rec["pe_refresh_error"] = "unexpected_pe_history_regression"
+                rec.pop("pe_hist", None)
+            if rec.get("pe_refresh_error"):
+                rec.pop("pe_hist", None)            # preserve old snapshot, but block commit/deploy
             kept = []
             # 這些區塊「有比沒有好」:新的缺、舊的有 → 保留舊的
             for k in ("annual", "annual_bs", "annual_ocf", "latest_bs", "ocf_q",
@@ -321,7 +382,7 @@ def run(args) -> None:
         path = UNIVERSE_DIR / f"{sid}.json"
         if args.refresh:
             _bust_cache(sid, args.refresh)          # 強制重抓(日=只股價/yf,週=連財報)
-        elif _fresh(path, refetch_days):
+        elif _fresh(path, refetch_days, cfg["valuation_flag"]["pe_history_years"]):
             skipped += 1
             continue
         rec = build_and_save(s, cfg)
@@ -353,7 +414,7 @@ def run(args) -> None:
             path = UNIVERSE_DIR / f"{ticker}.json"
             if args.refresh:
                 _bust_cache(str(ticker), args.refresh)
-            elif _fresh(path, refetch_days):
+            elif _fresh(path, refetch_days, cfg["valuation_flag"]["pe_history_years"]):
                 print(f"  [{j}/{len(us)}] {ticker} 沿用本地")
                 continue
             rec = build_us_record(str(ticker), str(ticker), cfg)

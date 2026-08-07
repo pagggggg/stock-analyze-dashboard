@@ -137,7 +137,13 @@ output_side:
       value_type: growth_rate
       period_basis: calendar_quarter
       unit: "%"
-      observations: []
+      observations:
+        - {period: "2025Q4", status: disclosed, value: 137.0,
+           source: "Palantir Q2 2026 財報", disclosure_date: "2026-08-03"}
+        - {period: "2026Q1", status: disclosed, value: 133.0,
+           source: "Palantir Q2 2026 財報", disclosure_date: "2026-08-03"}
+        - {period: "2026Q2", status: disclosed, value: 149.0,
+           source: "Palantir Q2 2026 財報", disclosure_date: "2026-08-03"}
       note: "需逐季人工填入；不是整體 AI 產出的產業代理。"
     - id: msft_copilot_paid_seats
       company: MSFT
@@ -145,8 +151,11 @@ output_side:
       name: "Copilot 付費席次"
       value_type: level
       period_basis: calendar_quarter
-      unit: "席"
-      observations: []
+      unit: "million seats"
+      observations:
+        - {period: "2026Q2", status: disclosed, kind: minimum, value: 30.0, display: "超過 3,000 萬席",
+           source: "Microsoft FY26 Q4 財報新聞稿；Nadella 發言", disclosure_date: "2026-07",
+           change_text: "超過 3,000 萬付費席；另揭露 Azure 年營收首次突破 1,000 億美元"}
       note: "席次是使用量指標,不等同營收。"
     - id: msft_azure_ai_growth
       company: MSFT
@@ -166,7 +175,8 @@ output_side:
       unit: "USD bn"
       observations:
         - {period: "2026Q2", status: disclosed, value: 514.0,
-           source: "Alphabet Q2 2026 法說會", disclosure_date: "2026-07"}
+           source: "Alphabet Q2 2026 法說會；CFO 發言", disclosure_date: "2026-07",
+           change_text: "單季增加超過 50 USD bn；超過 50% 預期於未來 24 個月認列"}
       note: "Cloud 整體 backlog/RPO,不是純 AI backlog。"
     - id: amzn_aws_ai_run_rate
       company: AMZN
@@ -175,7 +185,10 @@ output_side:
       value_type: level
       period_basis: calendar_quarter
       unit: "USD bn"
-      observations: []
+      observations:
+        - {period: "2026Q2", status: disclosed, kind: minimum, value: 25.0,
+           source: "Amazon Q2 2026 財報新聞稿", disclosure_date: "2026-07-30",
+           change_text: "三位數成長；另揭露晶片業務年化營收亦超過 25 USD bn"}
       note: "公司選擇性揭露的 run rate,不等同 GAAP 營收。"
     - id: crm_ai_revenue
       company: CRM

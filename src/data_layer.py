@@ -739,7 +739,12 @@ def _finmind_pivot(
     jitter = (zlib.crc32(str(stock_id).encode()) % 15) * 24 * 3600
     cached = cache_get(cache_key, ttl_seconds=ttl_seconds + jitter)
     if cached is not None:
-        return cached["data"], cached["fetched_date"]
+        piv = cached.get("data") or {}
+        cached_start = cached.get("start_date")
+        # Legacy caches predate range metadata and remain usable. Once refreshed, the
+        # recorded range prevents a shorter cache from satisfying a longer request.
+        if cached_start is None or cached_start <= start_date:
+            return piv, cached["fetched_date"]
 
     dl = _finmind_loader()
     fn = getattr(dl, method)
@@ -752,7 +757,7 @@ def _finmind_pivot(
             piv.setdefault(str(r["date"]), {})[str(r["type"])] = float(r["value"])
         except (TypeError, ValueError):
             continue
-    obj = cache_set(cache_key, piv)
+    obj = cache_set(cache_key, piv, start_date=start_date)
     return piv, obj["fetched_date"]
 
 
@@ -791,7 +796,9 @@ def fetch_price_daily_finmind(
     key = f"finmind_price_{stock_id}"
     cached = cache_get(key, ttl_seconds=12 * 3600)
     if cached is not None:
-        return cached["data"], cached["fetched_date"]
+        cached_start = cached.get("start_date")
+        if cached_start is None or cached_start <= start_date:
+            return cached["data"], cached["fetched_date"]
 
     dl = _finmind_loader()
     df = dl.taiwan_stock_daily(stock_id=stock_id, start_date=start_date)
@@ -807,7 +814,7 @@ def fetch_price_daily_finmind(
             rows.append({"date": str(r["date"]), "close": round(c, 2)})
     if not rows:
         raise RuntimeError("FinMind 日股價解析不到有效收盤價")
-    obj = cache_set(key, rows)
+    obj = cache_set(key, rows, start_date=start_date)
     return rows, obj["fetched_date"]
 
 

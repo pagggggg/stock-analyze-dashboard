@@ -80,7 +80,7 @@ def run(args) -> None:
     if args.from_universe:
         stocks = load_universe_stocks()
         # 河流圖與篩選器必須使用相同歷史期間；以 screener.yaml 的估值旗標設定
-        # 為單一真相來源，避免河流圖10年、篩選器5年的 P90 看起來互相矛盾。
+        # 為單一真相來源，避免河流圖與篩選器使用不同視窗。
         scfg = load_screener_config(ROOT / "config/screener.yaml")
         settings = {"pe_years": (scfg.get("valuation_flag") or {}).get("pe_history_years", 5)}
         src = f"母體 universe.yaml({len(stocks)} 檔)"

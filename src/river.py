@@ -1,17 +1,19 @@
 """
 本益比河流圖資料 (river.py)
 ============================
-把「長區間日股價」+「長區間每季 EPS」+「近10年本益比區間(低/中/高)」
+把「長區間日股價」+「長區間每季 EPS」+「逐月 rolling N 年本益比分位」
 組成『本益比河流圖』要用的月頻序列:
 
-    河道三條線(隨 TTM EPS 成長而抬升) = TTM EPS(當月) × {pe_low, pe_mid, pe_high}
+    河道三條線 = TTM EPS(當月) × 當月當時可得的 rolling {P10,P50,P90}
     股價線                             = 每月收盤
     現價標記                           = 最新一筆收盤
 
-判讀:股價線落在「低本益比河道」附近=相對便宜、貼「高本益比河道」=相對貴。
+判讀:股價線落在 P10 附近=相對便宜、貼近或超過 P90=相對貴。
 因為河道用『當時的 TTM EPS』抬升,所以看的是「相對歷史估值位階」,不是絕對股價。
 
-口徑:河道與現價PE 都採 **TTM(過去4季實際 EPS)**,和 TWSE 歷史本益比同口徑;
+口徑:河道與現價PE 都採 **TTM(過去4季實際 EPS)**；
+      FinMind 無公告日欄位，財報生效日使用法定申報期限 fallback；
+      歷史每月只用當時以前資料，避免把今天知道的分位套回過去。
       這和報告第五節的『前瞻PE(含本季試算)』略有差別,屬正常(前瞻通常較低)。
 """
 
@@ -22,16 +24,18 @@ from datetime import date, timedelta
 
 from .models import PEBand
 
-# 財報約在季末後才公布 → 河道用的 TTM EPS「生效日」順延這麼多天,
-# 避免把「還沒公布的 EPS」畫到過去的股價上(前視偏誤 look-ahead bias)。
-_REPORT_LAG_DAYS = 45
+
+def supports_tw_filing_fallback(name: str) -> bool:
+    """The fixed domestic deadlines are not asserted for foreign/KY issuers."""
+    normalized = (name or "").upper()
+    return "-KY" not in normalized and not normalized.endswith("KY")
 
 
 @dataclass
 class RiverSeries:
     """河流圖用的月頻序列 + 現價標記。"""
 
-    dates: list[str]          # 月頻 x 軸(每月最後交易日 'YYYY-MM-DD')
+    dates: list[str]          # 已完成月份的月末交易日
     price: list[float]        # 對應月收盤價
     band_low: list[float]     # 低本益比河道 = TTM EPS × pe_low
     band_mid: list[float]     # 中本益比河道 = TTM EPS × pe_mid
@@ -45,8 +49,56 @@ class RiverSeries:
     source: str = ""
 
 
-def _ttm_series(income_pivot: dict) -> list[tuple[date, float]]:
-    """由每季 EPS 累計出 TTM(滾動4季)EPS,回傳 [(生效日, ttm_eps)] 已排序。"""
+def _filing_available_date(qend: date) -> date:
+    """台灣本國、曆年制發行人的保守可用日 fallback。
+
+    FinMind 財報沒有實際公告日欄位，故採法定申報期限：Q1 5/15、Q2 8/14、
+    Q3 11/14、Q4 次年 3/31。KY/外國發行人由呼叫端排除，不套用此假設。
+    """
+    if qend.month == 3:
+        deadline = date(qend.year, 5, 15)
+    elif qend.month == 6:
+        deadline = date(qend.year, 8, 14)
+    elif qend.month == 9:
+        deadline = date(qend.year, 11, 14)
+    elif qend.month == 12:
+        deadline = date(qend.year + 1, 3, 31)
+    else:
+        raise ValueError(f"非標準季末:{qend.isoformat()}")
+    # 若名目期限落在週末，先順延至下一工作日；再從下一工作日視為可用。
+    # 這仍不是交易所假日日曆，因此在頁面與 schema 明示為 fallback。
+    while deadline.weekday() >= 5:
+        deadline += timedelta(days=1)
+    available = deadline + timedelta(days=1)
+    while available.weekday() >= 5:
+        available += timedelta(days=1)
+    return available
+
+
+def _quarter_index(d: str) -> int | None:
+    qend = date.fromisoformat(d)
+    if qend.month not in (3, 6, 9, 12):
+        return None
+    return qend.year * 4 + qend.month // 3 - 1
+
+
+def _next_quarter_end(qend: date) -> date:
+    if qend.month == 3:
+        return date(qend.year, 6, 30)
+    if qend.month == 6:
+        return date(qend.year, 9, 30)
+    if qend.month == 9:
+        return date(qend.year, 12, 31)
+    if qend.month == 12:
+        return date(qend.year + 1, 3, 31)
+    raise ValueError(f"非標準季末:{qend.isoformat()}")
+
+
+def _ttm_series(income_pivot: dict,
+                filing_fallback_supported: bool = True) -> list[tuple[date, date, float]]:
+    """由每季 EPS 累計 TTM；生效日使用法定申報期限 fallback。"""
+    if not filing_fallback_supported:
+        return []
     items: list[tuple[str, float]] = []
     for d, t in income_pivot.items():
         eps = t.get("EPS")
@@ -57,29 +109,38 @@ def _ttm_series(income_pivot: dict) -> list[tuple[date, float]]:
                 continue
     items.sort(key=lambda x: x[0])
 
-    out: list[tuple[date, float]] = []
+    out: list[tuple[date, date, float]] = []
     for i in range(3, len(items)):                 # 要湊滿 4 季才有 TTM
-        ttm = sum(e for _, e in items[i - 3:i + 1])
+        window = items[i - 3:i + 1]
+        qidx = [_quarter_index(d) for d, _ in window]
+        if any(x is None for x in qidx) or any(qidx[j] != qidx[0] + j for j in range(4)):
+            continue                                # 缺季不能把跨五季的四筆資料冒充 TTM
+        ttm = sum(e for _, e in window)
         qend = date.fromisoformat(items[i][0])
-        out.append((qend + timedelta(days=_REPORT_LAG_DAYS), round(ttm, 4)))
+        out.append((_filing_available_date(qend),
+                    _filing_available_date(_next_quarter_end(qend)), round(ttm, 4)))
     return out
 
 
-def _monthly_price(price_rows: list[dict]) -> list[tuple[str, float]]:
-    """日收盤 → 月頻(取每月最後一個交易日)。回傳 [(date_str, close)]。"""
+def _monthly_price(price_rows: list[dict], exclude_open_month: bool = False) -> list[tuple[str, float]]:
+    """日收盤 → 月頻。可排除仍在進行中的最新月份。"""
     by_month: dict[str, dict] = {}
     for r in sorted(price_rows, key=lambda x: x["date"]):
         by_month[r["date"][:7]] = r               # 同月後者覆蓋 → 留最後一筆
-    return [(by_month[k]["date"], by_month[k]["close"]) for k in sorted(by_month)]
+    months = sorted(by_month)
+    if exclude_open_month and months and months[-1] == date.today().strftime("%Y-%m"):
+        # 當月尚在進行中時只由紅點呈現；已跨月的最後一筆則是完整月末，不刪除。
+        months.pop()
+    return [(by_month[k]["date"], by_month[k]["close"]) for k in months]
 
 
-def _ttm_asof(ttm_series: list[tuple[date, float]], d: date) -> float | None:
-    """取『生效日 <= d』的最後一個 TTM EPS(step 函數,前向填補)。"""
+def _ttm_asof(ttm_series: list[tuple[date, date, float]], d: date) -> float | None:
+    """取當日有效的 TTM EPS；下一季應申報日到達後不可再沿用舊值。"""
     val = None
-    for eff, ttm in ttm_series:                    # 已按生效日排序
-        if eff <= d:
+    for eff, expires, ttm in ttm_series:           # 已按生效日排序
+        if eff <= d < expires:
             val = ttm
-        else:
+        elif eff > d:
             break
     return val
 
@@ -87,38 +148,61 @@ def _ttm_asof(ttm_series: list[tuple[date, float]], d: date) -> float | None:
 def build_pe_river(
     price_rows: list[dict],
     income_pivot: dict,
-    pe_band: PEBand,
     current_price: float | None = None,
     current_date: str | None = None,
+    years: int = 5,
+    filing_fallback_supported: bool = True,
 ) -> RiverSeries:
     """組出河流圖月頻序列。缺 EPS 或股價會 raise,由上層決定略過此圖。"""
+    if not filing_fallback_supported:
+        raise ValueError("河流圖不對 KY/外國發行人套用本國法定申報期限")
     ttm = _ttm_series(income_pivot)
     if not ttm or not price_rows:
         raise ValueError("河流圖資料不足(缺 EPS 或股價序列)")
 
-    # 第一遍:算每月 TTM EPS 與「當月隱含本益比」= 月收盤 / TTM EPS
-    monthly = _monthly_price(price_rows)
-    pts: list[tuple[str, float, float]] = []   # (date, close, ttm_eps)
-    implied: list[float] = []
+    # 黑色股價線只畫完整月末；未完成月份僅用紅色最新點顯示。
+    monthly = _monthly_price(price_rows, exclude_open_month=True)
+    daily_pe = daily_pe_series(price_rows, income_pivot)
+    first_pe_date = date.fromisoformat(daily_pe[0][0]) if daily_pe else None
+    pts: list[tuple[str, float, float, float, float, float]] = []
     for dstr, close in monthly:
         e = _ttm_asof(ttm, date.fromisoformat(dstr))
-        if e is None or e <= 0:                    # 早於第一份 TTM 的月份跳過
+        d = date.fromisoformat(dstr)
+        cutoff = _shift_years(d, -years)
+        vals = sorted(pe for pd, pe in daily_pe if cutoff < date.fromisoformat(pd) <= d)
+        # 逐月 rolling N 年必須真的有完整 N 年歷史；不足時不拿較短視窗冒充。
+        min_samples = max(252, int(years * 252 * 0.60))
+        if (e is None or e <= 0 or len(vals) < min_samples
+                or first_pe_date is None or first_pe_date > cutoff + timedelta(days=7)):
             continue
-        pts.append((dstr, close, e))
-        implied.append(close / e)
+        pts.append((dstr, close, e, _percentile(vals, .10),
+                    _percentile(vals, .50), _percentile(vals, .90)))
 
     if not pts:
         raise ValueError("河流圖:股價與 EPS 沒有重疊區間")
 
-    cp = float(current_price) if current_price else pts[-1][1]
-    cd = current_date or pts[-1][0]
+    latest = max(price_rows, key=lambda x: x["date"])
+    cp = float(current_price) if current_price is not None else float(latest["close"])
+    cd = current_date or latest["date"]
     current_ttm = _ttm_asof(ttm, date.fromisoformat(cd))
-    cpe = cp / current_ttm if current_ttm else None
+    cpe = cp / current_ttm if current_ttm and current_ttm > 0 else None
 
-    # 河道必須忠實保留歷史分位(P10/P50/P90)。過去為了讓圖「好看」而
-    # 向外擴張至包住所有股價，會把真正的極端高估/低估抹掉，並讓圖例仍誤稱
-    # 原始分位。現在允許股價線超出河道；超出本身就是應被看見的資訊。
-    pe_lo, pe_mid, pe_hi = pe_band.pe_low, pe_band.pe_mid, pe_band.pe_high
+    # 圖例與區間判斷直接由目前日期重算，不沿用呼叫端可能是其他口徑的 PEBand。
+    current_cutoff = _shift_years(date.fromisoformat(cd), -years)
+    current_vals = sorted(pe for pd, pe in daily_pe
+                          if current_cutoff < date.fromisoformat(pd) <= date.fromisoformat(cd))
+    if cpe is not None and not any(pd == cd for pd, _ in daily_pe):
+        current_vals.append(cpe)
+        current_vals.sort()
+    min_samples = max(252, int(years * 252 * 0.60))
+    if (first_pe_date is None or first_pe_date > current_cutoff + timedelta(days=7)
+            or len(current_vals) < min_samples):
+        raise ValueError(f"河流圖:有效 PE 歷史不足完整 rolling {years} 年")
+    pe_lo = _percentile(current_vals, .10)
+    pe_mid = _percentile(current_vals, .50)
+    pe_hi = _percentile(current_vals, .90)
+    source = (f"FinMind 收盤÷近4季 basic EPS；截至 {cd} rolling {years}年 "
+              "P10/P50/P90；本國發行人法定申報期限 fallback；latest-restated")
 
     # 第二遍:用原始歷史分位畫河道三線
     dates: list[str] = []
@@ -126,18 +210,18 @@ def build_pe_river(
     lo: list[float] = []
     mid: list[float] = []
     hi: list[float] = []
-    for dstr, close, e in pts:
+    for dstr, close, e, rolling_lo, rolling_mid, rolling_hi in pts:
         dates.append(dstr)
         price.append(round(close, 1))
-        lo.append(round(e * pe_lo, 1))
-        mid.append(round(e * pe_mid, 1))
-        hi.append(round(e * pe_hi, 1))
+        lo.append(round(e * rolling_lo, 1))
+        mid.append(round(e * rolling_mid, 1))
+        hi.append(round(e * rolling_hi, 1))
 
     return RiverSeries(
         dates=dates, price=price, band_low=lo, band_mid=mid, band_high=hi,
         pe_low=round(pe_lo, 1), pe_mid=round(pe_mid, 1), pe_high=round(pe_hi, 1),
         current_date=cd, current_price=round(cp, 1),
-        current_pe=round(cpe, 1) if cpe else None, source=pe_band.source,
+        current_pe=round(cpe, 1) if cpe else None, source=source,
     )
 
 
@@ -149,9 +233,10 @@ def build_pe_river(
 # 用百分位而非 min/max,避免財報空窗期 EPS 偏低造成的單日爆量把區間拉歪;
 # 這和單股報告用 TWSE 官方本益比(min/mean/max)略有口徑差異,但可跨股一致比較。
 # ======================================================================
-def daily_pe_series(price_rows: list[dict], income_pivot: dict) -> list[tuple[str, float]]:
-    """回傳 [(date, pe)] 每日本益比(收盤 ÷ TTM EPS),已濾極端值。"""
-    ttm = _ttm_series(income_pivot)
+def daily_pe_series(price_rows: list[dict], income_pivot: dict,
+                    filing_fallback_supported: bool = True) -> list[tuple[str, float]]:
+    """回傳 [(date, pe)] 每日本益比(收盤 ÷ TTM EPS)；非正值才排除。"""
+    ttm = _ttm_series(income_pivot, filing_fallback_supported)
     if not ttm:
         return []
     out: list[tuple[str, float]] = []
@@ -159,9 +244,26 @@ def daily_pe_series(price_rows: list[dict], income_pivot: dict) -> list[tuple[st
         e = _ttm_asof(ttm, date.fromisoformat(r["date"]))
         if e and e > 0:
             pe = r["close"] / e
-            if 0 < pe < 200:                       # 濾掉 EPS 極小造成的離群本益比
+            if 0 < pe < float("inf"):             # P10/P50/P90 自身可抵抗少數極端值
                 out.append((r["date"], round(pe, 3)))
     return out
+
+
+def current_trailing_pe(price_rows: list[dict], income_pivot: dict,
+                        filing_fallback_supported: bool = True,
+                        current_price: float | None = None,
+                        current_date: str | None = None) -> tuple[float | None, str | None]:
+    """最新價格對當時可得 TTM EPS；不沿用歷史最後一個有效 PE。"""
+    if not price_rows:
+        return None, None
+    latest = max(price_rows, key=lambda x: x["date"])
+    dstr = current_date or latest["date"]
+    close = current_price if current_price is not None else latest.get("close")
+    eps = _ttm_asof(_ttm_series(income_pivot, filing_fallback_supported),
+                    date.fromisoformat(dstr))
+    if eps is None or eps <= 0 or close is None or close <= 0:
+        return None, dstr
+    return close / eps, dstr
 
 
 def _percentile(sorted_vals: list[float], p: float) -> float:
@@ -174,24 +276,40 @@ def _percentile(sorted_vals: list[float], p: float) -> float:
     return sorted_vals[f] + (sorted_vals[c] - sorted_vals[f]) * (k - f)
 
 
+def _shift_years(d: date, years: int) -> date:
+    try:
+        return d.replace(year=d.year + years)
+    except ValueError:
+        return d.replace(year=d.year + years, day=28)
+
+
 def compute_pe_band_finmind(
-    price_rows: list[dict], income_pivot: dict, years: int = 10, fetched_date: str = ""
+    price_rows: list[dict], income_pivot: dict, years: int = 10, fetched_date: str = "",
+    filing_fallback_supported: bool = True,
 ) -> PEBand:
     """由 FinMind 股價 + EPS 自算近 N 年本益比區間(P10/P50/P90)。缺料會 raise。"""
+    if not filing_fallback_supported:
+        raise ValueError("不對 KY/外國發行人套用本國法定申報期限")
     series = daily_pe_series(price_rows, income_pivot)
     if not series:
         raise ValueError("無法由 FinMind 計算本益比(缺 EPS 或股價序列)")
-    cutoff = date.today().year - years + 1
-    recent = [(d, pe) for d, pe in series if int(d[:4]) >= cutoff] or series
+    if not price_rows:
+        raise ValueError("缺股價序列")
+    as_of = date.fromisoformat(max(r["date"] for r in price_rows))
+    cutoff = _shift_years(as_of, -years)
+    recent = [(d, pe) for d, pe in series if cutoff < date.fromisoformat(d) <= as_of]
+    min_samples = max(252, int(years * 252 * 0.60))
+    if (not recent or date.fromisoformat(series[0][0]) > cutoff + timedelta(days=7)
+            or len(recent) < min_samples):
+        raise ValueError(f"有效 PE 歷史不足完整 rolling {years} 年")
     vals = sorted(pe for _, pe in recent)
     lo, mid, hi = _percentile(vals, 0.10), _percentile(vals, 0.50), _percentile(vals, 0.90)
-    y0 = min(int(d[:4]) for d, _ in recent)
-    y1 = max(int(d[:4]) for d, _ in recent)
-    src = "FinMind 每日本益比(收盤÷近4季EPS,P10/P50/P90)"
+    src = (f"FinMind 每日本益比(收盤÷近4季 basic EPS,截至{as_of.isoformat()}"
+           f" rolling {years}年 P10/P50/P90；本國發行人法定期限 fallback；latest-restated)")
     if fetched_date:
         src += f" 抓取 {fetched_date}"
     return PEBand(
         pe_low=round(lo, 1), pe_mid=round(mid, 1), pe_high=round(hi, 1),
-        years_covered=f"{y0}–{y1},共 {y1 - y0 + 1} 年",
+        years_covered=f"{recent[0][0]}–{recent[-1][0]},rolling {years} 年",
         source=src,
     )

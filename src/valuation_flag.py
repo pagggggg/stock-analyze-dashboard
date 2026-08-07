@@ -13,9 +13,232 @@
 
 from __future__ import annotations
 
-from datetime import date
+import math
+from datetime import date, timedelta
 
 from .river import _percentile
+
+
+PE_SCHEMA_VERSION = 6
+TW_PE_BASIS = "trailing_pe_rolling"
+US_PE_BASIS = "adjusted_trailing_pe_rolling"
+TW_PE_METHOD = "finmind_basic_eps_statutory_fallback_latest_restated"
+US_PE_METHOD = "yahoo_reported_adjusted_eps_earnings_date"
+
+
+def _pe_schema(market: str) -> dict:
+    if market == "us":
+        return {
+            "basis": US_PE_BASIS,
+            "method": US_PE_METHOD,
+            "eps_basis": "Yahoo Reported EPS (adjusted)",
+            "availability": "earnings date + 1 calendar day",
+            "price_basis": "Yahoo Close (split-adjusted, not dividend-adjusted)",
+        }
+    return {
+        "basis": TW_PE_BASIS,
+        "method": TW_PE_METHOD,
+        "eps_basis": "FinMind basic EPS (latest-restated values)",
+        "availability": "statutory filing deadline fallback",
+        "price_basis": "FinMind close",
+    }
+
+
+def pe_history_is_compatible(ph: dict, market: str, price_date: str | None,
+                             years: int) -> bool:
+    """Whether a stored PE snapshot was computed by the current, date-bound schema."""
+    if not isinstance(ph, dict) or not price_date:
+        return False
+    schema = _pe_schema(market)
+    if (ph.get("schema_version") != PE_SCHEMA_VERSION
+            or ph.get("basis") != schema["basis"]
+            or ph.get("method") != schema["method"]
+            or ph.get("market") != market
+            or ph.get("current_date") != price_date
+            or ph.get("as_of") != price_date
+            or ph.get("years") != years
+            or ph.get("status") not in {"ok", "insufficient"}):
+        return False
+    try:
+        as_of = date.fromisoformat(price_date)
+    except ValueError:
+        return False
+    try:
+        cut = as_of.replace(year=as_of.year - years)
+    except ValueError:
+        cut = as_of.replace(year=as_of.year - years, day=28)
+    coverage = ph.get("source_coverage") or {}
+    if (ph.get("window_start") != cut.isoformat()
+            or coverage.get("price_end") != price_date
+            or not isinstance(coverage.get("price_n"), int)
+            or coverage["price_n"] < 60):
+        return False
+    reason = ph.get("reason") or ""
+    if reason != "financials_not_fetched" and (
+            not isinstance(coverage.get("eps_n"), int) or coverage["eps_n"] < 4):
+        return False
+    if reason != "financials_not_fetched":
+        try:
+            eps_end = date.fromisoformat(coverage["eps_end"])
+        except (KeyError, TypeError, ValueError):
+            return False
+        if eps_end < as_of - timedelta(days=370):
+            return False
+    if ph["status"] == "ok":
+        if market == "us":
+            if (not isinstance(coverage.get("eps_max_gap_days"), int)
+                    or coverage["eps_max_gap_days"] > 150
+                    or coverage.get("eps_pre_window_n", 0) < 4):
+                return False
+        elif (not isinstance(coverage.get("eps_max_gap_quarters"), int)
+              or coverage["eps_max_gap_quarters"] > 1
+              or coverage.get("eps_pre_window_n", 0) < 4):
+            return False
+        required = max(60, int(years * 252 * 0.60))
+        return (isinstance(ph.get("n"), int) and ph["n"] >= required
+                and all(ph.get(k) is not None for k in ("p10", "median", "p90")))
+    return (reason in {"no_positive_pe_history", "financials_not_fetched",
+                       "unsupported_foreign_issuer_filing_deadline"}
+            or reason == f"history_span_under_{years}_years"
+            or reason.startswith("valid_days_under_"))
+
+
+def tw_pe_source_coverage(price_rows: list[dict], income: dict, years: int = 5) -> dict:
+    prices = []
+    for row in price_rows or []:
+        try:
+            d = date.fromisoformat(row["date"])
+            close = float(row["close"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if math.isfinite(close) and close > 0:
+            prices.append(d)
+    eps_dates = []
+    for d, row in (income or {}).items():
+        try:
+            eps = float(row["EPS"])
+            qend = date.fromisoformat(d)
+        except (KeyError, TypeError, ValueError):
+            continue
+        if math.isfinite(eps):
+            eps_dates.append(qend)
+    prices = sorted(set(prices))
+    eps_dates = sorted(set(eps_dates))
+    relevant_eps = eps_dates
+    cutoff = None
+    if prices:
+        as_of = prices[-1]
+        try:
+            cutoff = as_of.replace(year=as_of.year - years)
+        except ValueError:
+            cutoff = as_of.replace(year=as_of.year - years, day=28)
+        relevant_eps = [d for d in eps_dates if d >= cutoff - timedelta(days=370)]
+    pre_window_n = 0
+    if cutoff is not None:
+        pre_window_n = sum(cutoff - timedelta(days=370) <= d <= cutoff
+                           for d in relevant_eps)
+    indexes = [d.year * 4 + d.month // 3 - 1 for d in relevant_eps
+               if d.month in (3, 6, 9, 12)]
+    max_gap = max((b - a for a, b in zip(indexes, indexes[1:])), default=0)
+    return {
+        "price_start": prices[0].isoformat() if prices else None,
+        "price_end": prices[-1].isoformat() if prices else None,
+        "price_n": len(prices),
+        "eps_start": relevant_eps[0].isoformat() if relevant_eps else None,
+        "eps_end": relevant_eps[-1].isoformat() if relevant_eps else None,
+        "eps_n": len(relevant_eps),
+        "eps_max_gap_quarters": max_gap,
+        "eps_pre_window_n": pre_window_n,
+    }
+
+
+def us_pe_source_coverage(hist, earnings_dates, years: int = 5) -> dict:
+    prices = []
+    if hist is not None and len(hist):
+        try:
+            for ts, close in hist["Close"].items():
+                value = float(close)
+                if math.isfinite(value) and value > 0:
+                    prices.append(ts.date())
+        except (KeyError, TypeError, ValueError, AttributeError):
+            pass
+    price_end = max(prices) if prices else None
+    events = []
+    if earnings_dates is not None and len(earnings_dates) and "Reported EPS" in earnings_dates.columns:
+        for ts, row in earnings_dates.iterrows():
+            try:
+                eps = float(row["Reported EPS"])
+            except (TypeError, ValueError):
+                continue
+            if math.isfinite(eps) and (price_end is None or ts.date() <= price_end):
+                events.append(ts.date())
+    prices = sorted(set(prices))
+    events = sorted(set(events))
+    relevant_events = events
+    if prices:
+        as_of = prices[-1]
+        try:
+            cutoff = as_of.replace(year=as_of.year - years)
+        except ValueError:
+            cutoff = as_of.replace(year=as_of.year - years, day=28)
+        relevant_events = [d for d in events if d >= cutoff - timedelta(days=370)]
+    pre_window_n = 0
+    if prices:
+        pre_window_n = sum(cutoff - timedelta(days=370) <= d <= cutoff
+                           for d in relevant_events)
+    max_gap = max(((b - a).days for a, b in zip(relevant_events, relevant_events[1:])), default=0)
+    return {
+        "price_start": prices[0].isoformat() if prices else None,
+        "price_end": prices[-1].isoformat() if prices else None,
+        "price_n": len(prices),
+        "eps_start": relevant_events[0].isoformat() if relevant_events else None,
+        "eps_end": relevant_events[-1].isoformat() if relevant_events else None,
+        "eps_n": len(relevant_events),
+        "eps_max_gap_days": max_gap,
+        "eps_pre_window_n": pre_window_n,
+    }
+
+
+def pe_source_regressed(old_ph: dict, new_ph: dict) -> bool:
+    """Detect a materially smaller raw response before preserving the old snapshot."""
+    old = (old_ph or {}).get("source_coverage") or {}
+    new = (new_ph or {}).get("source_coverage") or {}
+    if not old or not new:
+        return False
+    if old.get("price_end") and (not new.get("price_end") or new["price_end"] < old["price_end"]):
+        return True
+    if old.get("eps_end") and (not new.get("eps_end") or new["eps_end"] < old["eps_end"]):
+        return True
+    if old_ph.get("market") != "us" and old.get("eps_start"):
+        try:
+            old_start = date.fromisoformat(old["eps_start"])
+            new_start = date.fromisoformat(new["eps_start"])
+            new_as_of = date.fromisoformat(new_ph["current_date"])
+            years = int(new_ph["years"])
+            try:
+                cutoff = new_as_of.replace(year=new_as_of.year - years)
+            except ValueError:
+                cutoff = new_as_of.replace(year=new_as_of.year - years, day=28)
+            required_floor = cutoff - timedelta(days=370)
+        except (KeyError, TypeError, ValueError):
+            return True
+        if new_start > old_start and old_start >= required_floor:
+            return True
+    old_price_n, new_price_n = old.get("price_n", 0), new.get("price_n", 0)
+    old_eps_n, new_eps_n = old.get("eps_n", 0), new.get("eps_n", 0)
+    if old_ph.get("status") == "ok":
+        if old_ph.get("market") == "us":
+            if (old.get("eps_max_gap_days", 0) <= 150 < new.get("eps_max_gap_days", 0)
+                    or (old.get("eps_pre_window_n", 0) >= 4
+                        and new.get("eps_pre_window_n", 0) < 4)):
+                return True
+        elif old.get("eps_max_gap_quarters", 0) <= 1 < new.get("eps_max_gap_quarters", 0):
+            return True
+        elif (old.get("eps_pre_window_n", 0) >= 4
+              and new.get("eps_pre_window_n", 0) < 4):
+            return True
+    return ((old_price_n >= 60 and new_price_n < old_price_n * 0.90)
+            or (old_eps_n >= 4 and new_eps_n < old_eps_n * 0.75))
 
 FLAG = {
     "green": ("🟢", "合理偏低"),
@@ -32,26 +255,68 @@ RED_WARNING = (
 
 
 def pe_history_stats(pe_series: list, current_trailing_pe: float | None,
-                      years: int = 5, min_days: int = 60) -> dict | None:
+                      years: int = 5, min_days: int = 60,
+                      current_date: str | None = None, market: str = "twse",
+                      insufficient_reason: str | None = None,
+                      source_coverage: dict | None = None) -> dict:
     """由 trailing PE 序列算近 N 年分布與「目前 trailing PE」所在百分位。
 
-    歷史序列是收盤價÷當時 TTM 實際 EPS，因此只能和目前 trailing PE 比；
+    歷史序列是收盤價÷依資料可用日落後的 TTM 實際 EPS，因此只能和目前 trailing PE 比；
     把 forward PE 放進來會使成長股系統性顯得較便宜，是已知的口徑混用。
     """
-    cut = date.today().year - years + 1
-    vals = sorted(pe for d, pe in pe_series if int(d[:4]) >= cut and pe and pe > 0)
-    if len(vals) < min_days:                      # 近N年不足就退而用全部可得
-        vals = sorted(pe for _, pe in pe_series if pe and pe > 0)
-        if len(vals) < min_days:
-            return None
+    schema = _pe_schema(market)
+    current_raw = (float(current_trailing_pe)
+                   if current_trailing_pe is not None
+                   and math.isfinite(current_trailing_pe) and current_trailing_pe > 0 else None)
+    current = round(current_raw, 1) if current_raw is not None else None
+    if current_date is None and pe_series:
+        current_date = max(d for d, _ in pe_series)
+    base = {"schema_version": PE_SCHEMA_VERSION, **schema, "market": market,
+            "years": years, "current_date": current_date, "as_of": current_date,
+            "current_trailing_pe": current, "source_coverage": source_coverage or {}}
+    try:
+        as_of = date.fromisoformat(current_date or "")
+    except ValueError:
+        return {**base, "status": "insufficient", "reason": "missing_current_date",
+                "window_start": None, "n": 0}
+    try:
+        cut = as_of.replace(year=as_of.year - years)
+    except ValueError:
+        cut = as_of.replace(year=as_of.year - years, day=28)
+    base["window_start"] = cut.isoformat()
+    points = []
+    for d, pe in pe_series:
+        try:
+            pd = date.fromisoformat(d)
+            value = float(pe)
+        except (TypeError, ValueError):
+            continue
+        if math.isfinite(value) and value > 0:
+            points.append((pd, value))
+    vals = sorted(pe for d, pe in points if cut < d <= as_of)
+    if insufficient_reason:
+        return {**base, "status": "insufficient", "reason": insufficient_reason,
+                "n": len(vals)}
+    if not points:
+        return {**base, "status": "insufficient", "reason": "no_positive_pe_history",
+                "n": 0}
+    required = max(min_days, int(years * 252 * 0.60))
+    if min(d for d, _ in points) > cut + timedelta(days=7):
+        return {**base, "status": "insufficient",
+                "reason": f"history_span_under_{years}_years", "n": len(vals)}
+    if len(vals) < required:
+        return {**base, "status": "insufficient",
+                "reason": f"valid_days_under_{required}", "n": len(vals)}
+    p10 = round(_percentile(vals, 0.1), 1)
     median = round(_percentile(vals, 0.5), 1)
     p90 = round(_percentile(vals, 0.9), 1)
     pct = None
-    if current_trailing_pe and current_trailing_pe > 0:
-        pct = round(sum(1 for v in vals if v < current_trailing_pe) / len(vals) * 100, 0)
-    return {"median": median, "p90": p90, "percentile": pct,
-            "current_trailing_pe": round(current_trailing_pe, 1) if current_trailing_pe else None,
-            "years": years, "n": len(vals), "basis": "trailing_pe"}
+    if current_raw is not None:
+        less = sum(1 for v in vals if v < current_raw)
+        equal = sum(1 for v in vals if v == current_raw)
+        pct = round((less + 0.5 * equal) / len(vals) * 100, 0)
+    return {**base, "status": "ok", "p10": p10, "median": median, "p90": p90,
+            "percentile": pct, "n": len(vals)}
 
 
 def historical_peg(annual: dict, price: float | None, years: int = 5) -> dict | None:
@@ -93,31 +358,82 @@ def historical_peg(annual: dict, price: float | None, years: int = 5) -> dict | 
     }
 
 
-def pe_series_us(hist, annual_eps: dict, years: int = 5) -> list:
-    """美股:用『每日收盤 ÷ 最近會計年度 EPS(step)』近似每日本益比序列。
+def pe_series_us(hist, earnings_dates, years: int = 5) -> list:
+    """美股 point-in-time trailing PE:收盤 ÷ 已公告最近四季 Reported EPS。
 
-    yfinance 免費只有年度 EPS,故以年度 EPS 當 TTM 近似(粗略,僅供估值分布參考)。
+    財報通常盤後公布，生效日取公告日次日；不再用年度 EPS 回填整個曆年。
     """
-    out: list = []
-    if hist is None or not len(hist) or not annual_eps:
-        return out
-    yrs = sorted(int(y) for y in annual_eps)
-    cut_year = date.today().year - years
-    for ts, row in hist.iterrows():
-        y = ts.year
-        if y < cut_year:
-            continue
-        use = [fy for fy in yrs if fy <= y] or [fy for fy in yrs if fy > y]
-        if not use:
-            continue
+    if hist is None or not len(hist) or earnings_dates is None or not len(earnings_dates):
+        return []
+    events_by_date: dict[date, float] = {}
+    for ts, row in earnings_dates.iterrows():
         try:
-            eps = float(annual_eps[str(use[-1])])
+            eps = float(row["Reported EPS"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if math.isfinite(eps):
+            # Yahoo can return duplicate rows for one announcement. Keep one event only.
+            events_by_date.setdefault(ts.date(), eps)
+    events = [(d + timedelta(days=1), eps) for d, eps in sorted(events_by_date.items())]
+    out, run, i = [], [], 0
+    for ts, row in hist.sort_index().iterrows():
+        d = ts.date()
+        while i < len(events) and events[i][0] <= d:
+            event_date, eps = events[i]
+            if run:
+                gap = (event_date - run[-1][0]).days
+                if gap < 45:
+                    i += 1                          # 同季重複/修正列只留最早公告
+                    continue
+                if gap > 150:
+                    run = []                        # 缺季時不可把跨五季四筆冒充 TTM
+            run.append((event_date, eps))
+            i += 1
+        if len(run) < 4:
+            continue
+        if (d - run[-1][0]).days > 150:
+            continue                                # 缺下一季時，不無限沿用舊 TTM
+        ttm = sum(eps for _, eps in run[-4:])
+        try:
             close = float(row["Close"])
         except (TypeError, ValueError, KeyError):
             continue
-        if eps and eps > 0 and close > 0:
-            out.append((ts.strftime("%Y-%m-%d"), close / eps))
+        if math.isfinite(close) and ttm > 0 and close > 0:
+            out.append((d.isoformat(), close / ttm))
     return out
+
+
+def us_pe_source_error(hist, earnings_dates, years: int = 5) -> str | None:
+    """Detect malformed/truncated Yahoo inputs before classifying history as insufficient."""
+    coverage = us_pe_source_coverage(hist, earnings_dates, years)
+    if not coverage["price_n"]:
+        return "price_history_fetch_error"
+    if coverage["price_n"] < 60:
+        return "price_history_truncated"
+    if earnings_dates is None or not len(earnings_dates):
+        return "earnings_dates_fetch_error"
+    if "Reported EPS" not in earnings_dates.columns:
+        return "earnings_dates_invalid"
+
+    if coverage["eps_n"] < 4:
+        return "earnings_dates_invalid"
+
+    as_of = date.fromisoformat(coverage["price_end"])
+    try:
+        cutoff = as_of.replace(year=as_of.year - years)
+    except ValueError:
+        cutoff = as_of.replace(year=as_of.year - years, day=28)
+    listed = date.fromisoformat(coverage["price_start"])
+    last_event = date.fromisoformat(coverage["eps_end"])
+    # An established company should have the four-quarter warm-up needed at cutoff.
+    if listed <= cutoff - timedelta(days=365):
+        if coverage["eps_pre_window_n"] < 4:
+            return "earnings_dates_truncated"
+        if coverage["eps_max_gap_days"] > 150:
+            return "earnings_dates_gap"
+    if last_event < as_of - timedelta(days=200):
+        return "earnings_dates_stale"
+    return None
 
 
 def compute_flag(current_trailing_pe: float | None, forward_pe: float | None,

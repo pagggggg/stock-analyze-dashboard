@@ -128,7 +128,10 @@ def _output_value(metric: dict, obs: dict | None) -> str:
         return "—"
     if obs["status"] == "not_disclosed":
         return "本季未揭露"
-    return f"{_n(obs.get('value'), 1)} {escape(metric['unit'])}"
+    if obs.get("display"):
+        return escape(obs["display"])
+    prefix = "超過 " if obs.get("kind") == "minimum" else ""
+    return f"{prefix}{_n(obs.get('value'), 1)} {escape(metric['unit'])}"
 
 
 def _output_side(data: dict, logos: dict) -> str:
@@ -168,6 +171,7 @@ def _output_side(data: dict, logos: dict) -> str:
             <div><span>最新</span><b>{_output_value(metric, latest)}</b><small>{escape(latest['period']) if latest else '尚未輸入'}</small></div>
             <div><span>前期</span><b>{_output_value(metric, previous)}</b><small>{escape(previous['period']) if previous else '—'}</small></div>
           </div>
+          {f'<p class="output-change">{escape(latest.get("change_text"))}</p>' if latest and latest.get('change_text') else ''}
           {source}
         </article>''')
 
@@ -244,7 +248,7 @@ def _node_row(node: dict, detail_ids: set[str], logos: dict) -> str:
         name = f'<a href="stock_{escape(m["id"])}.html">{name}</a>'
     trend = {"accel": "▲加速", "decel": "▼減速", "flat": "—持平"}.get(x.get("mrev_trend"), "—")
     return (
-        f'<tr><td><span class="ticker-logo">{_logo(m["id"], m["name"], logos)}<b>{escape(m["id"])}</b></span></td><td class="name">{name}</td><td>{escape(m["market"])}</td>'
+        f'<tr><td><span class="ticker-logo">{_logo(m["id"], m["name"], logos)}<b>{escape(m["id"])}</b></span></td><td class="name">{name}</td><td title="{escape(x.get("pe_basis_label", ""))}">{escape(m["market"])}</td>'
         f'<td class="num">{_n(x.get("trailing_pe"), 1, "x")}</td>'
         f'<td class="num">{_n(x.get("pe_pct"), 0, "%")}</td><td>{_flag_html(x.get("flag", "na"))}</td>'
         f'<td class="num">{_n(x.get("mrev_yoy_recent"), 1, "%")} {trend}</td>'
@@ -298,14 +302,15 @@ def build_ai_chain_page(data: dict, generated: str, detail_ids: set[str]) -> str
 
     source_note = "、".join(f"{k}:{v}" for k, v in errors.items()) or "四家公司皆取得資料"
     body = f"""
-<div class="wrap ai-wrap" data-ai-capex-companies="{cloud.get('available_companies', 0)}" data-ai-layers="{len(data['layers'])}">
+<div class="wrap ai-wrap" data-ai-capex-companies="{cloud.get('available_companies', 0)}" data-ai-layers="{len(data['layers'])}" data-ai-unavailable="{len(data['unavailable'])}">
   <header>
     <div><a class="back" href="index.html">← 回總表</a></div>
     <h1>AI 產業鏈全景圖</h1>
     <div class="meta">更新時間 {escape(generated)}　|　由資金源頭往上游排列</div>
     <div class="warn">⚠️ 本圖為研究工具。層級關係描述供應鏈位置,<b>不代表營收、獲利或股價必然連動</b>；
       公司也可能跨越多個層級。估值歷史位階一律使用 trailing PE 對 trailing PE。<br>
-      美股免費資料的歷史 PE 以年度 EPS step approximation 近似,精度低於台股逐季 TTM；跨市場百分位不可視為完全等精度。</div>
+      台股採 FinMind basic EPS 與本國發行人法定期限 fallback；美股採 Yahoo Reported EPS(調整後)與實際 earnings date。
+      兩者只做各股自身歷史比較,不跨口徑混算。</div>
   </header>
 
   <section class="capex-hero">

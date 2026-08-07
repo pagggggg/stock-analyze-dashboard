@@ -142,20 +142,26 @@ jobs:
         run: |
           python - <<'PY'
           import glob, json, os, yaml
+          from src.valuation_flag import pe_history_is_compatible
           doc = yaml.safe_load(open("config/universe.yaml", encoding="utf-8")) or {}
           expected = {str(x["stock_id"]) for k in ("twse", "us") for x in (doc.get(k) or [])}
           actual = set()
-          tot = ok = partial = 0
+          years = (yaml.safe_load(open("config/screener.yaml", encoding="utf-8"))
+                   ["valuation_flag"]["pe_history_years"])
+          tot = ok = partial = pe_schema_ok = 0
           for p in glob.glob("data/universe/*.json"):
               d = json.load(open(p)); tot += 1; actual.add(str(d.get("stock_id")))
               if d.get("annual"): ok += 1
               if d.get("partial_update"): partial += 1
+              if (not d.get("pe_refresh_error")
+                      and pe_history_is_compatible(d.get("pe_hist") or {}, d.get("market", "twse"),
+                                                   d.get("price_date"), years)): pe_schema_ok += 1
           pct = ok / tot * 100 if tot else 0
           same_set = expected == actual
-          print(f"共 {tot} 檔｜有財報 {ok} ({pct:.1f}%)｜本次沿用舊資料 {partial}｜母體集合一致 {same_set}")
+          print(f"共 {tot} 檔｜有財報 {ok} ({pct:.1f}%)｜PE schema {pe_schema_ok}/{tot}｜本次沿用舊資料 {partial}｜母體集合一致 {same_set}")
           if not same_set:
               print(f"缺少:{sorted(expected-actual)}｜多餘:{sorted(actual-expected)}")
-          healthy = pct >= 90 and same_set
+          healthy = pct >= 90 and same_set and pe_schema_ok == tot
           with open(os.environ["GITHUB_OUTPUT"], "a") as f:
               f.write(f"healthy={'true' if healthy else 'false'}\n")
               f.write(f"summary={tot} 檔, 完整 {ok}, 沿用舊值 {partial}, 集合一致 {same_set}\n")
@@ -198,7 +204,8 @@ jobs:
         id: quality
         run: |
           python - <<'PY'
-          import glob, os, re, struct, yaml, zlib
+          import glob, json, os, re, struct, yaml, zlib
+          from src.valuation_flag import pe_history_is_compatible
           idx = open("public/index.html", encoding="utf-8").read()
           ai_path = "public/ai-chain.html"
           # 不能用 glob("public/stock_*.html") 計數:build_site 不刪舊檔,
@@ -207,7 +214,16 @@ jobs:
           linked = len(set(re.findall(r'href="stock_(\w+)\.html"', idx)))
           n_universe = len(glob.glob("data/universe/*.json"))
           floor = int(n_universe * 0.7)
-          ok = linked >= floor
+          scfg = yaml.safe_load(open("config/screener.yaml", encoding="utf-8")) or {}
+          years = scfg["valuation_flag"]["pe_history_years"]
+          pe_schema_ok = 0
+          for path in glob.glob("data/universe/*.json"):
+              d = json.load(open(path, encoding="utf-8"))
+              if (not d.get("pe_refresh_error")
+                      and pe_history_is_compatible(d.get("pe_hist") or {}, d.get("market", "twse"),
+                                                   d.get("price_date"), years)):
+                  pe_schema_ok += 1
+          ok = linked >= floor and pe_schema_ok == n_universe
           ai_ok = os.path.exists(ai_path)
           if ai_ok:
               ai = open(ai_path, encoding="utf-8").read()
@@ -238,11 +254,13 @@ jobs:
                       return False
               logos_ok = bool(logo_files) and all(valid_png(path) for path in logo_files)
               ai_ok = (ai.count('class="chain-layer"') == expected_layers
-                       and "四大雲端業者季度 Capex" in ai
-                       and 'data-ai-capex-companies="4"' in ai
-                       and ai.count('class="output-card"') == expected_outputs
-                       and logos_ok)
+                        and "四大雲端業者季度 Capex" in ai
+                        and 'data-ai-capex-companies="4"' in ai
+                        and 'data-ai-unavailable="0"' in ai
+                        and ai.count('class="output-card"') == expected_outputs
+                        and logos_ok)
           print(f"母體 {n_universe} 檔;首頁實際連得到 {linked} 檔;最低要求 {floor} 檔")
+          print(f"PE schema/date 完整:{pe_schema_ok}/{n_universe}")
           print(f"AI 產業鏈頁完整:{ai_ok}")
           with open(os.environ["GITHUB_OUTPUT"], "a") as f:
               f.write(f"ok={'true' if ok and ai_ok else 'false'}\n")

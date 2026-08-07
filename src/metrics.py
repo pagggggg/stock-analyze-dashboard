@@ -28,7 +28,7 @@ def build_dashboard(
     price: float,
     ann_eps: float,
     shares_bn: float,
-    pe_band: PEBand,
+    pe_band: PEBand | None,
     yf: dict | None,
     growth_pct: float | None,
     growth_source: str,

@@ -37,7 +37,8 @@ from .fcf_quality import FcfQualityResult, build_fcf_quality
 from .guidance import load_guidance
 from .metrics import build_dashboard
 from .models import DashboardResult, EPSScenario, PEBand, QuarterFinancials
-from .river import RiverSeries, build_pe_river, compute_pe_band_finmind
+from .river import (RiverSeries, build_pe_river, compute_pe_band_finmind,
+                    supports_tw_filing_fallback)
 from .valuation import build_valuation
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -124,6 +125,7 @@ def analyze_stock(
 ) -> StockAnalysis:
     """把一檔股票的所有分析湊齊。任何一步失敗都會記進 errors,不中斷。"""
     a = StockAnalysis(stock_id=stock_id, name=name or stock_id)
+    filing_fallback_supported = supports_tw_filing_fallback(a.name)
 
     # ---- 1. 長區間損益(河流圖 TTM / FCF 的營收COGS / 近8季報表共用一份)----
     income_piv = None
@@ -147,7 +149,8 @@ def analyze_stock(
             a.price = last["close"]
             a.price_date = last["date"]
         a.pe_band = compute_pe_band_finmind(price_rows, income_piv, years=pe_years,
-                                             fetched_date=pdate)
+                                             fetched_date=pdate,
+                                             filing_fallback_supported=filing_fallback_supported)
     except Exception as e:  # noqa: BLE001
         a.errors.append(f"股價/本益比計算失敗:{e}")
 
@@ -187,7 +190,7 @@ def analyze_stock(
         a.ann_eps_source = "近4季實際EPS(TTM,共識抓不到的替代)"
 
     # ---- 4. 四指標卡(沿用 metrics.build_dashboard)---------------------
-    if a.price and a.ann_eps and a.pe_band and a.shares_bn:
+    if a.price and a.ann_eps and a.shares_bn:
         growth_src = (f"共識 2027 {a.eps_y1:.1f} vs 2026 {a.eps_y0:.1f} → {a.growth_pct:.1f}%"
                       if a.growth_pct is not None else "(無成長率,PEG 無法計算)")
         try:
@@ -199,9 +202,12 @@ def analyze_stock(
             a.errors.append(f"指標計算失敗:{e}")
 
     # ---- 5. 河流圖序列 ------------------------------------------------
-    if price_rows and a.pe_band:
+    if price_rows:
         try:
-            a.river = build_pe_river(price_rows, income_piv, a.pe_band, current_price=a.price)
+            a.river = build_pe_river(price_rows, income_piv,
+                                     current_price=a.price, current_date=a.price_date,
+                                     years=pe_years,
+                                     filing_fallback_supported=filing_fallback_supported)
         except Exception as e:  # noqa: BLE001
             a.errors.append(f"河流圖失敗:{e}")
 

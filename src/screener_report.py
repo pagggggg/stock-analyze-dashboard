@@ -27,7 +27,7 @@ def _val_rows(results: list[ScreenResult], with_market: bool = True) -> str:
     out = []
     for r in results:
         m = r.metrics
-        mkt = ("台股" if r.market != "us" else "美股")
+        mkt = ("台股(basic EPS)" if r.market != "us" else "美股(調整後EPS)")
         mcell = f" {mkt} |" if with_market else ""
         pct = m.get("pe_pct")
         low = m.get("low_coverage")
@@ -127,6 +127,7 @@ def build_screener_report(results, funnel, cfg, generated: str, universe_desc: s
     w("- 🟡 一般:其餘;⚪ 估值資料不足:無可同口徑比較的 trailing PE")
     w("")
     w("> ★ PE 百分位一律用**個股自己的歷史**,不用全市場平均(不同產業 PE 水準天生不同)。")
+    w("> ★ 台股採 FinMind basic EPS；美股採 Yahoo Reported EPS(調整後口徑)。兩者只做各股自身歷史比較,不跨口徑混算。")
     w("")
 
     # 二、漏斗統計

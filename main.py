@@ -145,6 +145,7 @@ def run(args) -> None:
 
     # ---- 5. 現價(config 指定 or auto 抓 TWSE 收盤)-------------------
     current_price = None  # (價格, 來源)
+    current_price_date = None
     cp_cfg = (raw.get("valuation") or {}).get("current_price")
     if cp_cfg and cp_cfg.get("value"):
         current_price = (float(cp_cfg["value"]), cp_cfg.get("source", "手動填入"))
@@ -153,6 +154,7 @@ def run(args) -> None:
         try:
             pr, pdate, psrc = fetch_current_price_twse(stock_id="2330")
             current_price = (pr, psrc)
+            current_price_date = pdate
             print(f"[5/8] 現價(TWSE):{pr} @ {pdate}")
         except Exception as e:  # noqa: BLE001
             print(f"[5/8] 現價抓取失敗({e}),略過現價相關")
@@ -290,8 +292,9 @@ def run(args) -> None:
             try:
                 if inc_piv:
                     price_rows, _ = fetch_price_daily_finmind("2330")
-                    cp = current_price[0] if current_price else None
-                    river_series = build_pe_river(price_rows, inc_piv, pe_band, current_price=cp)
+                    cp = current_price[0] if current_price_date and current_price else None
+                    river_series = build_pe_river(
+                        price_rows, inc_piv, current_price=cp, current_date=current_price_date)
                     print(f"[HTML] 河流圖:{len(river_series.dates)} 個月頻點")
             except Exception as e:  # noqa: BLE001
                 print(f"[HTML] 河流圖略過({e})")

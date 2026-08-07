@@ -22,10 +22,11 @@ from .data_layer import (fetch_balance_pivot, fetch_cashflow_pivot,
                          fetch_daily_price_value, fetch_income_pivot,
                          fetch_month_revenue, fetch_price_daily_finmind,
                          month_revenue_momentum)
-from .river import daily_pe_series
+from .river import current_trailing_pe, daily_pe_series, supports_tw_filing_fallback
 from .screener import evaluate, extract_metrics
 from .us_data import build_us_record, compute_valuation
-from .valuation_flag import pe_history_stats
+from .valuation_flag import (pe_history_is_compatible, pe_history_stats,
+                             tw_pe_source_coverage)
 
 
 def load_ai_chain_config(path: str | Path) -> dict:
@@ -148,6 +149,8 @@ def _validate_output_side(cfg: dict) -> None:
                 raise ValueError(f"{mid} {period}:status 必須為 disclosed/not_disclosed")
             if obs["status"] == "disclosed" and not isinstance(obs.get("value"), (int, float)):
                 raise ValueError(f"{mid} {period}:disclosed 必須填 value")
+            if obs.get("kind", "exact") not in {"exact", "minimum"}:
+                raise ValueError(f"{mid} {period}:kind 必須為 exact/minimum")
             if obs["status"] == "not_disclosed" and obs.get("value") is not None:
                 raise ValueError(f"{mid} {period}:not_disclosed 不可沿用 value")
             if not obs.get("source") or not obs.get("disclosure_date"):
@@ -266,10 +269,15 @@ def fetch_us_quarterly(ticker: str, ttl_seconds: int = 12 * 3600) -> dict:
 
 def _build_tpex_record(member: dict, cfg: dict) -> dict:
     sid = member["id"]
-    key = f"ai_chain_tpex_record_{sid}"
+    key = f"ai_chain_tpex_record_v2_{sid}"
     cached = cache_get(key, ttl_seconds=12 * 3600)
     if cached is not None:
-        return cached["data"]
+        rec = cached["data"]
+        ph = rec.get("pe_hist") or {}
+        years = cfg["valuation_flag"]["pe_history_years"]
+        if (ph.get("status") == "ok" and ph.get("current_trailing_pe") is not None
+                and pe_history_is_compatible(ph, "tpex", rec.get("price_date"), years)):
+            return rec
 
     rec = {"stock_id": sid, "name": member.get("name", sid), "market": "tpex",
            "currency": "TWD", "industry": member.get("industry", ""), "errors": []}
@@ -287,11 +295,25 @@ def _build_tpex_record(member: dict, cfg: dict) -> dict:
         rec["liq_days"] = len(recent)
     rec["valuation"] = compute_valuation(f"{sid}.TWO", rec.get("price_last"))
     prices, _ = fetch_price_daily_finmind(sid, start_date=start)
-    pe_ser = daily_pe_series(prices, inc)
+    fallback_ok = supports_tw_filing_fallback(member.get("name", sid))
+    pe_ser = daily_pe_series(prices, inc, fallback_ok)
+    current_pe, current_date = current_trailing_pe(
+        prices, inc, fallback_ok, rec.get("price_last"), rec.get("price_date"))
     rec["pe_hist"] = pe_history_stats(
-        pe_ser, pe_ser[-1][1] if pe_ser else None,
+        pe_ser, current_pe,
         years=cfg["valuation_flag"]["pe_history_years"],
-    ) or {"basis": "trailing_pe", "status": "insufficient"}
+        current_date=current_date, market="tpex",
+        insufficient_reason=(None if fallback_ok else
+                             "unsupported_foreign_issuer_filing_deadline"),
+        source_coverage=tw_pe_source_coverage(
+            prices, inc, cfg["valuation_flag"]["pe_history_years"]),
+    )
+    if (rec["pe_hist"].get("status") != "ok"
+            or rec["pe_hist"].get("current_trailing_pe") is None
+            or not pe_history_is_compatible(
+                rec["pe_hist"], "tpex", rec.get("price_date"),
+                cfg["valuation_flag"]["pe_history_years"])):
+        raise ValueError("缺股價或可同口徑比較的 trailing PE")
     mrows, _ = fetch_month_revenue(sid, start_date=cfg["fetch"].get("month_revenue_start", "2021-01-01"))
     rec["mrev"] = month_revenue_momentum(mrows, recent=cfg["fetch"].get("month_revenue_recent", 3))
     cache_set(key, rec)
@@ -309,21 +331,31 @@ def load_member_records(chain_cfg: dict, screener_cfg: dict,
             continue
         try:
             if member["market"] == "us":
-                key = f"ai_chain_us_record_{sid}"
+                key = f"ai_chain_us_record_v2_{sid}"
                 cached = cache_get(key, ttl_seconds=12 * 3600)
-                if cached is not None:
-                    rec = cached["data"]
-                else:
+                rec = cached["data"] if cached is not None else None
+                years = screener_cfg["valuation_flag"]["pe_history_years"]
+                cached_ph = (rec or {}).get("pe_hist") or {}
+                cached_ok = (rec is not None and cached_ph.get("status") == "ok"
+                             and cached_ph.get("current_trailing_pe") is not None
+                             and pe_history_is_compatible(
+                                 cached_ph, "us", rec.get("price_date"), years))
+                if not cached_ok:
                     rec = build_us_record(sid, member.get("name", sid), screener_cfg)
-                    cache_set(key, rec)
             elif member["market"] == "tpex":
                 rec = _build_tpex_record(member, screener_cfg)
             else:
                 unavailable[sid] = "不在目前母體，未另行抓取上市股"
                 continue
             ph = rec.get("pe_hist") or {}
-            if not rec.get("price_last") or ph.get("current_trailing_pe") is None:
+            years = screener_cfg["valuation_flag"]["pe_history_years"]
+            if (not rec.get("price_last") or ph.get("status") != "ok"
+                    or not pe_history_is_compatible(
+                        ph, rec.get("market", "twse"), rec.get("price_date"), years)
+                    or ph.get("current_trailing_pe") is None):
                 raise ValueError("缺股價或可同口徑比較的 trailing PE")
+            if member["market"] == "us" and not cached_ok:
+                cache_set(key, rec)                # 只快取通過 current schema 的完整快照
             records[sid] = rec
         except Exception as e:  # noqa: BLE001 - 單一額外標的失敗不影響整頁
             unavailable[sid] = f"資料抓取失敗:{type(e).__name__}: {e}"

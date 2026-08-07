@@ -91,16 +91,16 @@ def _fig_river(r: RiverSeries) -> str:
     fig = go.Figure()
     # 河道(由下到上,用 tonexty 填色):低=綠、中、高=紅
     fig.add_trace(go.Scatter(
-        x=r.dates, y=r.band_low, name=f"低本益比 {r.pe_low:g}x",
+        x=r.dates, y=r.band_low, name=f"目前P10 {r.pe_low:g}x",
         line=dict(color=C_CHEAP, width=1), hoverinfo="skip",
     ))
     fig.add_trace(go.Scatter(
-        x=r.dates, y=r.band_mid, name=f"中本益比 {r.pe_mid:g}x",
+        x=r.dates, y=r.band_mid, name=f"目前P50 {r.pe_mid:g}x",
         line=dict(color=C_FAIR, width=1, dash="dash"),
         fill="tonexty", fillcolor="rgba(22,163,74,0.10)", hoverinfo="skip",
     ))
     fig.add_trace(go.Scatter(
-        x=r.dates, y=r.band_high, name=f"高本益比 {r.pe_high:g}x",
+        x=r.dates, y=r.band_high, name=f"目前P90 {r.pe_high:g}x",
         line=dict(color=C_EXP, width=1), fill="tonexty",
         fillcolor="rgba(220,38,38,0.08)", hoverinfo="skip",
     ))
@@ -393,10 +393,10 @@ def build_html_dashboard(
   <section>
     <h2>② 本益比河流圖(現在位於歷史估值哪一段?)</h2>
     {river_div}
-    {_note('河道 = 「當時的近四季實際EPS」×(低/中/高 本益比);EPS 成長會讓整條河道往上抬。'
-           '<b>河道保留原始歷史分位,不為包住股價而擴張</b>;股價可超出上下緣。'
+    {_note('河道 = 「當時可得的近四季實際EPS」×截至當月為止的 rolling 5年 P10/P50/P90;EPS 成長會讓河道往上抬。'
+           '<b>河道保留 rolling 歷史分位,不為包住股價而擴張</b>;股價可超出上下緣。'
            '股價線貼近<b style="color:'+C_CHEAP+'">綠(低本益比)</b>相對便宜、貼近或超過<b style="color:'+C_EXP+'">紅(高本益比)</b>'
-           '相對貴。' + river_note_extra + ' 口徑為 trailing(過去4季),與摘要的前瞻PE 略有差異屬正常。')}
+           '相對貴。' + river_note_extra + ' FinMind 無公告日,本國發行人採法定期限 fallback；口徑為 trailing,與摘要的前瞻PE不同。')}
   </section>
 
   <section>
@@ -432,7 +432,7 @@ def build_html_dashboard(
   </section>
 
   <footer>
-    <div>資料來源:財報/資產負債/現金流 FinMind、本益比河道 TWSE、股價 FinMind、共識EPS yfinance。</div>
+    <div>資料來源:財報/資產負債/現金流/本益比河道/股價 FinMind、共識EPS yfinance。</div>
     <div>本工具僅為個人試算,數字可能過時或有誤,請務必回到原始出處核對,不構成投資建議。</div>
   </footer>
 </div>

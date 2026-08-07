@@ -508,11 +508,14 @@ def build_detail_html(a, generated: str) -> str:
     }
     fem, flab, fcol = flag_map.get(getattr(a, "valuation_flag", "na"), flag_map["na"])
     pct_txt = (f"{a.pe_percentile:.0f}%" if a.pe_percentile is not None else "—")
+    trailing_txt = f"{_n(a.trailing_pe, 1)}x" if a.trailing_pe is not None else "—"
+    median_txt = f"{_n(a.pe_median, 1)}x" if a.pe_median is not None else "—"
+    p90_txt = f"{_n(a.pe_p90, 1)}x" if a.pe_p90 is not None else "—"
     position = (
         '<div class="pe-position">'
         f'<b style="color:{fcol}">{fem}{_esc(flab)}</b>　'
-        f'目前 trailing PE <b>{_n(a.trailing_pe, 1)}x</b>　|　'
-        f'近5年 P50 <b>{_n(a.pe_median, 1)}x</b>　|　P90 <b>{_n(a.pe_p90, 1)}x</b>　|　'
+        f'目前 trailing PE <b>{trailing_txt}</b>　|　'
+        f'近5年 P50 <b>{median_txt}</b>　|　P90 <b>{p90_txt}</b>　|　'
         f'百分位 <b>{pct_txt}</b>'
         '</div>'
     )
@@ -542,8 +545,10 @@ def build_detail_html(a, generated: str) -> str:
     <h2>本益比河流圖</h2>
     {position}
     {river_div}
-    {_note('河道 =「當時近四季實際EPS」×歷史期間 trailing PE 的 P10/P50/P90。'
-           '歷史期間依篩選器設定,目前為 '+_esc(a.pe_band.years_covered if a.pe_band else '資料不足')+'。'
+    {_note('河道 =「當時可得的近四季實際EPS」×<b>截至當月為止</b> rolling 5年 trailing PE P10/P50/P90。'
+           '圖例數字是目前分位:'+_esc(a.pe_band.years_covered if a.pe_band else '資料不足')+'。'
+           'FinMind 無實際公告日欄位,本國發行人財報生效日採法定申報期限 fallback；KY/外國發行人不套用此假設。'
+           '黑線只畫完整月末;未完成月份只顯示紅色最新點。'
            '<b>河道不再為了包住股價而向外擴張</b>;股價超出上緣/下緣是極端估值訊號,不是繪圖錯誤。'
            '股價貼近<b style="color:'+C_CHEAP+'">綠</b>相對便宜、貼近或超過<b style="color:'+C_EXP+'">紅</b>相對貴。' + river_zone)}
   </section>
@@ -785,6 +790,7 @@ code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: .85
 .output-values > div { background:#f8fafc; border-radius:8px; padding:8px; min-width:0; }
 .output-values span,.output-values small { display:block; color:#94a3b8; font-size:.7rem; }
 .output-values b { display:block; margin:3px 0; color:#1e3a8a; font-size:1.05rem; overflow-wrap:anywhere; }
+.output-change { margin:9px 0 0; color:#475569; font-size:.8rem; line-height:1.45; }
 .output-warning { margin-top:12px; }
 .ai-table td.name a { color:#2563eb; text-decoration:none; font-weight:700; }
 .unavailable { color:#94a3b8; }

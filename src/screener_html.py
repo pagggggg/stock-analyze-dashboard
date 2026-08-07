@@ -97,7 +97,7 @@ def _val_tbl(rows: list[ScreenResult]) -> str:
     body = []
     for r in rows:
         m = r.metrics
-        mkt = "美股" if r.market == "us" else "台股"
+        mkt = "美股(調整後EPS)" if r.market == "us" else "台股(basic EPS)"
         pct = m.get("pe_pct")
         pct_s = f"{int(pct)}%" if pct is not None else "—"
         low = m.get("low_coverage")
@@ -238,7 +238,8 @@ def build_screener_page(results, funnel, cfg, generated: str) -> str:
         w('<div class="stream-empty">尚無估值資料。</div>')
     w(_note("旗標門檻:🟢=前瞻PEG<1 且目前 trailing PE<個股近5年 trailing PE 中位;"
             "🔴=目前 trailing PE>近5年 trailing P90,或前瞻PEG>2,或前瞻PE>60;🟡=其餘。"
-            "<b>歷史位階已改為 trailing 對 trailing 的同口徑比較</b>;前瞻PE/PEG獨立顯示,不再拿forward PE硬比歷史trailing分布。"))
+            "<b>歷史位階已改為 trailing 對 trailing 的同口徑比較</b>;前瞻PE/PEG獨立顯示,不再拿forward PE硬比歷史trailing分布。"
+            "台股為 FinMind basic EPS,美股為 Yahoo Reported EPS(調整後);只做各股自身歷史比較。"))
     w('<div class="warn">⚠️ <b>共識覆蓋 &lt; 3 家(標「⚠低覆蓋」)者:PEG 與修正動能僅供參考,'
       '不得作為判斷依據</b>——這兩個訊號全靠分析師共識,覆蓋薄時不可信(母體不因此刪股,由資料自我標記)。</div>')
     w(_note(

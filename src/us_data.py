@@ -78,10 +78,16 @@ def build_us_record(ticker: str, name: str, cfg: dict) -> dict:
     qi = _safe("quarterly_income_stmt")
     qcf = _safe("quarterly_cashflow")
     try:
-        hist = t.history(period="max")
+        # Yahoo Close is split-adjusted but, unlike Adj Close, not dividend-adjusted.
+        hist = t.history(period="max", auto_adjust=False, actions=False)
     except Exception as e:  # noqa: BLE001
         err.append(f"history:{e}")
         hist = None
+    try:
+        earnings_dates = t.get_earnings_dates(limit=100)
+    except Exception as e:  # noqa: BLE001
+        err.append(f"earnings_dates:{e}")
+        earnings_dates = None
 
     # --- 年度損益 ---
     annual: dict[str, dict] = {}
@@ -161,13 +167,20 @@ def build_us_record(ticker: str, name: str, cfg: dict) -> dict:
     # --- 估值檢查(僅參考)+ 估值旗標用的個股近N年PE分布 ---
     if cfg["fetch"].get("valuation", True):
         rec["valuation"] = compute_valuation(ticker, rec.get("price_last"))
-        from .valuation_flag import pe_history_stats, pe_series_us
-        annual_eps = {y: a["eps"] for y, a in annual.items() if a.get("eps")}
-        pe_ser = pe_series_us(hist, annual_eps, years=cfg["valuation_flag"]["pe_history_years"])
-        current_tpe = pe_ser[-1][1] if pe_ser else None
-        rec["pe_hist"] = pe_history_stats(
-            pe_ser, current_tpe, years=cfg["valuation_flag"]["pe_history_years"])
-        if rec["pe_hist"] is None:
-            rec["pe_hist"] = {"basis": "trailing_pe", "status": "insufficient"}
+        from .valuation_flag import (pe_history_stats, pe_series_us,
+                                     us_pe_source_coverage, us_pe_source_error)
+        pe_ser = pe_series_us(hist, earnings_dates, years=cfg["valuation_flag"]["pe_history_years"])
+        current_date = str(hist.index[-1].date()) if hist is not None and len(hist) else None
+        current_tpe = pe_ser[-1][1] if pe_ser and pe_ser[-1][0] == current_date else None
+        source_error = us_pe_source_error(
+            hist, earnings_dates, years=cfg["valuation_flag"]["pe_history_years"])
+        if source_error:
+            rec["pe_refresh_error"] = source_error
+        else:
+            rec["pe_hist"] = pe_history_stats(
+                pe_ser, current_tpe, years=cfg["valuation_flag"]["pe_history_years"],
+                current_date=current_date, market="us",
+                source_coverage=us_pe_source_coverage(
+                    hist, earnings_dates, cfg["valuation_flag"]["pe_history_years"]))
 
     return rec

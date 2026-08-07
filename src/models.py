@@ -142,10 +142,10 @@ class EPSScenario:
 class PEBand:
     """近 N 年本益比區間統計。"""
 
-    pe_low: float                 # 期間最低本益比
-    pe_mid: float                 # 期間中位/平均本益比
-    pe_high: float                # 期間最高本益比
-    years_covered: str            # 涵蓋年度說明, 例如 "2015–2024 (10 年)"
+    pe_low: float                 # 區間下緣(依來源可為最低值或 P10)
+    pe_mid: float                 # 區間中樞(依來源可為平均值或 P50)
+    pe_high: float                # 區間上緣(依來源可為最高值或 P90)
+    years_covered: str            # 涵蓋期間與統計口徑說明
     source: str = ""
 
 
