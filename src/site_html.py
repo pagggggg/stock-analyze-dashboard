@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+import shutil
 
 import plotly.graph_objects as go
 from plotly.offline import get_plotlyjs
@@ -596,6 +597,12 @@ def write_site(analyses: list, status: str, events: list, first_run: bool,
     # 共用資源:plotly.min.js(本地一份)、style.css
     (out / "plotly.min.js").write_text(get_plotlyjs(), encoding="utf-8")
     (out / "style.css").write_text(_SITE_CSS, encoding="utf-8")
+    logo_src = Path(__file__).resolve().parent.parent / "assets/logos"
+    if logo_src.exists():
+        logo_out = out / "assets/logos"
+        logo_out.mkdir(parents=True, exist_ok=True)
+        for p in logo_src.glob("*.png"):
+            shutil.copy2(p, logo_out / p.name)
 
     # 首頁
     (out / "index.html").write_text(
@@ -725,6 +732,15 @@ code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: .85
 .guidance-card { border:1px solid #dbe3ee; border-radius:14px; padding:15px; background:#fff;
   box-shadow:0 3px 10px rgba(15,23,42,.05); min-width:0; }
 .guidance-head { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.logo-name,.ticker-logo { display:inline-flex; align-items:center; gap:8px; }
+.company-logo { display:inline-grid; place-items:center; width:30px; height:30px; flex:0 0 30px;
+  border-radius:8px; background:#fff; border:1px solid #e2e8f0; overflow:hidden; vertical-align:middle; }
+.company-logo img { width:24px; height:24px; object-fit:contain; }
+.logo-fallback { display:grid; place-items:center; width:100%; height:100%; background:#e0e7ff;
+  color:#3730a3; font-size:.68rem; font-weight:850; }
+.logo-fallback[hidden] { display:none !important; }
+.ticker-logo .company-logo { width:26px; height:26px; flex-basis:26px; }
+.ticker-logo .company-logo img { width:21px; height:21px; }
 .guidance-head b { font-size:1.05rem; color:#0f172a; }
 .direction { border-radius:999px; padding:2px 9px; font-size:.76rem; font-weight:700; white-space:nowrap; }
 .direction.up { color:#166534; background:#dcfce7; }
@@ -748,6 +764,28 @@ code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: .85
 .guidance-source ul { padding-left:18px; margin:7px 0 0; }
 .guidance-source li { margin:7px 0; }
 .guidance-source li span { color:#64748b; }
+.output-side { margin-top:32px; border-top:5px solid #0f766e; }
+.output-title { display:flex; justify-content:space-between; gap:18px; align-items:flex-start; flex-wrap:wrap; }
+.output-title > div > span { color:#0f766e; font-size:.72rem; font-weight:900; letter-spacing:.15em; }
+.output-title h2 { margin:2px 0 0; }
+.output-summary { display:flex; gap:6px; flex-wrap:wrap; }
+.output-summary b { background:#f1f5f9; color:#475569; padding:5px 9px; border-radius:999px; font-size:.78rem; }
+.output-summary b.up { background:#dcfce7; color:#166534; }
+.output-summary b.down { background:#fee2e2; color:#991b1b; }
+.output-summary b.missing { background:#fef3c7; color:#92400e; }
+.output-thesis { line-height:1.7; color:#334155; background:#f0fdfa; border-left:4px solid #14b8a6;
+  padding:10px 12px; border-radius:0 9px 9px 0; }
+.output-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.output-card { border:1px solid #dbe3ee; border-radius:12px; padding:13px; background:#fff; }
+.output-card h4 { margin:10px 0 8px; font-size:.95rem; color:#0f172a; }
+.logo-name small { display:block; color:#94a3b8; font-size:.7rem; font-weight:500; }
+.direction.down { color:#991b1b; background:#fee2e2; }
+.direction.missing { color:#92400e; background:#fef3c7; }
+.output-values { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.output-values > div { background:#f8fafc; border-radius:8px; padding:8px; min-width:0; }
+.output-values span,.output-values small { display:block; color:#94a3b8; font-size:.7rem; }
+.output-values b { display:block; margin:3px 0; color:#1e3a8a; font-size:1.05rem; overflow-wrap:anywhere; }
+.output-warning { margin-top:12px; }
 .ai-table td.name a { color:#2563eb; text-decoration:none; font-weight:700; }
 .unavailable { color:#94a3b8; }
 .cycle-tag { display:inline-block; border:1px solid; border-radius:999px; padding:1px 8px;
@@ -803,5 +841,9 @@ code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: .85
   .guidance-card { padding:13px; }
   .guidance-amount { font-size:1.3rem; }
   .guidance-extra span { float:none; display:block; margin-top:2px; }
+  .output-grid { grid-template-columns:1fr; }
+  .output-values b { font-size:1rem; }
+  .output-card .guidance-head { flex-wrap:wrap; }
+  .output-card .direction { white-space:normal; max-width:100%; text-align:center; }
 }
 """

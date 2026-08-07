@@ -21,6 +21,11 @@ CYCLE = {"cyclical": ("循環", "#b45309"), "non_cyclical": ("非循環", "#4755
 DIRECTION = {"up": "上調", "down": "下調", "unchanged": "維持不變",
              "yoy_increase": "預期年增（非指引上調）", "not_stated": "未說明／無指引"}
 BASIS = {"calendar_year": "日曆年", "fiscal_year": "會計年度", "quarter": "單季"}
+OUTPUT_DIRECTION = {
+    "accel": ("▲ 加速", "up"), "decel": ("▼ 減速", "down"), "flat": ("— 持平", "flat"),
+    "not_disclosed": ("本季未揭露", "missing"), "pending": ("待輸入", "na"),
+    "insufficient": ("前期不足", "na"),
+}
 
 
 def _n(v, dp=1, suffix=""):
@@ -43,7 +48,16 @@ def _auto_ttm_capex(cloud: dict, ticker: str) -> dict | None:
     return (cloud.get("companies", {}).get(ticker) or {}).get("ttm_capex")
 
 
-def _guidance_card(ticker: str, company: dict, cloud: dict) -> str:
+def _logo(sid: str, name: str, logos: dict) -> str:
+    meta = logos.get(sid) or {}
+    src = escape(meta.get("file") or f"assets/logos/{sid}.png")
+    first = (name.strip()[:1] if name and ord(name.strip()[0]) > 127 else sid[:2]).upper()
+    return (f'<span class="company-logo"><img src="{src}" alt="" loading="lazy" '
+            f'onerror="this.hidden=true;this.nextElementSibling.hidden=false">'
+            f'<span class="logo-fallback" hidden>{escape(first)}</span></span>')
+
+
+def _guidance_card(ticker: str, company: dict, cloud: dict, logos: dict) -> str:
     entries = company.get("entries") or []
     numeric_calendar = [x for x in entries if x["period"]["basis"] == "calendar_year"
                         and x["amount"]["kind"] != "undisclosed"]
@@ -97,16 +111,83 @@ def _guidance_card(ticker: str, company: dict, cloud: dict) -> str:
                        else "flat" if primary and primary["direction"] == "unchanged" else "na")
     return f'''
     <article class="guidance-card">
-      <div class="guidance-head"><b>{ticker}</b><span class="direction {direction_class}">{escape(direction)}</span></div>
+      <div class="guidance-head"><div class="logo-name">{_logo(ticker, ticker, logos)}<b>{ticker}</b></div><span class="direction {direction_class}">{escape(direction)}</span></div>
       <div class="guidance-amount">{amount}</div>
       <div class="guidance-period">{period}</div>
-      <div class="guidance-compare {'yes' if comparable else 'no'}">{'可跨公司比較' if comparable else '不可直接比較'}</div>
+      <div class="guidance-compare {'yes' if comparable else 'no'}">{'可並列（日曆年；口徑仍不同）' if comparable else '不可直接比較'}</div>
       {f'<p class="guidance-point">{key_point}</p>' if key_point else ''}
       {f'<ul class="guidance-extra">{"".join(extra)}</ul>' if extra else ''}
       {''.join(actual_lines)}
       <div class="guidance-date">資料日期 {source_date}</div>
       {details}
     </article>'''
+
+
+def _output_value(metric: dict, obs: dict | None) -> str:
+    if not obs:
+        return "—"
+    if obs["status"] == "not_disclosed":
+        return "本季未揭露"
+    return f"{_n(obs.get('value'), 1)} {escape(metric['unit'])}"
+
+
+def _output_side(data: dict, logos: dict) -> str:
+    out = data.get("output_side") or {"metrics": [], "counts": {}}
+    c = out.get("counts") or {}
+    cards = []
+    for metric in out.get("metrics") or []:
+        latest, previous = metric.get("latest"), metric.get("previous")
+        direction, cls = OUTPUT_DIRECTION.get(metric.get("direction"), ("資料不足", "na"))
+        company = metric["company"]
+        if metric.get("direction") == "not_disclosed":
+            streak = metric.get("non_disclosure_streak", 0)
+            direction = f"本季未揭露（連續 {streak} 季）"
+        source = ""
+        observations = sorted(metric.get("observations") or [], key=lambda x: x["period"], reverse=True)
+        if observations:
+            source_rows = "".join(
+                f'<li><b>{escape(x["period"])}</b>｜{escape(x["source"])}｜'
+                f'{escape(str(x["disclosure_date"]))}｜{_output_value(metric, x)}</li>'
+                for x in observations)
+            method = ("<p>level 型的加速/減速使用連續三季，比較本季成長率與前季成長率。</p>"
+                      if metric["value_type"] == "level" else "")
+            method += "<p>季度軸一律轉為日曆季；Microsoft 會計季需映射到對應日曆季。</p>"
+            source = (f'<details class="guidance-source"><summary>查看來源與判定</summary>{method}'
+                      f'<ul>{source_rows}</ul>'
+                      f'{("<p>" + escape(metric.get("note")) + "</p>") if metric.get("note") else ""}</details>')
+        elif metric.get("note"):
+            source = (f'<details class="guidance-source"><summary>指標口徑</summary><p>'
+                      f'{escape(metric["note"])}</p></details>')
+        cards.append(f'''
+        <article class="output-card">
+          <div class="guidance-head"><div class="logo-name">{_logo(company, metric.get('company_name', company), logos)}
+            <div><b>{escape(metric.get('company_name', company))}</b><small>{company}</small></div></div>
+            <span class="direction {cls}">{escape(direction)}</span></div>
+          <h4>{escape(metric['name'])}</h4>
+          <div class="output-values">
+            <div><span>最新</span><b>{_output_value(metric, latest)}</b><small>{escape(latest['period']) if latest else '尚未輸入'}</small></div>
+            <div><span>前期</span><b>{_output_value(metric, previous)}</b><small>{escape(previous['period']) if previous else '—'}</small></div>
+          </div>
+          {source}
+        </article>''')
+
+    return f'''
+    <section class="output-side">
+      <div class="output-title"><div><span>OUTPUT · 截至 {escape(out.get('as_of_period', '—'))}</span><h2>產出側：AI 是否產生經濟價值</h2></div>
+        <div class="output-summary"><b class="up">▲ {c.get('accel', 0)} 加速</b><b class="down">▼ {c.get('decel', 0)} 減速</b>
+          <b>— {c.get('flat', 0)} 持平</b><b class="missing">{c.get('not_disclosed', 0)} 未揭露</b><b>{c.get('insufficient', 0)} 前期不足</b>
+          <b>{c.get('pending', 0)} 待輸入</b></div></div>
+      <p class="output-thesis"><b>上游 Capex 是投入，產出側是回收。</b>兩側都健康代表循環可持續；
+        投入持續增加而產出側整體減速，是需求論述出現裂縫的早期訊號。
+        單一公司減速多為競爭問題，需整組同時轉向才具意義。<br>
+        <small>這是待驗證的研究假說；目前彙總是指標數，不是公司層級或產業整體判定。</small></p>
+      <div class="output-grid">{''.join(cards)}</div>
+      <div class="warn output-warning"><b>限制:</b>這些指標為公司自選揭露，口徑不一致、可比性有限；
+        {escape(out.get('scale_warning') or '')}不可單獨代表產業；多數為同步指標而非領先指標。
+        規模警語來源狀態:{escape(out.get('scale_warning_source') or '未提供')}。
+        上方彙總計算的是<b>指標數</b>,不是公司數或可加總的產業指數；同一公司多項指標會分別計數。
+        「待輸入」不等於公司未揭露；只有已填入 <code>not_disclosed</code> 的季度才計入連續未揭露。</div>
+    </section>'''
 
 
 def _capex_fig(cloud: dict) -> str:
@@ -150,12 +231,12 @@ def _cycle_html(cycle: dict) -> str:
     return f'<span class="cycle-tag" style="color:{col};border-color:{col}" title="{escape(title)}">{lab}</span>'
 
 
-def _node_row(node: dict, detail_ids: set[str]) -> str:
+def _node_row(node: dict, detail_ids: set[str], logos: dict) -> str:
     m = node["member"]
     r = node.get("result")
     if not r:
         reason = escape(node.get("unavailable") or "資料不足")
-        return (f'<tr class="unavailable"><td>{escape(m["id"])}</td><td>{escape(m["name"])}</td>'
+        return (f'<tr class="unavailable"><td>{_logo(m["id"], m["name"], logos)} {escape(m["id"])}</td><td>{escape(m["name"])}</td>'
                 f'<td colspan="6">⚠ 不納入:{reason}</td><td>{_cycle_html(node["cycle"])}</td></tr>')
     x = r.metrics
     name = escape(m["name"])
@@ -163,7 +244,7 @@ def _node_row(node: dict, detail_ids: set[str]) -> str:
         name = f'<a href="stock_{escape(m["id"])}.html">{name}</a>'
     trend = {"accel": "▲加速", "decel": "▼減速", "flat": "—持平"}.get(x.get("mrev_trend"), "—")
     return (
-        f'<tr><td>{escape(m["id"])}</td><td class="name">{name}</td><td>{escape(m["market"])}</td>'
+        f'<tr><td><span class="ticker-logo">{_logo(m["id"], m["name"], logos)}<b>{escape(m["id"])}</b></span></td><td class="name">{name}</td><td>{escape(m["market"])}</td>'
         f'<td class="num">{_n(x.get("trailing_pe"), 1, "x")}</td>'
         f'<td class="num">{_n(x.get("pe_pct"), 0, "%")}</td><td>{_flag_html(x.get("flag", "na"))}</td>'
         f'<td class="num">{_n(x.get("mrev_yoy_recent"), 1, "%")} {trend}</td>'
@@ -184,16 +265,17 @@ def _transmission_text(t: dict) -> str:
 
 def build_ai_chain_page(data: dict, generated: str, detail_ids: set[str]) -> str:
     cloud = data["cloud"]
+    logos = data.get("logos") or {}
     guidance = data.get("guidance") or {}
     errors = cloud.get("errors") or {}
     guidance_cards = []
     for ticker in ("MSFT", "GOOGL", "AMZN", "META"):
         company = guidance.get(ticker) or {}
-        guidance_cards.append(_guidance_card(ticker, company, cloud))
+        guidance_cards.append(_guidance_card(ticker, company, cloud, logos))
 
     layer_html = []
     for i, layer in enumerate(data["layers"], 1):
-        rows = "".join(_node_row(x, detail_ids) for x in layer["nodes"])
+        rows = "".join(_node_row(x, detail_ids, logos) for x in layer["nodes"])
         summary = (f"平均月營收YoY <b>{_n(layer.get('avg_mrev_yoy'), 1, '%')}</b>"
                    f"(n={layer.get('mrev_n', 0)})　|　平均 trailing PE 百分位 "
                    f"<b>{_n(layer.get('avg_pe_pct'), 0, '%')}</b>(n={layer.get('pe_pct_n', 0)})")
@@ -234,11 +316,12 @@ def build_ai_chain_page(data: dict, generated: str, detail_ids: set[str]) -> str
       各季柱狀圖 hover 會顯示涵蓋幾家公司,只有前後兩期都四家齊全才計算合計 YoY。
       Capex YoY 與落後期相關性若樣本不足會直接標示,不外推。抓取狀態:{escape(source_note)}</div>
     <h3>2026 Capex 指引重點</h3>
-    <div class="note"><b>跨公司只比較日曆年金額。</b>會計年度、單季與未揭露金額的定性指引只作補充。</div>
+    <div class="note"><b>跨公司只並列日曆年數字，但會計/租賃口徑仍可能不同。</b>會計年度、單季與未揭露金額的定性指引只作補充。</div>
     <div class="guidance-grid">{''.join(guidance_cards)}</div>
   </section>
 
   <div class="chain-flow">{''.join(layer_html)}</div>
-  <footer>資料:FinMind、yfinance；估值與動能沿用主篩選器。缺資料標示不納入,不以替代值硬湊。</footer>
+  {_output_side(data, logos)}
+  <footer>資料:FinMind、yfinance；估值與動能沿用主篩選器。缺資料標示不納入,不以替代值硬湊。公司名稱與商標權利屬各公司所有,Logo 僅作識別用途。</footer>
 </div>"""
     return _page("AI 產業鏈全景圖", body, plotly=True)

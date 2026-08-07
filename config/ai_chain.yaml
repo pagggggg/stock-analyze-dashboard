@@ -71,6 +71,43 @@ cloud_capex:
           key_point: "下緣 125→130，上緣維持 145"
           note: "含融資租賃本金。區間收窄,下緣由 125.0 USD bn 上調至 130.0 USD bn,上緣維持 145.0 USD bn,屬實質微幅上調。Q2 單季 Capex 31.08 USD bn；單季自由現金流僅 0.784 USD bn（去年同期 8.55 USD bn）。"
 
+# Logo 優先取各公司官方網站 domain 的 favicon；generated:true 表示官方圖示不可得，
+# 改用專案產生的代號縮寫標章。商標權利屬各公司所有，本站僅作識別用途。
+logos:
+  MSFT: {domain: microsoft.com, file: assets/logos/MSFT.png}
+  GOOGL: {domain: abc.xyz, file: assets/logos/GOOGL.png}
+  AMZN: {domain: amazon.com, file: assets/logos/AMZN.png}
+  META: {domain: meta.com, file: assets/logos/META.png}
+  NVDA: {domain: nvidia.com, file: assets/logos/NVDA.png}
+  AMD: {domain: amd.com, file: assets/logos/AMD.png}
+  AVGO: {domain: broadcom.com, file: assets/logos/AVGO.png}
+  MRVL: {domain: marvell.com, file: assets/logos/MRVL.png}
+  "3661": {domain: alchip.com, file: assets/logos/3661.png, generated: true}
+  "3443": {domain: guc-asic.com, file: assets/logos/3443.png, generated: true}
+  "2330": {domain: tsmc.com, file: assets/logos/2330.png}
+  "3711": {domain: aseglobal.com, file: assets/logos/3711.png}
+  MU: {domain: micron.com, file: assets/logos/MU.png}
+  "2408": {domain: nanya.com, file: assets/logos/2408.png, generated: true}
+  "2344": {domain: winbond.com, file: assets/logos/2344.png}
+  ASML: {domain: asml.com, file: assets/logos/ASML.png}
+  AMAT: {domain: appliedmaterials.com, file: assets/logos/AMAT.png}
+  LRCX: {domain: lamresearch.com, file: assets/logos/LRCX.png}
+  KLAC: {domain: kla.com, file: assets/logos/KLAC.png}
+  "6488": {domain: sas-globalwafers.com, file: assets/logos/6488.png, generated: true}
+  "2383": {domain: emctw.com, file: assets/logos/2383.png, generated: true}
+  "2308": {domain: deltaww.com, file: assets/logos/2308.png}
+  "1519": {domain: fortune.com.tw, file: assets/logos/1519.png, generated: true}
+  "3017": {domain: avc.co, file: assets/logos/3017.png}
+  "3324": {domain: auras.com.tw, file: assets/logos/3324.png}
+  "2368": {domain: gce.com.tw, file: assets/logos/2368.png, generated: true}
+  "3037": {domain: unimicron.com, file: assets/logos/3037.png, generated: true}
+  "6196": {domain: micb2b.com, file: assets/logos/6196.png, generated: true}
+  "6139": {domain: lkeng.com.tw, file: assets/logos/6139.png, generated: true}
+  "2404": {domain: uisco.com.tw, file: assets/logos/2404.png, generated: true}
+  PLTR: {domain: palantir.com, file: assets/logos/PLTR.png, generated: true}
+  CRM: {domain: salesforce.com, file: assets/logos/CRM.png, generated: true}
+  NOW: {domain: servicenow.com, file: assets/logos/NOW.png, generated: true}
+
 cyclical_definition:
   lookback_years: 10
   need_hits: 2
@@ -83,6 +120,81 @@ transmission:
   max_lag_quarters: 6
   min_pairs: 8
   significance_p: 0.05
+
+# 產出側:追蹤企業實際為 AI 付費/簽約的選擇性揭露。
+# observation.status: disclosed / not_disclosed；沒有 observation = 尚未輸入/待確認，
+# 不可把「尚未輸入」冒充成「公司未揭露」。每一筆 observation 必須含期間、來源與揭露日期。
+output_side:
+  as_of_period: "2026Q2"
+  flat_threshold_pct: 3
+  scale_warning: "PLTR 全年美國商用營收約 3.4bn；相對四大 Capex 約 500bn 不到 1%。兩者期間與口徑不同,只作規模警語。"
+  scale_warning_source: "使用者提供的規模警語；未指定原始來源與同一比較期間"
+  metrics:
+    - id: pltr_us_commercial_revenue_yoy
+      company: PLTR
+      company_name: Palantir
+      name: "美國商用營收 YoY"
+      value_type: growth_rate
+      period_basis: calendar_quarter
+      unit: "%"
+      observations: []
+      note: "需逐季人工填入；不是整體 AI 產出的產業代理。"
+    - id: msft_copilot_paid_seats
+      company: MSFT
+      company_name: Microsoft
+      name: "Copilot 付費席次"
+      value_type: level
+      period_basis: calendar_quarter
+      unit: "席"
+      observations: []
+      note: "席次是使用量指標,不等同營收。"
+    - id: msft_azure_ai_growth
+      company: MSFT
+      company_name: Microsoft
+      name: "Azure AI 相關營收成長"
+      value_type: growth_rate
+      period_basis: calendar_quarter
+      unit: "%"
+      observations: []
+      note: "需明確保存公司揭露口徑(例如 constant currency)。"
+    - id: googl_cloud_backlog
+      company: GOOGL
+      company_name: Alphabet
+      name: "Google Cloud backlog（RPO）"
+      value_type: level
+      period_basis: calendar_quarter
+      unit: "USD bn"
+      observations:
+        - {period: "2026Q2", status: disclosed, value: 514.0,
+           source: "Alphabet Q2 2026 法說會", disclosure_date: "2026-07"}
+      note: "Cloud 整體 backlog/RPO,不是純 AI backlog。"
+    - id: amzn_aws_ai_run_rate
+      company: AMZN
+      company_name: Amazon
+      name: "AWS AI 業務年化營收 run rate"
+      value_type: level
+      period_basis: calendar_quarter
+      unit: "USD bn"
+      observations: []
+      note: "公司選擇性揭露的 run rate,不等同 GAAP 營收。"
+    - id: crm_ai_revenue
+      company: CRM
+      company_name: Salesforce
+      name: "AI 產品營收"
+      value_type: level
+      period_basis: calendar_quarter
+      unit: "USD bn"
+      observations: []
+      note: "需確認指標是否為純 AI 產品,不可拿整體訂單冒充。"
+    - id: now_ai_revenue
+      company: NOW
+      company_name: ServiceNow
+      name: "AI 產品營收"
+      value_type: level
+      period_basis: calendar_quarter
+      unit: "USD bn"
+      observations: []
+      note: "需確認指標是否為純 AI 產品,不可拿整體訂單冒充。"
 
 layers:
   - id: demand

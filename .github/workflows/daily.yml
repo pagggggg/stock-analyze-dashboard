@@ -198,7 +198,7 @@ jobs:
         id: quality
         run: |
           python - <<'PY'
-          import glob, os, re
+          import glob, os, re, struct, yaml, zlib
           idx = open("public/index.html", encoding="utf-8").read()
           ai_path = "public/ai-chain.html"
           # 不能用 glob("public/stock_*.html") 計數:build_site 不刪舊檔,
@@ -211,21 +211,49 @@ jobs:
           ai_ok = os.path.exists(ai_path)
           if ai_ok:
               ai = open(ai_path, encoding="utf-8").read()
-              ai_ok = (ai.count('class="chain-layer"') == 12
+              cfg = yaml.safe_load(open("config/ai_chain.yaml", encoding="utf-8")) or {}
+              expected_layers = len(cfg.get("layers") or [])
+              expected_outputs = len((cfg.get("output_side") or {}).get("metrics") or [])
+              logo_files = [x.get("file") for x in (cfg.get("logos") or {}).values()]
+              def valid_png(path):
+                  try:
+                      raw = open("public/" + path, "rb").read()
+                      if raw[:8] != b'\x89PNG\r\n\x1a\n': return False
+                      off, dims, idat, ended = 8, None, [], False
+                      while off + 12 <= len(raw):
+                          n = struct.unpack(">I", raw[off:off+4])[0]
+                          typ = raw[off+4:off+8]; end = off + 12 + n
+                          if end > len(raw): return False
+                          data = raw[off+8:off+8+n]
+                          crc = struct.unpack(">I", raw[off+8+n:end])[0]
+                          if (zlib.crc32(typ + data) & 0xffffffff) != crc: return False
+                          if typ == b'IHDR': dims = struct.unpack(">II", data[:8])
+                          if typ == b'IDAT': idat.append(data)
+                          if typ == b'IEND': ended = True; break
+                          off = end
+                      if not ended or not dims or not all(x > 0 for x in dims): return False
+                      zlib.decompress(b''.join(idat))
+                      return True
+                  except Exception:
+                      return False
+              logos_ok = bool(logo_files) and all(valid_png(path) for path in logo_files)
+              ai_ok = (ai.count('class="chain-layer"') == expected_layers
                        and "四大雲端業者季度 Capex" in ai
-                       and 'data-ai-capex-companies="4"' in ai)
+                       and 'data-ai-capex-companies="4"' in ai
+                       and ai.count('class="output-card"') == expected_outputs
+                       and logos_ok)
           print(f"母體 {n_universe} 檔;首頁實際連得到 {linked} 檔;最低要求 {floor} 檔")
           print(f"AI 產業鏈頁完整:{ai_ok}")
           with open(os.environ["GITHUB_OUTPUT"], "a") as f:
               f.write(f"ok={'true' if ok and ai_ok else 'false'}\n")
               f.write(f"linked={linked}\nfloor={floor}\n")
-          print("品質檢查通過。" if ok else "品質不足,將跳過部署。")
+          print("品質檢查通過。" if ok and ai_ok else "品質不足,將跳過部署。")
           PY
 
       - name: Skip deploy (quality gate)
         if: steps.quality.outputs.ok != 'true'
         run: |
-          echo "::warning title=已跳過部署(保護機制)::首頁只連得到 ${{ steps.quality.outputs.linked }} 檔,低於門檻 ${{ steps.quality.outputs.floor }} 檔。多半是 FinMind 每小時額度用盡導致個股分析失敗。線上網站維持前一版不變,下次排程會自動重試。"
+          echo "::warning title=已跳過部署(保護機制)::首頁或 AI 產業鏈頁未通過品質檢查。首頁可連 ${{ steps.quality.outputs.linked }} 檔,門檻 ${{ steps.quality.outputs.floor }} 檔。線上網站維持前一版不變。"
           echo "這不是故障,是保護機制:寧可不更新,也不要用殘缺版本覆蓋線上好版本。"
 
       - name: Deploy to gh-pages

@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import math
 import random
+import re
 import statistics
 from datetime import date
 from pathlib import Path
@@ -28,7 +29,8 @@ from .valuation_flag import pe_history_stats
 
 
 def load_ai_chain_config(path: str | Path) -> dict:
-    cfg = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
+    cfg_path = Path(path).resolve()
+    cfg = yaml.safe_load(cfg_path.read_text(encoding="utf-8")) or {}
     layers = cfg.get("layers") or []
     if not layers:
         raise ValueError("ai_chain.yaml 缺少 layers")
@@ -41,6 +43,20 @@ def load_ai_chain_config(path: str | Path) -> dict:
                 raise ValueError(f"{member}: market 必須為 twse/tpex/us")
             member["id"] = str(member["id"])
     _validate_guidance(cfg)
+    _validate_output_side(cfg)
+    ids = {m["id"] for layer in layers for m in layer.get("members") or []}
+    ids.update(cfg.get("cloud_capex", {}).get("tickers") or [])
+    ids.update(m.get("company") for m in (cfg.get("output_side", {}).get("metrics") or []))
+    logos = cfg.get("logos") or {}
+    missing = sorted(x for x in ids if x and x not in logos)
+    if missing:
+        raise ValueError(f"ai_chain.yaml 缺少 Logo 設定:{missing}")
+    for sid in ids:
+        meta = logos[sid]
+        if not meta.get("domain") or not str(meta.get("file", "")).startswith("assets/logos/"):
+            raise ValueError(f"{sid} Logo 需要 domain 與 assets/logos/ 路徑")
+        if not (cfg_path.parent.parent / meta["file"]).exists():
+            raise ValueError(f"{sid} Logo 檔不存在:{meta['file']}")
     return cfg
 
 
@@ -99,6 +115,102 @@ def _validate_guidance(cfg: dict) -> None:
                 date.fromisoformat(str(actual["source_date"]))
             except ValueError as e:
                 raise ValueError(f"{ticker} 實際值#{i}:source_date 必須為 YYYY-MM-DD") from e
+
+
+def _validate_output_side(cfg: dict) -> None:
+    out = cfg.get("output_side") or {}
+    as_of = str(out.get("as_of_period") or "")
+    if not re.fullmatch(r"\d{4}Q[1-4]", as_of):
+        raise ValueError("output_side.as_of_period 需為 YYYYQn")
+    valid_types = {"level", "growth_rate"}
+    valid_status = {"disclosed", "not_disclosed"}
+    seen = set()
+    for metric in out.get("metrics") or []:
+        mid = metric.get("id")
+        if not mid or mid in seen:
+            raise ValueError(f"output_side metric id 缺失或重複:{mid}")
+        seen.add(mid)
+        if not metric.get("company") or not metric.get("name") or not metric.get("unit"):
+            raise ValueError(f"{mid}:company/name/unit 必填")
+        if metric.get("value_type") not in valid_types:
+            raise ValueError(f"{mid}:value_type 必須為 level/growth_rate")
+        if metric.get("period_basis") != "calendar_quarter":
+            raise ValueError(f"{mid}:period_basis 目前必須為 calendar_quarter")
+        periods = set()
+        for i, obs in enumerate(metric.get("observations") or [], 1):
+            period = str(obs.get("period") or "")
+            if not re.fullmatch(r"\d{4}Q[1-4]", period) or period in periods:
+                raise ValueError(f"{mid} observation#{i}:period 需為 YYYYQn 且不可重複")
+            periods.add(period)
+            if _quarter_index(period) > _quarter_index(as_of):
+                raise ValueError(f"{mid} {period}:不可晚於 as_of_period {as_of}")
+            if obs.get("status") not in valid_status:
+                raise ValueError(f"{mid} {period}:status 必須為 disclosed/not_disclosed")
+            if obs["status"] == "disclosed" and not isinstance(obs.get("value"), (int, float)):
+                raise ValueError(f"{mid} {period}:disclosed 必須填 value")
+            if obs["status"] == "not_disclosed" and obs.get("value") is not None:
+                raise ValueError(f"{mid} {period}:not_disclosed 不可沿用 value")
+            if not obs.get("source") or not obs.get("disclosure_date"):
+                raise ValueError(f"{mid} {period}:source/disclosure_date 必填")
+            raw_date = str(obs["disclosure_date"])
+            try:
+                date.fromisoformat(raw_date + "-01" if len(raw_date) == 7 else raw_date)
+            except ValueError as e:
+                raise ValueError(f"{mid} {period}:disclosure_date 需為 YYYY-MM 或 YYYY-MM-DD") from e
+
+
+def build_output_side(cfg: dict) -> dict:
+    """以 as_of 季為準計算最新/前期/方向；缺季不冒充未揭露或連續。"""
+    output_cfg = cfg.get("output_side") or {}
+    flat = float(output_cfg.get("flat_threshold_pct", 3))
+    as_of = str(output_cfg["as_of_period"])
+    rows, counts = [], {"accel": 0, "decel": 0, "flat": 0,
+                       "not_disclosed": 0, "pending": 0, "insufficient": 0}
+    for metric in output_cfg.get("metrics") or []:
+        obs = sorted(metric.get("observations") or [], key=lambda x: x["period"])
+        by_period = {x["period"]: x for x in obs}
+        previous_period = _shift_compact_quarter(as_of, -1)
+        previous2_period = _shift_compact_quarter(as_of, -2)
+        latest = by_period.get(as_of)
+        previous = by_period.get(previous_period)
+        previous2 = by_period.get(previous2_period)
+        missing_streak = 0
+        check_period = as_of
+        while True:
+            x = by_period.get(check_period)
+            if x and x["status"] == "not_disclosed":
+                missing_streak += 1
+                check_period = _shift_compact_quarter(check_period, -1)
+            else:
+                break
+        if latest is None:
+            direction = "pending"
+        elif latest["status"] == "not_disclosed":
+            direction = "not_disclosed"
+        elif not previous or previous["status"] != "disclosed":
+            direction = "insufficient"
+        else:
+            cur, old = float(latest["value"]), float(previous["value"])
+            if metric["value_type"] == "growth_rate":
+                delta = cur - old              # 百分點
+            else:
+                # level 要判「加速度」需連續三季:比較本季成長率與前季成長率。
+                if not previous2 or previous2["status"] != "disclosed" or not old or not previous2["value"]:
+                    direction = "insufficient"
+                    counts[direction] += 1
+                    rows.append({**metric, "latest": latest, "previous": previous,
+                                 "previous2": previous2,
+                                 "direction": direction, "non_disclosure_streak": missing_streak})
+                    continue
+                delta = ((cur / old - 1) - (old / float(previous2["value"]) - 1)) * 100
+            direction = "accel" if delta > flat else "decel" if delta < -flat else "flat"
+        counts[direction] += 1
+        rows.append({**metric, "latest": latest, "previous": previous,
+                     "previous2": previous2,
+                     "direction": direction, "non_disclosure_streak": missing_streak})
+    return {"metrics": rows, "counts": counts, "as_of_period": as_of,
+            "scale_warning": output_cfg.get("scale_warning") or "",
+            "scale_warning_source": output_cfg.get("scale_warning_source") or ""}
 
 
 def _df_series(df, names: tuple[str, ...]) -> list[dict]:
@@ -298,6 +410,16 @@ def _shift_quarter(q: str, lag: int) -> str:
     return f"{z // 4}-Q{z % 4 + 1}"
 
 
+def _quarter_index(q: str) -> int:
+    compact = q.replace("-Q", "Q")
+    return int(compact[:4]) * 4 + int(compact[-1]) - 1
+
+
+def _shift_compact_quarter(q: str, lag: int) -> str:
+    z = _quarter_index(q) + lag
+    return f"{z // 4}Q{z % 4 + 1}"
+
+
 def yoy_series(rows: list[dict], value_key: str = "value") -> list[dict]:
     by_q = {_calendar_quarter(x["date"]): x[value_key] for x in rows if x.get(value_key) is not None}
     out = []
@@ -437,4 +559,6 @@ def build_ai_chain_data(chain_cfg: dict, screener_cfg: dict,
                        "transmission": lag_correlations(cloud["yoy"], rev_yoy, chain_cfg)})
     cloud["available_companies"] = sum(bool(x) for x in cloud.get("companies", {}).values())
     return {"cloud": cloud, "layers": layers, "unavailable": unavailable,
-            "guidance": chain_cfg["cloud_capex"].get("guidance") or {}}
+            "logos": chain_cfg.get("logos") or {},
+            "guidance": chain_cfg["cloud_capex"].get("guidance") or {},
+            "output_side": build_output_side(chain_cfg)}
