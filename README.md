@@ -99,6 +99,16 @@ open public/index.html            # 本機預覽
 - **跨日比對**:每次執行把每檔快照寫進 `data/scan_state.json`、事件寫進 `data/signal_log.csv`、共識歷史寫進 `data/consensus/<代號>.csv`;**隔次執行才能比出「上修/下修/燈變色」**。這些狀態檔要進版控。
 - **資料來源**:FinMind(財報/資產負債/現金流/日股價)+ yfinance(共識EPS/FCF/EV 元件),不依賴 TWSE 逐月抓,故可套用任意台股代號。
 
+### AI 產業鏈全景圖
+
+`public/ai-chain.html` 依 `config/ai_chain.yaml` 將雲端 Capex、晶片、代工、封裝、記憶體、設備、材料、電源、散熱、PCB、廠務等層級由資金源頭往上游排列。
+
+- 節點估值、PE 百分位、旗標、月營收沿用篩選器同一套 trailing 口徑。
+- 四大雲端 Capex 使用 yfinance 季度現金流；法說口頭指引需人工填 config。
+- 傳導 lag correlation 在樣本或顯著性不足時直接標示,不硬給落後期。
+- 循環標記沿用獨立循環回測的「近10年季度資料三取二」定義；資料不足標未知。
+- 層級關係不代表營收、獲利或股價必然連動。
+
 ### 每日自動更新 + 部署 GitHub Pages
 
 `.github/workflows/daily.yml` 已設定好:每天定時(+ 每次 push / 手動)重跑 `build_site.py`,把更新後的狀態檔 commit 回 repo,並部署 `public/` 到 GitHub Pages。首次啟用步驟見本文件結尾或對話說明。

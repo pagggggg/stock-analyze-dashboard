@@ -22,6 +22,8 @@ from pathlib import Path
 
 import yaml
 
+from src.ai_chain import build_ai_chain_data, load_ai_chain_config
+from src.ai_chain_html import build_ai_chain_page
 from src.analysis import analyze_stock
 from src.scan_state import compute_signals, load_signal_log
 from src.screener import load_config as load_screener_config, load_records, screen_all
@@ -120,7 +122,7 @@ def run(args) -> None:
         out = ROOT / out
 
     # 選股篩選頁(有本地全市場資料 data/universe/ 才產生;沒有就略過)
-    screener_html = screener_info = None
+    screener_html = screener_info = ai_chain_html = None
     try:
         recs = load_records(ROOT / "data/universe")
         if recs:
@@ -139,13 +141,29 @@ def run(args) -> None:
                 a.valuation_flag = r.metrics.get("flag") or "na"
             screener_html = build_screener_page(sres, sfun, scfg, _dt.now().strftime("%Y-%m-%d %H:%M"))
             screener_info = {"layer1_pass": sfun["layer1_pass"], "both_pass": sfun["both_pass"]}
+            try:
+                acfg = load_ai_chain_config(ROOT / "config/ai_chain.yaml")
+                adata = build_ai_chain_data(acfg, scfg, recs, sres)
+                detail_ids = {a.stock_id for a in analyses if a.ok}
+                ai_chain_html = build_ai_chain_page(
+                    adata, _dt.now().strftime("%Y-%m-%d %H:%M"), detail_ids)
+                screener_info["ai_layers"] = len(adata["layers"])
+                screener_info["ai_unavailable"] = len(adata["unavailable"])
+                print(f"[ai-chain] ai-chain.html:{len(adata['layers'])} 層,"
+                      f"無法納入 {len(adata['unavailable'])} 檔")
+            except Exception as e:  # noqa: BLE001 - 新頁是正式站點的一部分,失敗即中止
+                raise RuntimeError(f"AI 產業鏈頁生成失敗:{type(e).__name__}:{e}") from e
             print(f"[screener] screener.html:評估 {len(recs)} 檔,通過第一層 {sfun['layer1_pass']}、"
                   f"兩層全過 {sfun['both_pass']}")
     except Exception as e:  # noqa: BLE001
         print(f"[screener] 略過(無本地資料或錯誤):{e}")
 
+    if ai_chain_html is None:
+        raise RuntimeError("AI 產業鏈頁未產生；已中止建站,避免部署缺頁版本")
+
     stats = write_site(analyses, status, events, first_run, log_rows, out,
-                       screener_html=screener_html, screener_info=screener_info)
+                       screener_html=screener_html, screener_info=screener_info,
+                       ai_chain_html=ai_chain_html)
 
     light = {"green": "🟢綠", "yellow": "🟡黃", "red": "🔴紅"}.get(status, status)
     print("─" * 56)

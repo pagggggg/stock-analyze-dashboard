@@ -1,0 +1,95 @@
+# AI 產業鏈全景圖設定。順序就是頁面由資金源頭往上游的顯示順序。
+# market: twse=上市 / tpex=上櫃 / us=美股
+# 本檔只定義研究分類，不代表公司營收全部來自 AI，也不代表股價必然連動。
+
+cloud_capex:
+  tickers: [MSFT, GOOGL, AMZN, META]
+  # 法說口頭指引無法可靠自動解析；需要時人工填入，空值會如實顯示「未填」。
+  guidance:
+    MSFT: {value: null, unit: "USD bn", source: "", note: "請填最新法說口頭 Capex 指引"}
+    GOOGL: {value: null, unit: "USD bn", source: "", note: "請填最新法說口頭 Capex 指引"}
+    AMZN: {value: null, unit: "USD bn", source: "", note: "請填最新法說口頭 Capex 指引"}
+    META: {value: null, unit: "USD bn", source: "", note: "請填最新法說口頭 Capex 指引"}
+
+cyclical_definition:
+  lookback_years: 10
+  need_hits: 2
+  gross_margin_std_pp: 5
+  eps_yoy_drop_pct: 50
+  revenue_yoy_range_pp: 60
+  min_quarters: 8
+
+transmission:
+  max_lag_quarters: 6
+  min_pairs: 8
+  significance_p: 0.05
+
+layers:
+  - id: demand
+    name: "需求源頭"
+    description: "四大雲端業者資本支出，是本圖的資金起點。"
+    members:
+      - {id: MSFT, name: Microsoft, market: us}
+      - {id: GOOGL, name: Alphabet, market: us}
+      - {id: AMZN, name: Amazon, market: us}
+      - {id: META, name: Meta, market: us}
+  - id: chip_design
+    name: "晶片設計"
+    members:
+      - {id: NVDA, name: NVIDIA, market: us}
+      - {id: AMD, name: AMD, market: us}
+      - {id: AVGO, name: Broadcom, market: us}
+      - {id: MRVL, name: Marvell, market: us}
+  - id: asic
+    name: "ASIC 設計服務"
+    members:
+      - {id: "3661", name: 世芯-KY, market: twse}
+      - {id: "3443", name: 創意, market: twse}
+  - id: foundry
+    name: "晶圓代工"
+    members:
+      - {id: "2330", name: 台積電, market: twse}
+  - id: packaging
+    name: "封測／先進封裝"
+    members:
+      - {id: "3711", name: 日月光投控, market: twse}
+  - id: memory
+    name: "記憶體／HBM"
+    members:
+      - {id: MU, name: Micron, market: us}
+      - {id: "2408", name: 南亞科, market: twse}
+      - {id: "2344", name: 華邦電, market: twse}
+  - id: equipment
+    name: "設備"
+    members:
+      - {id: ASML, name: ASML, market: us}
+      - {id: AMAT, name: Applied Materials, market: us}
+      - {id: LRCX, name: Lam Research, market: us}
+      - {id: KLAC, name: KLA, market: us}
+  - id: materials
+    name: "材料／耗材"
+    members:
+      - {id: "6488", name: 環球晶, market: tpex}
+      - {id: "2383", name: 台光電, market: twse}
+  - id: power
+    name: "電源"
+    members:
+      - {id: "2308", name: 台達電, market: twse}
+      - {id: "1519", name: 華城, market: twse}
+  - id: cooling
+    name: "散熱"
+    members:
+      - {id: "3017", name: 奇鋐, market: twse}
+      - {id: "3324", name: 雙鴻, market: tpex}
+  - id: pcb
+    name: "PCB／載板"
+    members:
+      - {id: "2368", name: 金像電, market: twse}
+      - {id: "3037", name: 欣興, market: twse}
+  - id: facilities
+    name: "廠務工程"
+    description: "帆宣正確代號為 6196；原需求中的 3416 已更正。"
+    members:
+      - {id: "6196", name: 帆宣, market: twse}
+      - {id: "6139", name: 亞翔, market: twse}
+      - {id: "2404", name: 漢唐, market: twse}

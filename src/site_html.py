@@ -273,6 +273,7 @@ def build_index_html(
     )
 
     screener_cta = ""
+    ai_cta = ""
     if screener_info:
         screener_cta = (
             '<a class="screener-cta" href="screener.html">'
@@ -281,6 +282,13 @@ def build_index_html(
             f'通過第一層 <b>{screener_info.get("layer1_pass", 0)}</b> 檔・'
             f'兩層全過 <b>{screener_info.get("both_pass", 0)}</b> 檔'
             '　<span style="opacity:.85">點此看完整篩選結果 →</span></a>'
+        )
+        ai_cta = (
+            '<a class="ai-cta" href="ai-chain.html">'
+            '<span class="arrow">→</span>🧭 <b>AI 產業鏈全景圖</b>　'
+            f'{screener_info.get("ai_layers", 0)} 個層級・'
+            f'資料不足 {screener_info.get("ai_unavailable", 0)} 檔　'
+            '<span style="opacity:.86">從雲端 Capex 往上游追蹤 →</span></a>'
         )
 
     table = _scan_table(rows)
@@ -303,6 +311,7 @@ def build_index_html(
   {search}
 
   {screener_cta}
+  {ai_cta}
 
   <div class="layer-tag">第一層 · 狀態燈</div>
   {banner}
@@ -568,7 +577,8 @@ def build_detail_html(a, generated: str) -> str:
 # ======================================================================
 def write_site(analyses: list, status: str, events: list, first_run: bool,
                log_rows: list[dict], out_dir: str | Path,
-               screener_html: str | None = None, screener_info: dict | None = None) -> dict:
+               screener_html: str | None = None, screener_info: dict | None = None,
+               ai_chain_html: str | None = None) -> dict:
     """把 index / 各詳情頁 / plotly.min.js / style.css 全部寫到 out_dir。回傳統計。"""
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -595,6 +605,8 @@ def write_site(analyses: list, status: str, events: list, first_run: bool,
     # 選股篩選頁(有資料才寫)
     if screener_html:
         (out / "screener.html").write_text(screener_html, encoding="utf-8")
+    if ai_chain_html:
+        (out / "ai-chain.html").write_text(ai_chain_html, encoding="utf-8")
     # 各詳情頁(只為成功的股票產生)
     n_detail = 0
     for a in analyses:
@@ -604,7 +616,7 @@ def write_site(analyses: list, status: str, events: list, first_run: bool,
             n_detail += 1
 
     return {"stocks": len(analyses), "details": n_detail, "out": str(out),
-            "screener": bool(screener_html)}
+            "screener": bool(screener_html), "ai_chain": bool(ai_chain_html)}
 
 
 # ======================================================================
@@ -687,6 +699,33 @@ code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: .85
   box-shadow: 0 6px 18px rgba(4,120,87,.20); }
 .screener-cta b { color: #fff; }
 .screener-cta .arrow { float: right; opacity: .8; font-size: 1.3rem; }
+.ai-cta { display:block; background:linear-gradient(135deg,#1e3a8a,#4338ca); color:#fff;
+  border-radius:14px; padding:16px 18px; margin:14px 0; text-decoration:none;
+  box-shadow:0 6px 18px rgba(49,46,129,.22); }
+.ai-cta b { color:#fff; }
+.ai-cta .arrow { float:right; opacity:.8; font-size:1.3rem; }
+.ai-wrap { max-width:1180px; }
+.capex-hero { border-top:4px solid #2563eb; }
+.chain-flow { margin:18px 0; }
+.chain-arrow { text-align:center; color:#64748b; font-size:1.35rem; line-height:1; margin:7px 0; }
+.chain-layer { background:#fff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden;
+  box-shadow:0 4px 14px rgba(15,23,42,.06); }
+.chain-layer summary { display:flex; align-items:center; gap:12px; cursor:pointer; padding:15px 18px;
+  font-weight:800; color:#0f172a; list-style:none; }
+.chain-layer summary::-webkit-details-marker { display:none; }
+.chain-layer summary::after { content:'＋'; margin-left:auto; color:#64748b; }
+.chain-layer[open] summary::after { content:'−'; }
+.layer-no { display:inline-grid; place-items:center; width:36px; height:36px; border-radius:10px;
+  background:#e0e7ff; color:#3730a3; font-variant-numeric:tabular-nums; }
+.layer-summary { margin-left:auto; margin-right:10px; font-size:.82rem; font-weight:500; color:#64748b; }
+.layer-body { border-top:1px solid #eef2f7; padding:12px 18px 18px; }
+.ai-table { min-width:850px; }
+.ai-table td.name a { color:#2563eb; text-decoration:none; font-weight:700; }
+.unavailable { color:#94a3b8; }
+.cycle-tag { display:inline-block; border:1px solid; border-radius:999px; padding:1px 8px;
+  font-size:.76rem; font-weight:700; white-space:nowrap; }
+.transmission { margin-top:10px; padding:9px 11px; background:#f8fafc; border-radius:8px;
+  color:#475569; font-size:.86rem; }
 .search-box { position: relative; margin: 14px 0; }
 .search-box input { width: 100%; box-sizing: border-box; padding: 13px 16px; font-size: 1rem;
   border: 2px solid #cbd5e1; border-radius: 12px; outline: none; background: #fff; }
@@ -728,5 +767,9 @@ code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: .85
   table#scan th, table#scan td { padding: 8px 6px; }
   .layer-tag { margin: 14px 4px 6px; }
   .screener-cta { padding: 14px; }
+  .ai-cta { padding:14px; }
+  .chain-layer summary { align-items:flex-start; flex-wrap:wrap; padding:13px; }
+  .layer-summary { flex-basis:100%; margin:0 0 0 48px; }
+  .layer-body { padding:10px 12px 14px; }
 }
 """
