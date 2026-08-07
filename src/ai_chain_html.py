@@ -18,10 +18,25 @@ FLAG = {
 }
 CYCLE = {"cyclical": ("循環", "#b45309"), "non_cyclical": ("非循環", "#475569"),
          "unknown": ("未知", "#94a3b8")}
+DIRECTION = {"up": "上調", "down": "下調", "unchanged": "維持不變",
+             "yoy_increase": "預期年增（非指引上調）"}
+BASIS = {"calendar_year": "日曆年", "fiscal_year": "會計年度", "quarter": "單季"}
 
 
 def _n(v, dp=1, suffix=""):
     return "—" if v is None else f"{v:,.{dp}f}{suffix}"
+
+
+def _guidance_amount(entry: dict) -> str:
+    a = entry["amount"]
+    unit = escape(a.get("unit", ""))
+    if a["kind"] == "approximate":
+        return f"約 {_n(a['value'], 1)} {unit}"
+    if a["kind"] == "minimum":
+        return f"超過 {_n(a['value'], 1)} {unit}"
+    if a["kind"] == "range":
+        return f"{_n(a['low'], 1)}–{_n(a['high'], 1)} {unit}"
+    return escape(a.get("text") or "未揭露具體數字")
 
 
 def _capex_fig(cloud: dict) -> str:
@@ -102,13 +117,38 @@ def build_ai_chain_page(data: dict, generated: str, detail_ids: set[str]) -> str
     guidance = data.get("guidance") or {}
     errors = cloud.get("errors") or {}
     guide_rows = []
+    comparable_rows = []
     for ticker in ("MSFT", "GOOGL", "AMZN", "META"):
-        g = guidance.get(ticker) or {}
-        value = g.get("value")
-        guide_rows.append(
-            f"<tr><td>{ticker}</td><td>{_n(value, 1, ' ' + g.get('unit', '')) if value is not None else '未填'}</td>"
-            f"<td>{escape(g.get('source') or '法說口頭指引無法自動抓取')}</td></tr>"
-        )
+        company = guidance.get(ticker) or {}
+        entries = company.get("entries") or []
+        if not entries:
+            guide_rows.append(
+                f'<tr class="unavailable"><td>{ticker}</td><td colspan="6">⚠ 未填　'
+                f'{escape(company.get("note") or "待補最新法說 Capex 指引")}</td></tr>')
+        for entry in entries:
+            period = entry["period"]
+            comparable = (period["basis"] == "calendar_year"
+                          and entry["amount"]["kind"] != "undisclosed")
+            guide_rows.append(
+                f"<tr><td>{ticker}</td><td><b>{_guidance_amount(entry)}</b>（{escape(period['label'])}）</td>"
+                f"<td>{BASIS[period['basis']]}</td><td>{DIRECTION[entry['direction']]}</td>"
+                f"<td>{'✅可跨公司比較' if comparable else '⚠不可直接比較'}</td>"
+                f"<td>{escape(entry['source'])}<br>{escape(str(entry['source_date']))}</td>"
+                f"<td>{escape(entry.get('note') or '—')}</td></tr>"
+            )
+        # 跨公司「金額」比較只能選有具體金額的日曆年指引；
+        # 較晚但未揭露數字的定性指引仍留在完整表,不可覆蓋可比數值。
+        calendars = [x for x in entries if x["period"]["basis"] == "calendar_year"
+                     and x["amount"]["kind"] != "undisclosed"]
+        if calendars:
+            latest = sorted(calendars, key=lambda x: (x["period"]["label"], x["source_date"]))[-1]
+            comparable_rows.append(
+                f"<tr><td>{ticker}</td><td><b>{_guidance_amount(latest)}</b>（{escape(latest['period']['label'])}）</td>"
+                f"<td>{DIRECTION[latest['direction']]}</td><td>{escape(str(latest['source_date']))}</td></tr>")
+        else:
+            comparable_rows.append(
+                f'<tr class="unavailable"><td>{ticker}</td><td colspan="3">'
+                f'⚠ 無日曆年金額，不可直接跨公司比較</td></tr>')
 
     layer_html = []
     for i, layer in enumerate(data["layers"], 1):
@@ -153,8 +193,16 @@ def build_ai_chain_page(data: dict, generated: str, detail_ids: set[str]) -> str
       各季柱狀圖 hover 會顯示涵蓋幾家公司,只有前後兩期都四家齊全才計算合計 YoY。
       Capex YoY 與落後期相關性若樣本不足會直接標示,不外推。抓取狀態:{escape(source_note)}</div>
     <h3>法說口頭指引(人工輸入)</h3>
-    <div class="table-scroll"><table class="tbl"><thead><tr><th>公司</th><th>指引值</th><th>來源/狀態</th></tr></thead>
+    <div class="note">期間口徑必須和金額一起閱讀。Microsoft 會計年度不同於其他三家；
+      <b>跨公司比較只使用日曆年欄位</b>。只有會計年度或單季資料時,明確標示不可比。</div>
+    <div class="swipe-hint">← 手機可左右滑動看更多欄位 →</div>
+    <div class="table-scroll"><table class="tbl ai-guidance"><thead><tr>
+      <th>公司</th><th>金額／揭露狀態（期間）</th><th>期間口徑</th><th>相對前次方向</th>
+      <th>跨公司可比性</th><th>來源與日期</th><th>備註</th></tr></thead>
       <tbody>{''.join(guide_rows)}</tbody></table></div>
+    <h3>日曆年跨公司可比欄</h3>
+    <div class="table-scroll"><table class="tbl"><thead><tr><th>公司</th><th>日曆年 Capex 指引</th>
+      <th>方向</th><th>來源日期</th></tr></thead><tbody>{''.join(comparable_rows)}</tbody></table></div>
   </section>
 
   <div class="chain-flow">{''.join(layer_html)}</div>

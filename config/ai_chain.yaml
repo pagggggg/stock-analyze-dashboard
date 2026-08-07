@@ -4,12 +4,46 @@
 
 cloud_capex:
   tickers: [MSFT, GOOGL, AMZN, META]
-  # 法說口頭指引無法可靠自動解析；需要時人工填入，空值會如實顯示「未填」。
+  # 法說口頭指引無法可靠自動解析。每筆 entry 必須明列:
+  # amount.kind/value(或 low/high；未揭露數字用 undisclosed)、period.basis/label、
+  # direction、source、source_date。跨公司比較只採 period.basis=calendar_year。
   guidance:
-    MSFT: {value: null, unit: "USD bn", source: "", note: "請填最新法說口頭 Capex 指引"}
-    GOOGL: {value: null, unit: "USD bn", source: "", note: "請填最新法說口頭 Capex 指引"}
-    AMZN: {value: null, unit: "USD bn", source: "", note: "請填最新法說口頭 Capex 指引"}
-    META: {value: null, unit: "USD bn", source: "", note: "請填最新法說口頭 Capex 指引"}
+    MSFT:
+      entries:
+        - amount: {kind: approximate, value: 175.0, unit: "USD bn"}
+          period: {basis: calendar_year, label: "日曆年 2026"}
+          direction: unchanged
+          source: "Microsoft FY27 Q1 Outlook 簡報；2026-07-29 法說會"
+          source_date: "2026-07-29"
+          note: "約 1,750 億美元；含使用年限變更對租賃分類的影響。"
+        - amount: {kind: minimum, value: 50.0, unit: "USD bn"}
+          period: {basis: quarter, label: "FY27 Q1（2026年7–9月）"}
+          direction: unchanged
+          source: "Microsoft FY27 Q1 Outlook 簡報；2026-07-29 法說會"
+          source_date: "2026-07-29"
+          note: "超過 500 億美元；Microsoft 會計年度單季，不可直接和其他公司的日曆年數字比較。含使用年限變更對租賃分類的影響。"
+        - amount: {kind: undisclosed, text: "預期年增，未揭露具體金額", unit: "USD bn"}
+          period: {basis: fiscal_year, label: "FY27 全年"}
+          direction: yoy_increase
+          source: "Microsoft FY27 Q1 Outlook 簡報；2026-07-29 法說會"
+          source_date: "2026-07-29"
+          note: "僅有方向、無金額；Microsoft 會計年度，不可直接跨公司比較。含使用年限變更對租賃分類的影響。"
+    GOOGL:
+      entries:
+        - amount: {kind: range, low: 195.0, high: 205.0, unit: "USD bn"}
+          period: {basis: calendar_year, label: "日曆年 2026"}
+          direction: up
+          source: "Alphabet Q2 2026 法說會；CFO Anat Ashkenazi"
+          source_date: "2026-07"
+          note: "上調自前次 180–190 USD bn；原因為加速產能交付以滿足需求成長。Q2 單季 Capex 44.9 USD bn、自由現金流 -5.9 USD bn、Cloud backlog 514.0 USD bn。"
+        - amount: {kind: undisclosed, text: "預期顯著增加，未揭露具體金額", unit: "USD bn"}
+          period: {basis: calendar_year, label: "日曆年 2027"}
+          direction: yoy_increase
+          source: "Alphabet Q2 2026 法說會；CFO Anat Ashkenazi"
+          source_date: "2026-07"
+          note: "只有方向、沒有具體金額；因此不能和其他公司的日曆年金額做數值比較。"
+    AMZN: {entries: [], note: "待補最新法說 Capex 指引"}
+    META: {entries: [], note: "待補最新法說 Capex 指引"}
 
 cyclical_definition:
   lookback_years: 10

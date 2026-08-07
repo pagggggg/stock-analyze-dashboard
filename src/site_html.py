@@ -720,6 +720,7 @@ code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: .85
 .layer-summary { margin-left:auto; margin-right:10px; font-size:.82rem; font-weight:500; color:#64748b; }
 .layer-body { border-top:1px solid #eef2f7; padding:12px 18px 18px; }
 .ai-table { min-width:850px; }
+.ai-guidance { min-width:1050px; }
 .ai-table td.name a { color:#2563eb; text-decoration:none; font-weight:700; }
 .unavailable { color:#94a3b8; }
 .cycle-tag { display:inline-block; border:1px solid; border-radius:999px; padding:1px 8px;

@@ -11,6 +11,7 @@ import json
 import math
 import random
 import statistics
+from datetime import date
 from pathlib import Path
 
 import yaml
@@ -39,7 +40,51 @@ def load_ai_chain_config(path: str | Path) -> dict:
             if str(member.get("market")) not in valid_markets:
                 raise ValueError(f"{member}: market 必須為 twse/tpex/us")
             member["id"] = str(member["id"])
+    _validate_guidance(cfg)
     return cfg
+
+
+def _validate_guidance(cfg: dict) -> None:
+    cloud = cfg.get("cloud_capex") or {}
+    tickers = [str(x) for x in cloud.get("tickers") or []]
+    guidance = cloud.get("guidance") or {}
+    kinds = {"approximate", "minimum", "range", "undisclosed"}
+    bases = {"calendar_year", "fiscal_year", "quarter"}
+    directions = {"up", "down", "unchanged", "yoy_increase"}
+    for ticker in tickers:
+        company = guidance.get(ticker)
+        if not isinstance(company, dict) or not isinstance(company.get("entries", []), list):
+            raise ValueError(f"{ticker} guidance 必須是含 entries 的 object")
+        for i, entry in enumerate(company.get("entries") or [], 1):
+            amount, period = entry.get("amount") or {}, entry.get("period") or {}
+            kind = amount.get("kind")
+            if kind not in kinds or not amount.get("unit"):
+                raise ValueError(f"{ticker} 指引#{i}:amount.kind/unit 不完整")
+            if kind in ("approximate", "minimum") and not isinstance(amount.get("value"), (int, float)):
+                raise ValueError(f"{ticker} 指引#{i}:amount.value 必須是數字")
+            if kind == "range":
+                if not isinstance(amount.get("low"), (int, float)) or not isinstance(amount.get("high"), (int, float)):
+                    raise ValueError(f"{ticker} 指引#{i}:range 需要 low/high")
+                if amount["low"] > amount["high"]:
+                    raise ValueError(f"{ticker} 指引#{i}:range low 不可大於 high")
+            if kind == "undisclosed" and not amount.get("text"):
+                raise ValueError(f"{ticker} 指引#{i}:未揭露數字時必須填 text")
+            if period.get("basis") not in bases or not period.get("label"):
+                raise ValueError(f"{ticker} 指引#{i}:period.basis/label 不完整")
+            if entry.get("direction") not in directions:
+                raise ValueError(f"{ticker} 指引#{i}:direction 必須為 up/down/unchanged/yoy_increase")
+            if not entry.get("source") or not entry.get("source_date"):
+                raise ValueError(f"{ticker} 指引#{i}:source/source_date 必填")
+            raw_date = str(entry["source_date"])
+            try:
+                if len(raw_date) == 7:
+                    date.fromisoformat(raw_date + "-01")
+                elif len(raw_date) == 10:
+                    date.fromisoformat(raw_date)
+                else:
+                    raise ValueError
+            except ValueError as e:
+                raise ValueError(f"{ticker} 指引#{i}:source_date 必須為 YYYY-MM 或 YYYY-MM-DD") from e
 
 
 def _df_series(df, names: tuple[str, ...]) -> list[dict]:
