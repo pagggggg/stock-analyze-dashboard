@@ -50,7 +50,7 @@ def _validate_guidance(cfg: dict) -> None:
     guidance = cloud.get("guidance") or {}
     kinds = {"approximate", "minimum", "range", "undisclosed"}
     bases = {"calendar_year", "fiscal_year", "quarter"}
-    directions = {"up", "down", "unchanged", "yoy_increase"}
+    directions = {"up", "down", "unchanged", "yoy_increase", "not_stated"}
     for ticker in tickers:
         company = guidance.get(ticker)
         if not isinstance(company, dict) or not isinstance(company.get("entries", []), list):
@@ -72,7 +72,7 @@ def _validate_guidance(cfg: dict) -> None:
             if period.get("basis") not in bases or not period.get("label"):
                 raise ValueError(f"{ticker} 指引#{i}:period.basis/label 不完整")
             if entry.get("direction") not in directions:
-                raise ValueError(f"{ticker} 指引#{i}:direction 必須為 up/down/unchanged/yoy_increase")
+                raise ValueError(f"{ticker} 指引#{i}:direction 不在允許清單")
             if not entry.get("source") or not entry.get("source_date"):
                 raise ValueError(f"{ticker} 指引#{i}:source/source_date 必填")
             raw_date = str(entry["source_date"])
@@ -85,6 +85,20 @@ def _validate_guidance(cfg: dict) -> None:
                     raise ValueError
             except ValueError as e:
                 raise ValueError(f"{ticker} 指引#{i}:source_date 必須為 YYYY-MM 或 YYYY-MM-DD") from e
+        for i, actual in enumerate(company.get("reported_actuals") or [], 1):
+            amount, period = actual.get("amount") or {}, actual.get("period") or {}
+            if amount.get("kind") != "reported" or not isinstance(amount.get("value"), (int, float)) or not amount.get("unit"):
+                raise ValueError(f"{ticker} 實際值#{i}:amount 必須含 reported/value/unit")
+            if period.get("basis") != "trailing_12_months" or not period.get("label"):
+                raise ValueError(f"{ticker} 實際值#{i}:period 必須明列 trailing_12_months/label")
+            if not isinstance(actual.get("yoy_pct"), (int, float)):
+                raise ValueError(f"{ticker} 實際值#{i}:yoy_pct 必須是數字")
+            if not actual.get("source") or not actual.get("source_date"):
+                raise ValueError(f"{ticker} 實際值#{i}:source/source_date 必填")
+            try:
+                date.fromisoformat(str(actual["source_date"]))
+            except ValueError as e:
+                raise ValueError(f"{ticker} 實際值#{i}:source_date 必須為 YYYY-MM-DD") from e
 
 
 def _df_series(df, names: tuple[str, ...]) -> list[dict]:
@@ -106,7 +120,7 @@ def _df_series(df, names: tuple[str, ...]) -> list[dict]:
 
 def fetch_us_quarterly(ticker: str, ttl_seconds: int = 12 * 3600) -> dict:
     """抓美股季度 Capex/營收。yfinance 免費端通常只有約 5 季。"""
-    key = f"ai_chain_us_quarterly_{ticker}"
+    key = f"ai_chain_us_quarterly_v2_{ticker}"
     cached = cache_get(key, ttl_seconds=ttl_seconds)
     if cached is not None:
         return cached["data"]
@@ -116,6 +130,10 @@ def fetch_us_quarterly(ticker: str, ttl_seconds: int = 12 * 3600) -> dict:
     t = yf.Ticker(ticker)
     qcf = t.quarterly_cashflow
     qi = t.quarterly_income_stmt
+    try:
+        ttm_cf = t.ttm_cashflow
+    except Exception:
+        ttm_cf = None
     capex = _df_series(qcf, ("Capital Expenditure", "Capital Expenditures"))
     revenue = _df_series(qi, ("Total Revenue", "Operating Revenue"))
     gross = _df_series(qi, ("Gross Profit",))
@@ -123,7 +141,11 @@ def fetch_us_quarterly(ticker: str, ttl_seconds: int = 12 * 3600) -> dict:
     # Capex 在現金流量表通常是負數；研究圖統一顯示投資額正值。
     for row in capex:
         row["value"] = abs(row["value"])
-    data = {"ticker": ticker, "capex": capex, "revenue": revenue,
+    ttm_capex_rows = _df_series(ttm_cf, ("Capital Expenditure", "Purchase Of PPE", "Capital Expenditures"))
+    ttm_capex = ttm_capex_rows[-1] if ttm_capex_rows else None
+    if ttm_capex:
+        ttm_capex["value"] = abs(ttm_capex["value"])
+    data = {"ticker": ticker, "capex": capex, "ttm_capex": ttm_capex, "revenue": revenue,
             "gross_profit": gross, "eps": eps,
             "source": "yfinance quarterly_cashflow / quarterly_income_stmt"}
     cache_set(key, data)
@@ -293,7 +315,7 @@ def aggregate_cloud_capex(tickers: list[str]) -> dict:
         try:
             q = fetch_us_quarterly(ticker)
             rows = q["capex"]
-            per_company[ticker] = rows
+            per_company[ticker] = q
             for row in rows:
                 quarter = _calendar_quarter(row["date"])
                 by_quarter.setdefault(quarter, {})[ticker] = row["value"]

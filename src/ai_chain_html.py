@@ -19,7 +19,7 @@ FLAG = {
 CYCLE = {"cyclical": ("循環", "#b45309"), "non_cyclical": ("非循環", "#475569"),
          "unknown": ("未知", "#94a3b8")}
 DIRECTION = {"up": "上調", "down": "下調", "unchanged": "維持不變",
-             "yoy_increase": "預期年增（非指引上調）"}
+             "yoy_increase": "預期年增（非指引上調）", "not_stated": "未說明／無指引"}
 BASIS = {"calendar_year": "日曆年", "fiscal_year": "會計年度", "quarter": "單季"}
 
 
@@ -37,6 +37,10 @@ def _guidance_amount(entry: dict) -> str:
     if a["kind"] == "range":
         return f"{_n(a['low'], 1)}–{_n(a['high'], 1)} {unit}"
     return escape(a.get("text") or "未揭露具體數字")
+
+
+def _auto_ttm_capex(cloud: dict, ticker: str) -> dict | None:
+    return (cloud.get("companies", {}).get(ticker) or {}).get("ttm_capex")
 
 
 def _capex_fig(cloud: dict) -> str:
@@ -118,6 +122,7 @@ def build_ai_chain_page(data: dict, generated: str, detail_ids: set[str]) -> str
     errors = cloud.get("errors") or {}
     guide_rows = []
     comparable_rows = []
+    actual_rows = []
     for ticker in ("MSFT", "GOOGL", "AMZN", "META"):
         company = guidance.get(ticker) or {}
         entries = company.get("entries") or []
@@ -149,6 +154,16 @@ def build_ai_chain_page(data: dict, generated: str, detail_ids: set[str]) -> str
             comparable_rows.append(
                 f'<tr class="unavailable"><td>{ticker}</td><td colspan="3">'
                 f'⚠ 無日曆年金額，不可直接跨公司比較</td></tr>')
+        for actual in company.get("reported_actuals") or []:
+            amount, period = actual["amount"], actual["period"]
+            auto = _auto_ttm_capex(cloud, ticker)
+            auto_txt = (f"{_n(auto['value'] / 1e9, 1)} USD bn（截至 {escape(auto['date'])}）"
+                        if auto else "—")
+            actual_rows.append(
+                f"<tr><td>{ticker}</td><td><b>{_n(amount['value'], 1)} {escape(amount['unit'])}</b>"
+                f"（{escape(period['label'])}）</td><td>{_n(actual['yoy_pct'], 1, '%')}</td>"
+                f"<td>{auto_txt}</td><td>{escape(actual['source'])}<br>{escape(str(actual['source_date']))}</td>"
+                f"<td>{escape(actual.get('note') or '—')}</td></tr>")
 
     layer_html = []
     for i, layer in enumerate(data["layers"], 1):
@@ -203,6 +218,9 @@ def build_ai_chain_page(data: dict, generated: str, detail_ids: set[str]) -> str
     <h3>日曆年跨公司可比欄</h3>
     <div class="table-scroll"><table class="tbl"><thead><tr><th>公司</th><th>日曆年 Capex 指引</th>
       <th>方向</th><th>來源日期</th></tr></thead><tbody>{''.join(comparable_rows)}</tbody></table></div>
+    {('<h3>財報實際 TTM Capex（不是指引）</h3><div class="note">公司財報揭露值與 yfinance 自動值可能因「淨額」/Purchase of PPE 定義不同而有差異,不可混成同一口徑。</div>'
+      '<div class="table-scroll"><table class="tbl ai-guidance"><thead><tr><th>公司</th><th>公司財報揭露</th><th>YoY</th><th>yfinance 自動值</th><th>來源與日期</th><th>口徑備註</th></tr></thead><tbody>'
+      + ''.join(actual_rows) + '</tbody></table></div>' if actual_rows else '')}
   </section>
 
   <div class="chain-flow">{''.join(layer_html)}</div>

@@ -42,7 +42,22 @@ cloud_capex:
           source: "Alphabet Q2 2026 法說會；CFO Anat Ashkenazi"
           source_date: "2026-07"
           note: "只有方向、沒有具體金額；因此不能和其他公司的日曆年金額做數值比較。"
-    AMZN: {entries: [], note: "待補最新法說 Capex 指引"}
+    AMZN:
+      entries:
+        - amount: {kind: undisclosed, text: "未提供明確 Capex 指引", unit: "USD bn"}
+          period: {basis: calendar_year, label: "日曆年 2026"}
+          direction: not_stated
+          source: "Amazon Q2 2026 財報 Financial Guidance"
+          source_date: "2026-07-30"
+          note: "Financial Guidance 僅提供下一季營收與營業利益,不提供 Capex 指引。"
+      reported_actuals:
+        - metric: net_capex
+          amount: {kind: reported, value: 169.0, unit: "USD bn"}
+          period: {basis: trailing_12_months, label: "截至 2026 Q2 的近12個月"}
+          yoy_pct: 64.0
+          source: "Amazon Q2 2026 財報"
+          source_date: "2026-07-30"
+          note: "公司揭露口徑為資本支出淨額；與 yfinance 的 Capital Expenditure/Purchase of PPE 口徑不完全相同。"
     META:
       entries:
         - amount: {kind: range, low: 130.0, high: 145.0, unit: "USD bn"}
