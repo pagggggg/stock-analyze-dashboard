@@ -180,7 +180,6 @@ def run(args) -> None:
     try:
         recs = load_records(ROOT / "data/universe")
         if recs:
-            from datetime import datetime as _dt
             scfg = load_screener_config(ROOT / "config/screener.yaml")
             sres, sfun = screen_all(recs, scfg)
             by_id = {r.stock_id: r for r in sres}
@@ -193,14 +192,15 @@ def run(args) -> None:
                 a.pe_p90 = r.metrics.get("pe_p90")
                 a.pe_percentile = r.metrics.get("pe_pct")
                 a.valuation_flag = r.metrics.get("flag") or "na"
-            screener_html = build_screener_page(sres, sfun, scfg, _dt.now().strftime("%Y-%m-%d %H:%M"))
+            generated = build_now.strftime("%Y-%m-%d %H:%M") + " (台北時間)"
+            screener_html = build_screener_page(sres, sfun, scfg, generated)
             screener_info = {"layer1_pass": sfun["layer1_pass"], "both_pass": sfun["both_pass"]}
             try:
                 acfg = load_ai_chain_config(ROOT / "config/ai_chain.yaml")
                 adata = build_ai_chain_data(acfg, scfg, recs, sres)
                 detail_ids = {a.stock_id for a in analyses if a.ok}
                 ai_chain_html = build_ai_chain_page(
-                    adata, _dt.now().strftime("%Y-%m-%d %H:%M"), detail_ids)
+                    adata, generated, detail_ids)
                 screener_info["ai_layers"] = len(adata["layers"])
                 screener_info["ai_unavailable"] = len(adata["unavailable"])
                 print(f"[ai-chain] ai-chain.html:{len(adata['layers'])} 層,"
