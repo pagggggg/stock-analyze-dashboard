@@ -21,6 +21,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from .data_layer import (
     fetch_balance_pivot,
@@ -30,7 +31,6 @@ from .data_layer import (
     fetch_yfinance_metrics,
     load_consensus_history,
     quarters_from_income_pivot,
-    record_consensus_history,
 )
 from .eps_calc import calculate_scenarios
 from .fcf_quality import FcfQualityResult, build_fcf_quality
@@ -40,6 +40,9 @@ from .models import DashboardResult, EPSScenario, PEBand, QuarterFinancials
 from .river import (RiverSeries, build_pe_river, compute_pe_band_finmind,
                     supports_tw_filing_fallback)
 from .valuation import build_valuation
+
+if TYPE_CHECKING:
+    from .thesis import ThesisResult
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -81,6 +84,7 @@ class StockAnalysis:
     ann_eps_source: str = ""
     yf_raw: dict | None = None                     # yfinance 原始指標(供前端「換個價格試算」重算用)
     mrev: dict | None = None                       # 月營收動能(不需分析師共識;台股每月公告)
+    thesis: ThesisResult | None = None              # 個人持有 thesis（若有設定）
     errors: list[str] = field(default_factory=list)
 
     @property
@@ -94,18 +98,28 @@ class StockAnalysis:
             return None
         return next((m for m in self.dashboard.metrics if m.key == key), None)
 
-    def state_snapshot(self) -> dict:
+    def state_snapshot(self, previous: dict | None = None) -> dict:
         """給 scan_state 做「和上次比較」的當前狀態快照。"""
-        fpe = self.metric("forward_pe")
+        previous = previous or {}
         peg = self.metric("peg")
         lights = {s.kind: s.light for s in (self.fcf.signals if self.fcf else [])}
+        previous_lights = previous.get("fcf_lights") or {}
+        # 暫時抓不到欄位時保留上次基準，避免資料恢復後跨過 outage 的變化永遠漏報。
+        lights = {key: lights.get(key) or previous_lights.get(key)
+                  for key in set(lights) | set(previous_lights)}
+        thesis_conditions = {
+            x.id: {"status": x.status, "label": x.label,
+                   "current_value": x.current_value, "basis": x.basis}
+            for x in (self.thesis.conditions if self.thesis else [])
+        }
         return {
-            "eps_y0": self.eps_y0,
-            "eps_y1": self.eps_y1,
+            "eps_y0": self.eps_y0 if self.eps_y0 is not None else previous.get("eps_y0"),
+            "eps_y1": self.eps_y1 if self.eps_y1 is not None else previous.get("eps_y1"),
             # forward PE 不再拿 trailing 歷史河道判級，因此不產生估值跨級事件。
             "forward_pe_verdict": None,
             "peg_verdict": peg.verdict if peg else None,
             "fcf_lights": lights,
+            "thesis_conditions": thesis_conditions,
         }
 
 
@@ -121,7 +135,6 @@ def analyze_stock(
     name: str = "",
     guidance_path: str | Path | None = None,
     pe_years: int = 10,
-    record_consensus: bool = True,
 ) -> StockAnalysis:
     """把一檔股票的所有分析湊齊。任何一步失敗都會記進 errors,不中斷。"""
     a = StockAnalysis(stock_id=stock_id, name=name or stock_id)
@@ -238,14 +251,7 @@ def analyze_stock(
                 a.errors.append(f"法說指引試算失敗:{e}")
 
     # ---- 8. 共識歷史(每檔各自一個 CSV,供詳情頁折線 + 修正動能)--------
-    if a.eps_y0 is not None or a.eps_y1 is not None:
-        hist_path = ROOT / f"data/consensus/{stock_id}.csv"
-        if record_consensus:
-            record_consensus_history(
-                hist_path, a.eps_y0, a.eps_y1,
-                round(a.growth_pct, 2) if a.growth_pct is not None else None,
-                a.consensus_source,
-            )
-        a.consensus_history = load_consensus_history(hist_path)
+    hist_path = ROOT / f"data/consensus/{stock_id}.csv"
+    a.consensus_history = load_consensus_history(hist_path)
 
     return a

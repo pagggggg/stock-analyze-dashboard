@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import os
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import yaml
@@ -25,12 +26,15 @@ import yaml
 from src.ai_chain import build_ai_chain_data, load_ai_chain_config
 from src.ai_chain_html import build_ai_chain_page
 from src.analysis import analyze_stock
-from src.scan_state import compute_signals, load_signal_log
+from src.scan_state import (Event, append_signal_log, compute_signals, load_signal_log,
+                            load_state, save_state)
 from src.screener import load_config as load_screener_config, load_records, screen_all
 from src.screener_html import build_screener_page
 from src.site_html import write_site
+from src.thesis import evaluate_thesis, load_thesis
 
 ROOT = Path(__file__).resolve().parent
+TW_TZ = timezone(timedelta(hours=8))
 
 
 def _load_dotenv(path: Path) -> None:
@@ -98,8 +102,7 @@ def run(args) -> None:
         name = s.get("name", sid)
         guidance = s.get("guidance")
         print(f"[{i}/{len(stocks)}] 分析 {sid} {name} …")
-        a = analyze_stock(sid, name, guidance_path=guidance, pe_years=pe_years,
-                          record_consensus=not args.no_record)
+        a = analyze_stock(sid, name, guidance_path=guidance, pe_years=pe_years)
         status_txt = "OK" if a.ok else "四指標不足"
         print(f"        → {status_txt}"
               + (f";現價 {a.price}" if a.price else "")
@@ -108,14 +111,65 @@ def run(args) -> None:
             print(f"          ! {e}")
         analyses.append(a)
 
+    build_now = datetime.now(TW_TZ)
+    # 正式更新先把本次快照放進記憶體供圖表、訊號與 thesis 使用；所有頁面成功後才落盤。
+    if not args.no_record:
+        for a in analyses:
+            if a.eps_y0 is None and a.eps_y1 is None:
+                continue
+            a.consensus_history.append({
+                "datetime": build_now.strftime("%Y-%m-%d %H:%M"),
+                "eps_y0": a.eps_y0, "eps_y1": a.eps_y1,
+                "growth_pct": round(a.growth_pct, 2) if a.growth_pct is not None else None,
+                "source": a.consensus_source,
+            })
+
+    # 個人 thesis 追蹤。補充檔目前是台積電專用，只在 thesis 標的上合併，
+    # 避免把 2330 的最新一季錯套到其他股票。
+    thesis_path = ROOT / "config/thesis_2330.yaml"
+    if thesis_path.exists():
+        from src.data_layer import merge_supplement
+
+        tcfg = load_thesis(thesis_path)
+        target = next((a for a in analyses if a.stock_id == str(tcfg["stock_id"])), None)
+        if target is None:
+            if args.from_universe:
+                raise RuntimeError(f"thesis 標的 {tcfg['stock_id']} 不在本次分析清單")
+            print(f"[thesis] 略過：{tcfg['stock_id']} 不在本次 watchlist")
+        else:
+            thesis_quarters, _ = merge_supplement(
+                target.quarters, ROOT / "data/financials_supplement.csv")
+            target.thesis = evaluate_thesis(tcfg, thesis_quarters, target.consensus_history)
+            print(f"[thesis] {target.stock_id}:{target.thesis.status};"
+                  f"紅燈 {sum(x.status == 'red' for x in target.thesis.conditions)} 項")
+
     # 訊號比對 + 狀態燈(寫回 data/scan_state.json、append data/signal_log.csv)
     status, events, first_run = compute_signals(
         analyses,
         state_path=ROOT / "data/scan_state.json",
         log_path=ROOT / "data/signal_log.csv",
-        persist=not args.no_record,
+        persist=False,
     )
+    if args.no_record:
+        # 程式碼重建不產生或展示未持久化的「今日事件」；但現存 thesis 紅燈仍須告警。
+        events = []
+        status = ("red" if any(getattr(a, "thesis", None) and a.thesis.triggered
+                               for a in analyses) else "green")
     log_rows = load_signal_log(ROOT / "data/signal_log.csv", limit=40)
+    display_events = list(events)
+    today = build_now.strftime("%Y-%m-%d")
+    for a in analyses:
+        thesis = getattr(a, "thesis", None)
+        if not thesis:
+            continue
+        for item in thesis.conditions:
+            if item.status != "red" or any(
+                    e.kind == "thesis" and item.label in e.message for e in display_events):
+                continue
+            display_events.append(Event(
+                today, a.stock_id, a.name, "thesis", "red",
+                f"Thesis 目前仍為紅燈:{item.label}；{item.current_value}；{item.basis}",
+            ))
 
     out = Path(args.out)
     if not out.is_absolute():
@@ -161,14 +215,33 @@ def run(args) -> None:
     if ai_chain_html is None:
         raise RuntimeError("AI 產業鏈頁未產生；已中止建站,避免部署缺頁版本")
 
-    stats = write_site(analyses, status, events, first_run, log_rows, out,
+    stats = write_site(analyses, status, display_events, first_run, log_rows, out,
                        screener_html=screener_html, screener_info=screener_info,
                        ai_chain_html=ai_chain_html)
+
+    # 所有頁面成功產出後才寫共識與狀態，避免品質不足或建站例外先消耗訊號。
+    if not args.no_record:
+        from src.data_layer import record_consensus_history
+
+        for a in analyses:
+            if a.eps_y0 is None and a.eps_y1 is None:
+                continue
+            record_consensus_history(
+                ROOT / f"data/consensus/{a.stock_id}.csv", a.eps_y0, a.eps_y1,
+                round(a.growth_pct, 2) if a.growth_pct is not None else None,
+                a.consensus_source, as_of=build_now.strftime("%Y-%m-%d %H:%M"),
+            )
+        new_state = load_state(ROOT / "data/scan_state.json")
+        for a in analyses:
+            if a.ok or getattr(a, "thesis", None):
+                new_state[a.stock_id] = a.state_snapshot(new_state.get(a.stock_id))
+        save_state(ROOT / "data/scan_state.json", new_state)
+        append_signal_log(ROOT / "data/signal_log.csv", events)
 
     light = {"green": "🟢綠", "yellow": "🟡黃", "red": "🔴紅"}.get(status, status)
     print("─" * 56)
     print(f"狀態燈:{light}　本次事件:{len(events)} 則"
-          + ("(首次建立基準,不產生事件)" if first_run else ""))
+          + ("(首次建立基準)" if first_run else ""))
     for e in events:
         print(f"   [{e.level}] {e.stock_id} {e.name}:{e.message}")
     print(f"網站輸出:{stats['out']}（首頁 index.html + {stats['details']} 個股詳情頁）")

@@ -138,6 +138,14 @@ output_side:
       period_basis: calendar_quarter
       unit: "%"
       observations:
+        - {period: "2024Q4", status: disclosed, value: 64.0,
+           source: "Palantir Q4 2024 股東信", disclosure_date: "2025-02-03"}
+        - {period: "2025Q1", status: disclosed, value: 71.0,
+           source: "Palantir Q1 2025 股東信", disclosure_date: "2025-05-05"}
+        - {period: "2025Q2", status: disclosed, value: 93.0,
+           source: "Palantir Q2 2025 股東信", disclosure_date: "2025-08-04"}
+        - {period: "2025Q3", status: disclosed, value: 121.0,
+           source: "Palantir Q3 2025 股東信", disclosure_date: "2025-11-03"}
         - {period: "2025Q4", status: disclosed, value: 137.0,
            source: "Palantir Q2 2026 財報", disclosure_date: "2026-08-03"}
         - {period: "2026Q1", status: disclosed, value: 133.0,
@@ -148,36 +156,64 @@ output_side:
     - id: msft_copilot_paid_seats
       company: MSFT
       company_name: Microsoft
-      name: "Copilot 付費席次"
+      name: "Microsoft 365 Copilot 付費席次"
       value_type: level
       period_basis: calendar_quarter
       unit: "million seats"
       observations:
+        - {period: "2025Q4", status: disclosed, value: 15.0, display: "1,500 萬席",
+           source: "Microsoft FY26 Q2 法說會", disclosure_date: "2026-01-28"}
+        - {period: "2026Q1", status: disclosed, kind: minimum, value: 20.0, display: "超過 2,000 萬席",
+           source: "Microsoft FY26 Q3 法說會", disclosure_date: "2026-04-29"}
         - {period: "2026Q2", status: disclosed, kind: minimum, value: 30.0, display: "超過 3,000 萬席",
            source: "Microsoft FY26 Q4 財報新聞稿；Nadella 發言", disclosure_date: "2026-07",
            change_text: "超過 3,000 萬付費席；另揭露 Azure 年營收首次突破 1,000 億美元"}
-      note: "席次是使用量指標,不等同營收。"
-    - id: msft_azure_ai_growth
+      note: "席次是使用量指標,不等同營收；下限值不計算精確加速度。"
+    - id: msft_ai_business_run_rate
       company: MSFT
       company_name: Microsoft
-      name: "Azure AI 相關營收成長"
-      value_type: growth_rate
-      period_basis: calendar_quarter
-      unit: "%"
-      observations: []
-      note: "需明確保存公司揭露口徑(例如 constant currency)。"
-    - id: googl_cloud_backlog
-      company: GOOGL
-      company_name: Alphabet
-      name: "Google Cloud backlog（RPO）"
+      name: "Microsoft AI 業務年化營收 run rate"
       value_type: level
       period_basis: calendar_quarter
       unit: "USD bn"
       observations:
+        - {period: "2024Q4", status: disclosed, kind: minimum, value: 13.0,
+           source: "Microsoft FY25 Q2 財報與法說會", disclosure_date: "2025-01-29"}
+        - {period: "2025Q1", status: not_disclosed,
+           source: "Microsoft FY25 Q3 財報與法說會", disclosure_date: "2025-04-30"}
+        - {period: "2025Q2", status: not_disclosed,
+           source: "Microsoft FY25 Q4 財報與法說會", disclosure_date: "2025-07-30"}
+        - {period: "2025Q3", status: not_disclosed,
+           source: "Microsoft FY26 Q1 財報與法說會", disclosure_date: "2025-10-29"}
+        - {period: "2025Q4", status: not_disclosed,
+           source: "Microsoft FY26 Q2 財報與法說會", disclosure_date: "2026-01-28"}
+        - {period: "2026Q1", status: disclosed, kind: minimum, value: 37.0,
+           source: "Microsoft FY26 Q3 財報與法說會", disclosure_date: "2026-04-29"}
+        - {period: "2026Q2", status: not_disclosed,
+           source: "Microsoft FY26 Q4 財報與法說會", disclosure_date: "2026-07-29"}
+      note: "公司整體 AI 業務年化營收 run rate；Microsoft 未提供正式範圍拆解或逐季連續值。"
+    - id: googl_cloud_backlog
+      company: GOOGL
+      company_name: Alphabet
+      name: "Google Cloud backlog"
+      value_type: level
+      period_basis: calendar_quarter
+      unit: "USD bn"
+      observations:
+        - {period: "2025Q2", status: disclosed, value: 106.0, kind: derived,
+           source: "Alphabet 2025 Q3 法說會（由 155bn 與單季增加 49bn 推回）", disclosure_date: "2025-10-29"}
+        - {period: "2025Q3", status: disclosed, value: 155.0,
+           source: "Alphabet 2025 Q3 法說會", disclosure_date: "2025-10-29"}
+        - {period: "2025Q4", status: disclosed, value: 240.0,
+           source: "Alphabet 2025 Q4 法說會", disclosure_date: "2026-02-04"}
+        - {period: "2026Q1", status: disclosed, value: 462.0,
+           source: "Alphabet 2026 Q1 法說會", disclosure_date: "2026-04-29",
+           scope_break: true,
+           change_text: "Q1 起 backlog 納入 TPU 硬體銷售，與 2025Q4 前口徑有斷點"}
         - {period: "2026Q2", status: disclosed, value: 514.0,
-           source: "Alphabet Q2 2026 法說會；CFO 發言", disclosure_date: "2026-07",
+           source: "Alphabet Q2 2026 法說會；CFO 發言", disclosure_date: "2026-07-22",
            change_text: "單季增加超過 50 USD bn；超過 50% 預期於未來 24 個月認列"}
-      note: "Cloud 整體 backlog/RPO,不是純 AI backlog。"
+      note: "Cloud 整體 backlog,不是純 AI backlog；Q1/Q2 均含 TPU 硬體銷售，Q4→Q1 不可比。"
     - id: amzn_aws_ai_run_rate
       company: AMZN
       company_name: Amazon
@@ -186,28 +222,46 @@ output_side:
       period_basis: calendar_quarter
       unit: "USD bn"
       observations:
+        - {period: "2026Q1", status: disclosed, kind: minimum, value: 15.0,
+           source: "Amazon 2025 股東信", disclosure_date: "2026-04-09",
+           change_text: "股東信揭露時點位於 Q1 財報前，精確 as-of 未說明；僅作 Q1 揭露背景"}
         - {period: "2026Q2", status: disclosed, kind: minimum, value: 25.0,
            source: "Amazon Q2 2026 財報新聞稿", disclosure_date: "2026-07-30",
            change_text: "三位數成長；另揭露晶片業務年化營收亦超過 25 USD bn"}
-      note: "公司選擇性揭露的 run rate,不等同 GAAP 營收。"
-    - id: crm_ai_revenue
+      note: "公司選擇性揭露的 AWS AI run rate,不含另行揭露的晶片業務；Q1 精確 as-of 未說明；下限值不計算精確增幅。"
+    - id: crm_agentforce_arr
       company: CRM
       company_name: Salesforce
-      name: "AI 產品營收"
+      name: "Agentforce ARR"
       value_type: level
-      period_basis: calendar_quarter
+      period_basis: fiscal_quarter
       unit: "USD bn"
-      observations: []
-      note: "需確認指標是否為純 AI 產品,不可拿整體訂單冒充。"
-    - id: now_ai_revenue
+      observations:
+        - {period: "FY26Q3", calendar_period: "2025Q4", period_end: "2025-10-31",
+           status: disclosed, kind: minimum, value: 0.5,
+           source: "Salesforce FY26 Q3 財報", disclosure_date: "2025-12-03"}
+        - {period: "FY26Q4", calendar_period: "2026Q1", period_end: "2026-01-31",
+           status: disclosed, value: 0.8,
+           source: "Salesforce FY26 Q4 財報", disclosure_date: "2026-02-25"}
+        - {period: "FY27Q1", calendar_period: "2026Q2", period_end: "2026-04-30",
+           status: disclosed, value: 1.2,
+           source: "Salesforce FY27 Q1 財報", disclosure_date: "2026-05-27"}
+      note: "Agentforce 單獨 ARR；保留 Salesforce 原生財季與截止日，不與 Data 360/Informatica 合併值混用。"
+    - id: now_servicenow_ai_acv
       company: NOW
       company_name: ServiceNow
-      name: "AI 產品營收"
+      name: "ServiceNow AI ACV"
       value_type: level
       period_basis: calendar_quarter
       unit: "USD bn"
-      observations: []
-      note: "需確認指標是否為純 AI 產品,不可拿整體訂單冒充。"
+      observations:
+        - {period: "2025Q4", status: not_disclosed,
+           source: "ServiceNow 2025 Q4 財報", disclosure_date: "2026-01-28"}
+        - {period: "2026Q1", status: not_disclosed,
+           source: "ServiceNow 2026 Q1 財報", disclosure_date: "2026-04-22"}
+        - {period: "2026Q2", status: disclosed, kind: minimum, value: 1.0,
+           source: "ServiceNow 2026 Q2 財報", disclosure_date: "2026-07-22"}
+      note: "公司整體 ServiceNow AI ACV,不是營收；較早季度未揭露可比總額。"
 
 layers:
   - id: demand

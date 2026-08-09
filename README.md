@@ -109,7 +109,8 @@ open public/index.html            # 本機預覽
 - 傳導 lag correlation 在樣本或顯著性不足時直接標示,不硬給落後期。
 - 循環標記沿用獨立循環回測的「近10年季度資料三取二」定義；資料不足標未知。
 - 層級關係不代表營收、獲利或股價必然連動。
-- 產出側追蹤 PLTR、Copilot/Azure AI、Google Cloud backlog、AWS AI run rate、Salesforce/ServiceNow AI 揭露；未填與公司未揭露分開標示。
+- 產出側追蹤 PLTR、Microsoft AI/Copilot、Google Cloud backlog、AWS AI run rate、Agentforce ARR、ServiceNow AI ACV；下限、財季、口徑斷點與未揭露分開標示。
+- 台積電詳情頁另有個人 Thesis 狀態：四項證偽條件、近八季毛利率、人工競爭標記與部位規則；任一紅燈會提升首頁狀態並寫入訊號流水。
 - 30 個產業節點與產出側公司使用本地 Logo；無可用官方圖示時採名稱縮寫標章，載入失敗仍會退回縮寫。
 
 ### 每日自動更新 + 部署 GitHub Pages

@@ -24,7 +24,7 @@ BASIS = {"calendar_year": "日曆年", "fiscal_year": "會計年度", "quarter":
 OUTPUT_DIRECTION = {
     "accel": ("▲ 加速", "up"), "decel": ("▼ 減速", "down"), "flat": ("— 持平", "flat"),
     "not_disclosed": ("本季未揭露", "missing"), "pending": ("待輸入", "na"),
-    "insufficient": ("前期不足", "na"),
+    "insufficient": ("前期／口徑不足", "na"),
 }
 
 
@@ -130,8 +130,17 @@ def _output_value(metric: dict, obs: dict | None) -> str:
         return "本季未揭露"
     if obs.get("display"):
         return escape(obs["display"])
-    prefix = "超過 " if obs.get("kind") == "minimum" else ""
+    prefix = "超過 " if obs.get("kind") == "minimum" else "推算 " if obs.get("kind") == "derived" else ""
     return f"{prefix}{_n(obs.get('value'), 1)} {escape(metric['unit'])}"
+
+
+def _output_period(obs: dict | None) -> str:
+    if not obs:
+        return "—"
+    period = escape(str(obs["period"]))
+    if obs.get("period_end"):
+        return f"{period}（截至 {escape(str(obs['period_end']))}）"
+    return period
 
 
 def _output_side(data: dict, logos: dict) -> str:
@@ -145,16 +154,23 @@ def _output_side(data: dict, logos: dict) -> str:
         if metric.get("direction") == "not_disclosed":
             streak = metric.get("non_disclosure_streak", 0)
             direction = f"本季未揭露（連續 {streak} 季）"
+        elif metric.get("direction") == "insufficient" and metric.get("direction_reason"):
+            direction = metric["direction_reason"]
         source = ""
-        observations = sorted(metric.get("observations") or [], key=lambda x: x["period"], reverse=True)
+        observations = sorted(metric.get("observations") or [],
+                              key=lambda x: x.get("calendar_period") or x["period"], reverse=True)
         if observations:
             source_rows = "".join(
-                f'<li><b>{escape(x["period"])}</b>｜{escape(x["source"])}｜'
+                f'<li><b>{_output_period(x)}</b>｜{escape(x["source"])}｜'
                 f'{escape(str(x["disclosure_date"]))}｜{_output_value(metric, x)}</li>'
                 for x in observations)
             method = ("<p>level 型的加速/減速使用連續三季，比較本季成長率與前季成長率。</p>"
                       if metric["value_type"] == "level" else "")
-            method += "<p>季度軸一律轉為日曆季；Microsoft 會計季需映射到對應日曆季。</p>"
+            if metric.get("period_basis") == "fiscal_quarter":
+                method += "<p>保留公司原生財季與截止日；calendar_period 只供排序，不冒充日曆季。</p>"
+            else:
+                method += "<p>季度軸使用日曆季；會計季揭露須先映射到對應日曆季。</p>"
+            method += "<p>下限值（超過 X）只顯示方向，不當成精確值計算加速或減速。</p>"
             source = (f'<details class="guidance-source"><summary>查看來源與判定</summary>{method}'
                       f'<ul>{source_rows}</ul>'
                       f'{("<p>" + escape(metric.get("note")) + "</p>") if metric.get("note") else ""}</details>')
@@ -162,24 +178,24 @@ def _output_side(data: dict, logos: dict) -> str:
             source = (f'<details class="guidance-source"><summary>指標口徑</summary><p>'
                       f'{escape(metric["note"])}</p></details>')
         cards.append(f'''
-        <article class="output-card">
+        <article class="output-card" data-output-direction="{escape(str(metric.get('direction') or ''))}">
           <div class="guidance-head"><div class="logo-name">{_logo(company, metric.get('company_name', company), logos)}
             <div><b>{escape(metric.get('company_name', company))}</b><small>{company}</small></div></div>
             <span class="direction {cls}">{escape(direction)}</span></div>
           <h4>{escape(metric['name'])}</h4>
           <div class="output-values">
-            <div><span>最新</span><b>{_output_value(metric, latest)}</b><small>{escape(latest['period']) if latest else '尚未輸入'}</small></div>
-            <div><span>前期</span><b>{_output_value(metric, previous)}</b><small>{escape(previous['period']) if previous else '—'}</small></div>
+            <div><span>最新</span><b>{_output_value(metric, latest)}</b><small>{_output_period(latest) if latest else '尚未輸入'}</small></div>
+            <div><span>前期</span><b>{_output_value(metric, previous)}</b><small>{_output_period(previous)}</small></div>
           </div>
           {f'<p class="output-change">{escape(latest.get("change_text"))}</p>' if latest and latest.get('change_text') else ''}
           {source}
         </article>''')
 
     return f'''
-    <section class="output-side">
+    <section class="output-side" data-output-metrics="{len(out.get('metrics') or [])}" data-output-accel="{c.get('accel', 0)}" data-output-decel="{c.get('decel', 0)}" data-output-flat="{c.get('flat', 0)}" data-output-not-disclosed="{c.get('not_disclosed', 0)}" data-output-insufficient="{c.get('insufficient', 0)}" data-output-pending="{c.get('pending', 0)}">
       <div class="output-title"><div><span>OUTPUT · 截至 {escape(out.get('as_of_period', '—'))}</span><h2>產出側：AI 是否產生經濟價值</h2></div>
         <div class="output-summary"><b class="up">▲ {c.get('accel', 0)} 加速</b><b class="down">▼ {c.get('decel', 0)} 減速</b>
-          <b>— {c.get('flat', 0)} 持平</b><b class="missing">{c.get('not_disclosed', 0)} 未揭露</b><b>{c.get('insufficient', 0)} 前期不足</b>
+          <b>— {c.get('flat', 0)} 持平</b><b class="missing">{c.get('not_disclosed', 0)} 未揭露</b><b>{c.get('insufficient', 0)} 前期／口徑不足</b>
           <b>{c.get('pending', 0)} 待輸入</b></div></div>
       <p class="output-thesis"><b>上游 Capex 是投入，產出側是回收。</b>兩側都健康代表循環可持續；
         投入持續增加而產出側整體減速，是需求論述出現裂縫的早期訊號。

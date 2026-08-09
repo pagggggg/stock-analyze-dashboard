@@ -167,24 +167,10 @@ jobs:
               f.write(f"summary={tot} 檔, 完整 {ok}, 沿用舊值 {partial}, 集合一致 {same_set}\n")
           PY
 
-      - name: Commit updated data
-        if: steps.mode.outputs.refresh != 'none' && steps.sanity.outputs.healthy == 'true'
-        run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/ reports/ || true
-          if git diff --cached --quiet; then
-            echo "資料無變動,略過 commit"
-          else
-            git commit -m "chore(data): 自動更新 $(date -u '+%F %H:%M')Z [skip ci]"
-            git pull --rebase -q origin main || true
-            git push origin main
-          fi
-
       - name: Warn if data unhealthy
         if: steps.mode.outputs.refresh != 'none' && steps.sanity.outputs.healthy != 'true'
         run: |
-          echo "::warning::資料完整度不足(${{ steps.sanity.outputs.summary }}),已略過 commit。"
+          echo "::warning::資料完整度不足(${{ steps.sanity.outputs.summary }}),已略過 commit 與部署。"
           echo "多半是撞到 FinMind 每小時上限;快取會保留,下次排程會自動補齊。"
 
       # ★ 部署前品質把關(對「所有」觸發模式都執行)
@@ -202,32 +188,62 @@ jobs:
       #         真正的錯誤(抓取/建站崩潰)→ 該步驟自然失敗 → 才寄信。
       - name: Verify built site quality
         id: quality
+        env:
+          REFRESH_MODE: ${{ steps.mode.outputs.refresh }}
+          DATA_HEALTHY: ${{ steps.sanity.outputs.healthy }}
         run: |
           python - <<'PY'
           import glob, json, os, re, struct, yaml, zlib
+          from src.ai_chain import build_output_side, load_ai_chain_config
           from src.valuation_flag import pe_history_is_compatible
           idx = open("public/index.html", encoding="utf-8").read()
           ai_path = "public/ai-chain.html"
-          # 不能用 glob("public/stock_*.html") 計數:build_site 不刪舊檔,
-          # 上一版的詳情頁還在,會把數字灌到看起來正常(實測目錄 222 個檔,
-          # 首頁實際只連得到 72 檔)。要看的是「首頁真正連得到幾檔」。
+          thesis_path = "public/stock_2330.html"
+          # 詳情頁數以首頁實際連結為準，而不是只看目錄裡有幾個檔案；
+          # 前者才能確認使用者真的能從本次首頁進入個股頁。
           linked = len(set(re.findall(r'href="stock_(\w+)\.html"', idx)))
-          n_universe = len(glob.glob("data/universe/*.json"))
-          floor = int(n_universe * 0.7)
+          ucfg = yaml.safe_load(open("config/universe.yaml", encoding="utf-8")) or {}
+          expected_ids = {str(x["stock_id"]) for k in ("twse", "us") for x in (ucfg.get(k) or [])}
+          universe_paths = glob.glob("data/universe/*.json")
+          n_universe = len(universe_paths)
+          # 正常基準是約 225/239 個台股詳情頁；允許少量資料源波動，但不接受大幅退化。
+          expected_tw = len(ucfg.get("twse") or [])
+          floor = max(1, expected_tw - 20)
           scfg = yaml.safe_load(open("config/screener.yaml", encoding="utf-8")) or {}
           years = scfg["valuation_flag"]["pe_history_years"]
           pe_schema_ok = 0
-          for path in glob.glob("data/universe/*.json"):
+          actual_ids = set()
+          for path in universe_paths:
               d = json.load(open(path, encoding="utf-8"))
+              actual_ids.add(str(d.get("stock_id")))
               if (not d.get("pe_refresh_error")
                       and pe_history_is_compatible(d.get("pe_hist") or {}, d.get("market", "twse"),
                                                    d.get("price_date"), years)):
                   pe_schema_ok += 1
-          ok = linked >= floor and pe_schema_ok == n_universe
+          data_ok = (os.environ["REFRESH_MODE"] == "none"
+                     or os.environ.get("DATA_HEALTHY") == "true")
+          ok = (data_ok and actual_ids == expected_ids and linked >= floor
+                and pe_schema_ok == n_universe)
           ai_ok = os.path.exists(ai_path)
+          thesis_ok = os.path.exists(thesis_path)
+          if thesis_ok:
+              thesis = open(thesis_path, encoding="utf-8").read()
+              tcfg = yaml.safe_load(open("config/thesis_2330.yaml", encoding="utf-8")) or {}
+              as_of = str(tcfg.get("as_of_period") or "")
+              thesis_ok = ('data-thesis-conditions="4"' in thesis
+                           and 'href="stock_2330.html"' in idx
+                           and f'data-thesis-as-of="{as_of}"' in thesis
+                           and f'data-thesis-gm-latest="{as_of}"' in thesis
+                           and "Thesis 狀態" in thesis
+                           and "先進製程近乎獨佔" in thesis
+                           and thesis.count('class="thesis-condition"') == 4
+                           and 'data-thesis-id="gross_margin_two_quarter_decline" data-thesis-status="gray"' not in thesis
+                           and 'data-thesis-id="gross_margin_floor" data-thesis-status="gray"' not in thesis)
           if ai_ok:
               ai = open(ai_path, encoding="utf-8").read()
-              cfg = yaml.safe_load(open("config/ai_chain.yaml", encoding="utf-8")) or {}
+              cfg = load_ai_chain_config("config/ai_chain.yaml")
+              output = build_output_side(cfg)
+              counts = output["counts"]
               expected_layers = len(cfg.get("layers") or [])
               expected_outputs = len((cfg.get("output_side") or {}).get("metrics") or [])
               logo_files = [x.get("file") for x in (cfg.get("logos") or {}).values()]
@@ -253,19 +269,33 @@ jobs:
                   except Exception:
                       return False
               logos_ok = bool(logo_files) and all(valid_png(path) for path in logo_files)
+              count_attrs_ok = (sum(counts.values()) == expected_outputs
+                                and all(f'data-output-{key.replace("_", "-")}="{value}"' in ai
+                                        for key, value in counts.items()))
+              card_counts_ok = all(
+                  ai.count(f'data-output-direction="{key}"') == value
+                  for key, value in counts.items())
               ai_ok = (ai.count('class="chain-layer"') == expected_layers
                         and "四大雲端業者季度 Capex" in ai
                         and 'data-ai-capex-companies="4"' in ai
                         and 'data-ai-unavailable="0"' in ai
                         and ai.count('class="output-card"') == expected_outputs
+                        and f'data-output-metrics="{expected_outputs}"' in ai
+                        and count_attrs_ok and card_counts_ok
+                        and "Microsoft 365 Copilot 付費席次" in ai
+                        and "Agentforce ARR" in ai
+                        and "ServiceNow AI ACV" in ai
+                        and "FY27Q1（截至 2026-04-30）" in ai
                         and logos_ok)
-          print(f"母體 {n_universe} 檔;首頁實際連得到 {linked} 檔;最低要求 {floor} 檔")
+          print(f"母體 {n_universe}/{len(expected_ids)} 檔;首頁實際連得到 {linked} 檔;最低要求 {floor} 檔")
+          print(f"資料健康閘門:{data_ok};母體集合一致:{actual_ids == expected_ids}")
           print(f"PE schema/date 完整:{pe_schema_ok}/{n_universe}")
           print(f"AI 產業鏈頁完整:{ai_ok}")
+          print(f"2330 Thesis 完整:{thesis_ok}")
           with open(os.environ["GITHUB_OUTPUT"], "a") as f:
-              f.write(f"ok={'true' if ok and ai_ok else 'false'}\n")
+              f.write(f"ok={'true' if ok and ai_ok and thesis_ok else 'false'}\n")
               f.write(f"linked={linked}\nfloor={floor}\n")
-          print("品質檢查通過。" if ok and ai_ok else "品質不足,將跳過部署。")
+          print("品質檢查通過。" if ok and ai_ok and thesis_ok else "品質不足,將跳過部署。")
           PY
 
       - name: Skip deploy (quality gate)
@@ -274,8 +304,23 @@ jobs:
           echo "::warning title=已跳過部署(保護機制)::首頁或 AI 產業鏈頁未通過品質檢查。首頁可連 ${{ steps.quality.outputs.linked }} 檔,門檻 ${{ steps.quality.outputs.floor }} 檔。線上網站維持前一版不變。"
           echo "這不是故障,是保護機制:寧可不更新,也不要用殘缺版本覆蓋線上好版本。"
 
+      - name: Commit updated data
+        if: steps.mode.outputs.refresh != 'none' && steps.sanity.outputs.healthy == 'true' && steps.quality.outputs.ok == 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/ reports/
+          if git diff --cached --quiet; then
+            echo "資料無變動,略過 commit"
+          else
+            git commit -m "chore(data): 自動更新 $(date -u '+%F %H:%M')Z [skip ci]"
+            git push origin main
+          fi
+
+      # 先確保新共識/訊號狀態已安全寫回 main，再發布對應頁面。
+      # 若資料 push 失敗，本步不會執行，避免線上站點領先持久化狀態。
       - name: Deploy to gh-pages
-        if: steps.quality.outputs.ok == 'true'
+        if: steps.quality.outputs.ok == 'true' && success()
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -294,7 +339,7 @@ jobs:
       # 只在整個流程都成功後才更新 —— 否則會把限流當下殘缺的快取存成種子,
       # 之後每次執行都從壞種子開始,越用越糟。
       - name: Refresh cache seed
-        if: steps.mode.outputs.refresh != 'none' && steps.quality.outputs.ok == 'true'
+        if: steps.mode.outputs.refresh != 'none' && steps.sanity.outputs.healthy == 'true' && steps.quality.outputs.ok == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

@@ -173,17 +173,25 @@ def _scan_table(rows: list[tuple]) -> str:
 # ======================================================================
 # 第二層:訊號流水
 # ======================================================================
-def _signal_stream(log_rows: list[dict], first_run: bool) -> str:
-    if first_run:
+def _signal_stream(log_rows: list[dict], first_run: bool, current_events: list | None = None) -> str:
+    if first_run and not current_events:
         return ('<div class="stream-empty">首次建立基準快照。'
-                '從<b>下一次每日重跑</b>起,共識上下修 / FCF 燈變色 / 估值門檻跨越會出現在這裡。</div>')
-    if not log_rows:
+                '從<b>下一次每日重跑</b>起,共識上下修 / FCF 燈變色 / thesis 證偽會出現在這裡。</div>')
+    rows = list(log_rows)
+    existing = {(r.get("date"), r.get("stock_id"), r.get("kind"), r.get("message")) for r in rows}
+    for event in reversed(current_events or []):
+        key = (event.date, event.stock_id, event.kind, event.message)
+        if key not in existing:
+            rows.insert(0, {"date": event.date, "stock_id": event.stock_id, "name": event.name,
+                            "kind": event.kind, "level": event.level, "message": event.message})
+            existing.add(key)
+    if not rows:
         return ('<div class="stream-empty">目前沒有訊號事件。'
-                '每日重跑後,只要有共識上下修、FCF 燈變色或估值門檻跨越,就會即時列在這裡'
+                '每日重跑後,只要有共識上下修、FCF 燈變色或 thesis 證偽,就會即時列在這裡'
                 '(<b>股價漲跌不算訊號,不會出現</b>)。</div>')
     items = []
     lv_color = {"red": C_EXP, "yellow": "#eab308"}
-    for r in log_rows:
+    for r in rows:
         c = lv_color.get(r.get("level", ""), C_FAIR)
         items.append(
             '<div class="stream-item">'
@@ -254,13 +262,14 @@ def build_index_html(
     screener_info: dict | None = None,
 ) -> str:
     scolor, stitle, sdesc = _STATUS.get(status, _STATUS["green"])
-    n_red = sum(1 for e in events if e.level == "red")
+    n_red = sum(1 for e in events if e.level == "red"
+                and not e.message.startswith("Thesis 目前仍為紅燈"))
     n_yellow = sum(1 for e in events if e.level == "yellow")
     # 價格是「哪一個交易日的收盤價」——不標出來,使用者會誤以為是即時報價
     pdates = sorted({a.price_date for a, _, _ in rows if getattr(a, "price_date", None)})
     price_day = pdates[-1] if pdates else None
     count_txt = ""
-    if not first_run:
+    if not first_run or n_red or n_yellow:
         # 狀態燈是彩色底(綠/黃/紅),計數若再用紅/黃字會「紅底紅字」看不見 →
         # 一律白字 + 半透明白底藥丸,在任何底色上都保持高對比。
         count_txt = (f'　本次:<b class="cnt">紅 {n_red}</b>'
@@ -293,7 +302,7 @@ def build_index_html(
         )
 
     table = _scan_table(rows)
-    stream = _signal_stream(log_rows, first_run)
+    stream = _signal_stream(log_rows, first_run, events)
     search = _search_box(rows)
 
     body = f"""
@@ -320,7 +329,7 @@ def build_index_html(
   <div class="layer-tag">第二層 · 訊號流水(只看訊號,不看股價雜訊)</div>
   <section>
     {stream}
-    {_note('這裡只收<b>基本面訊號</b>:共識EPS 上/下修、FCF 品質燈變色。'
+    {_note('這裡只收<b>基本面訊號</b>:共識EPS 上/下修、FCF 品質燈變色、thesis 證偽條件。'
            '估值位階改由篩選器的 trailing-to-trailing 同口徑旗標顯示,不再把 forward PE 對 trailing 歷史河道的變化當事件。'
            '<b>股價每日漲跌屬雜訊,刻意不列</b>——真正該花時間研究的是這些訊號背後的原因。')}
   </section>
@@ -472,6 +481,68 @@ def _whatif_block(a) -> str:
 """
 
 
+def _fig_thesis_gross_margin(thesis) -> str:
+    rows = thesis.gross_margins
+    if not rows:
+        return _placeholder("毛利率資料不足。")
+    fig = go.Figure(go.Scatter(
+        x=[x["quarter"] for x in rows], y=[x["value"] for x in rows],
+        name="毛利率", mode="lines+markers+text", line=dict(color=C_BLUE, width=2.5),
+        marker=dict(size=8), text=[f'{x["value"]:.1f}%' for x in rows], textposition="top center",
+        hovertemplate="%{x}<br>毛利率 %{y:.2f}%<extra></extra>",
+    ))
+    floor = thesis.gross_margin_floor_pct
+    fig.add_hline(y=floor, line_dash="dash", line_color=C_EXP,
+                  annotation_text=f"證偽門檻 {floor:g}%", annotation_position="bottom right")
+    fig.update_yaxes(title_text="毛利率 (%)")
+    fig.update_xaxes(type="category")
+    return _fig_div(_layout(fig, height=330))
+
+
+def _thesis_html(a) -> str:
+    thesis = getattr(a, "thesis", None)
+    if not thesis:
+        return ""
+    meta = {
+        "green": ("#15803d", "綠・未觸發"),
+        "yellow": ("#a16207", "黃・接近／觀察"),
+        "red": (C_EXP, "紅・已觸發"),
+        "gray": (C_NA, "灰・資料不足"),
+    }
+    cards = []
+    for item in thesis.conditions:
+        color, label = meta[item.status]
+        manual = (f'<div class="thesis-updated">人工判定最後更新:{_esc(item.last_updated)}</div>'
+                  if item.manual else "")
+        validation = ({"backtested": "回測驗證出場訊號",
+                       "backtest_proxy": "回測代理・未直接驗證"}.get(
+                           item.validation, "人工補充門檻・未經回測"))
+        cards.append(f'''
+        <article class="thesis-condition" data-thesis-id="{_esc(item.id)}" data-thesis-status="{_esc(item.status)}" style="border-left-color:{color}">
+          <div class="thesis-condition-head"><b>{_esc(item.label)}</b>
+            <span style="color:{color}">{_esc(label)}</span></div>
+          <div class="thesis-current">{_esc(item.current_value)}</div>
+          <p>{_esc(item.basis)}</p>{manual}
+          <div class="thesis-validation">{_esc(validation)}｜{_esc(item.validation_note)}</div>
+        </article>''')
+    pr = thesis.position_rules
+    look_through = "、".join(pr.get("look_through_symbols") or []) or "—"
+    return f'''
+  <section class="thesis-section" data-thesis-status="{_esc(thesis.status)}" data-thesis-conditions="{len(thesis.conditions)}" data-thesis-as-of="{_esc(thesis.as_of_period)}" data-thesis-gm-latest="{_esc(thesis.gross_margins[-1]['quarter'] if thesis.gross_margins else '')}">
+    <div class="thesis-title"><h2>Thesis 狀態</h2><b>{_esc(meta[thesis.status][1])}</b></div>
+    <div class="warn">⚠️ {_esc(thesis.disclaimer)} 條件 1 為回測驗證出場訊號；條件 2 僅有回測代理、逐季下修軌跡未直接驗證；條件 3、4 為人工補充門檻、未經回測。</div>
+    <div class="thesis-assumption"><span>持有假設</span><b>{_esc(thesis.holding_assumption)}</b></div>
+    {_fig_thesis_gross_margin(thesis)}
+    <div class="thesis-grid">{''.join(cards)}</div>
+    <div class="thesis-position"><b>部位規則</b>
+      <span>單一標的總曝險上限:總資產 {_n(pr.get('max_total_exposure_pct'), 0)}%</span>
+      <span>需穿透計算:{_esc(look_through)} 權重</span>
+      <span>進場方式:{_esc(pr.get('entry_method') or '—')}</span>
+      <small>{_esc(pr.get('note') or '—')}｜檢查頻率:{_esc(thesis.check_frequency)}</small>
+    </div>
+  </section>'''
+
+
 def build_detail_html(a, generated: str) -> str:
     # 頂部小摘要
     parts = []
@@ -535,6 +606,8 @@ def build_detail_html(a, generated: str) -> str:
     {err}
   </header>
 
+{_thesis_html(a)}
+
   <section>
     <h2>四指標(連動收盤價/試算價)</h2>
     {_cards_html(a.dashboard)}
@@ -588,6 +661,13 @@ def write_site(analyses: list, status: str, events: list, first_run: bool,
     """把 index / 各詳情頁 / plotly.min.js / style.css 全部寫到 out_dir。回傳統計。"""
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
+    # 避免前次產物殘留，讓品質閘門誤把已不在本次建站內的舊頁視為成功。
+    for path in out.glob("stock_*.html"):
+        path.unlink()
+    for name in ("index.html", "screener.html", "ai-chain.html"):
+        path = out / name
+        if path.exists():
+            path.unlink()
     # 一律用台北時間顯示:CI 跑在 UTC,直接印 datetime.now() 會變成
     # 「更新時間 09:28」而實際是台灣 17:28 —— 看的人會以為早上更新過。
     generated = datetime.now(_TW_TZ).strftime("%Y-%m-%d %H:%M") + " (台北時間)"
@@ -792,6 +872,21 @@ code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: .85
 .output-values b { display:block; margin:3px 0; color:#1e3a8a; font-size:1.05rem; overflow-wrap:anywhere; }
 .output-change { margin:9px 0 0; color:#475569; font-size:.8rem; line-height:1.45; }
 .output-warning { margin-top:12px; }
+.thesis-section { border:2px solid #cbd5e1; }
+.thesis-title { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.thesis-title h2 { margin:0; }
+.thesis-assumption { margin:14px 0; padding:14px; border-radius:10px; background:#eff6ff; }
+.thesis-assumption span,.thesis-assumption b { display:block; }
+.thesis-assumption span { color:#64748b; font-size:.78rem; margin-bottom:4px; }
+.thesis-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:12px; }
+.thesis-condition { border:1px solid #e2e8f0; border-left:5px solid; border-radius:10px; padding:12px; }
+.thesis-condition-head { display:flex; justify-content:space-between; gap:10px; }
+.thesis-condition-head span { white-space:nowrap; font-weight:700; font-size:.8rem; }
+.thesis-current { margin:9px 0 4px; font-weight:700; color:#1e3a8a; }
+.thesis-condition p { margin:4px 0; color:#475569; font-size:.82rem; }
+.thesis-validation,.thesis-updated { margin-top:7px; color:#64748b; font-size:.74rem; }
+.thesis-position { display:flex; flex-wrap:wrap; gap:7px 16px; margin-top:12px; padding:12px; border-radius:10px; background:#f8fafc; }
+.thesis-position b,.thesis-position small { flex-basis:100%; }
 .ai-table td.name a { color:#2563eb; text-decoration:none; font-weight:700; }
 .unavailable { color:#94a3b8; }
 .cycle-tag { display:inline-block; border:1px solid; border-radius:999px; padding:1px 8px;
@@ -851,5 +946,7 @@ code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: .85
   .output-values b { font-size:1rem; }
   .output-card .guidance-head { flex-wrap:wrap; }
   .output-card .direction { white-space:normal; max-width:100%; text-align:center; }
+  .thesis-grid { grid-template-columns:1fr; }
+  .thesis-condition-head { align-items:flex-start; }
 }
 """

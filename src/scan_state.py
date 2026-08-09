@@ -7,9 +7,9 @@
   第一層 頂端狀態燈:
      🟢 綠 = 無訊號級變化
      🟡 黃 = 有共識EPS異動,或 FCF 品質燈變色
-     🔴 紅 = 保留給未來明確定義的高優先級同口徑訊號
+     🔴 紅 = thesis 任一證偽條件觸發
   第二層 訊號流水:
-     只收「共識上下修 / FCF 燈變色」事件,
+     只收「共識上下修 / FCF 燈變色 / thesis 證偽」事件,
      **不放股價漲跌雜訊**(股價每天在動,不是訊號)。
 
 狀態持久化:`data/scan_state.json`(每檔上次快照)、`data/signal_log.csv`(事件日誌)。
@@ -24,7 +24,7 @@ from __future__ import annotations
 import csv
 import json
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 # 共識EPS 視為「異動」的最小相對變化(濾掉 yfinance 每日微幅浮動雜訊)
@@ -33,6 +33,7 @@ _CONSENSUS_MIN_PCT = 0.5
 _MOMENTUM_MIN_PCT = 0.5
 
 _LIGHT_ZH = {"green": "綠", "yellow": "黃", "red": "紅", "gray": "灰"}
+_TW_TZ = timezone(timedelta(hours=8))
 
 
 @dataclass
@@ -42,7 +43,7 @@ class Event:
     date: str
     stock_id: str
     name: str
-    kind: str      # consensus / fcf / valuation
+    kind: str      # consensus / fcf / thesis
     level: str     # yellow / red
     message: str
 
@@ -136,9 +137,14 @@ def _pct_change(cur, prev) -> float | None:
 
 
 def diff_snapshots(stock_id: str, name: str, prev: dict, cur: dict, today: str) -> list[Event]:
-    """比較單檔『上次 vs 本次』快照,產生訊號事件。prev 為空 = 首次(不產生事件)。"""
+    """比較單檔快照；首次不產生一般事件，但已觸發 thesis 必須立即告警。"""
     if not prev:
-        return []
+        return [Event(
+            today, stock_id, name, "thesis", "red",
+            f"Thesis 證偽條件已觸發:{item.get('label')}；"
+            f"{item.get('current_value')}；{item.get('basis')}",
+        ) for item in (cur.get("thesis_conditions") or {}).values()
+            if item.get("status") == "red"]
     events: list[Event] = []
 
     # 1) 共識EPS 上修/下修(今年FY)—— 濾掉微幅浮動
@@ -164,7 +170,33 @@ def diff_snapshots(stock_id: str, name: str, prev: dict, cur: dict, today: str) 
 
     # forward PE 不再拿 trailing 歷史河道判級，因此不產生混口徑的跨級事件。
 
+    # 3) Thesis 證偽條件：只在進入紅燈時新增高優先事件。
+    pt = prev.get("thesis_conditions") or {}
+    ct = cur.get("thesis_conditions") or {}
+    for key, current in ct.items():
+        old_status = (pt.get(key) or {}).get("status")
+        if current.get("status") == "red" and old_status != "red":
+            events.append(Event(
+                today, stock_id, name, "thesis", "red",
+                f"Thesis 證偽條件觸發:{current.get('label')}；"
+                f"{current.get('current_value')}；{current.get('basis')}",
+            ))
+
     return events
+
+
+def _latch_unknown_thesis(analysis, prev: dict) -> None:
+    """紅燈後若本次資料轉為未知，保留紅燈直到新證據明確解除。"""
+    thesis = getattr(analysis, "thesis", None)
+    if not thesis:
+        return
+    previous = prev.get("thesis_conditions") or {}
+    for item in thesis.conditions:
+        if item.status != "gray" or (previous.get(item.id) or {}).get("status") != "red":
+            continue
+        item.status = "red"
+        item.current_value = f"{item.current_value}（沿用上次紅燈）"
+        item.basis = f"{item.basis}；本次資料不足，不自動視為解除"
 
 
 def compute_signals(
@@ -183,20 +215,22 @@ def compute_signals(
     """
     prev_state = load_state(state_path)
     first_run = not prev_state
-    today = datetime.now().strftime("%Y-%m-%d")
+    today = datetime.now(_TW_TZ).strftime("%Y-%m-%d")
 
     all_events: list[Event] = []
     new_state: dict = dict(prev_state)  # 保留沒掃到的舊檔
     for a in analyses:
-        if not a.ok:
+        if not a.ok and not getattr(a, "thesis", None):
             continue
-        cur = a.state_snapshot()
         prev = prev_state.get(a.stock_id, {})
+        _latch_unknown_thesis(a, prev)
+        cur = a.state_snapshot(prev)
         all_events.extend(diff_snapshots(a.stock_id, a.name, prev, cur, today))
         new_state[a.stock_id] = cur
 
     # 狀態燈:紅 > 黃 > 綠
-    if any(e.level == "red" for e in all_events):
+    thesis_red = any(getattr(a, "thesis", None) and a.thesis.triggered for a in analyses)
+    if thesis_red or any(e.level == "red" for e in all_events):
         status = "red"
     elif any(e.level == "yellow" for e in all_events):
         status = "yellow"

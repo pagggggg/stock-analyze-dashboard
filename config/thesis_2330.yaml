@@ -1,0 +1,41 @@
+stock_id: "2330"
+holding_assumption: "先進製程近乎獨佔,保有定價權(毛利率維持55%以上),EPS維持雙位數成長"
+as_of_period: "2026Q2"
+manual_max_age_days: 120
+
+conditions:
+  gross_margin_two_quarter_decline:
+    label: "毛利率連續兩季惡化(季減)"
+    red_after_consecutive_declines: 2
+    yellow_after_consecutive_declines: 1
+    validation: "backtested"
+    validation_note: "回測驗證有效的出場訊號；參考 rule-backtest INTC 案例。"
+  consensus_eps_two_quarter_downgrades:
+    label: "共識EPS連續兩季下修"
+    red_after_consecutive_downgrades: 2
+    yellow_after_consecutive_downgrades: 1
+    min_revision_pct: 0.5
+    validation: "backtest_proxy"
+    validation_note: "回測只驗證共識 EPS 水準連續年減代理；逐季下修軌跡因歷史資料不足，尚未直接回測。"
+  gross_margin_floor:
+    label: "毛利率跌破 55%"
+    red_below_pct: 55
+    yellow_buffer_pp: 2
+    validation: "manual_supplement"
+    validation_note: "人工設定的補充門檻，未經回測。"
+  advanced_process_competition:
+    label: "先進製程出現實質競爭者拿下大客戶訂單"
+    status: "unknown"             # not_triggered / watch / triggered / unknown
+    last_updated: "2026-08-09"
+    note: "尚未完成人工判定；需由使用者依客戶訂單與供應鏈證據更新。"
+    validation: "manual_supplement"
+    validation_note: "人工判定的補充門檻，未經回測。"
+
+position_rules:
+  max_total_exposure_pct: 15
+  look_through_symbols: ["0050"]
+  entry_method: "分三批,不設估值觸發條件"
+  note: "估值擇時規則已於 rule-backtest 驗證無效,故不設進場門檻"
+
+check_frequency: "每季財報後"
+disclaimer: "此為個人 thesis 追蹤,非買賣建議。"

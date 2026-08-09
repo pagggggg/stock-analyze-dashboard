@@ -12,7 +12,7 @@ import math
 import random
 import re
 import statistics
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import yaml
@@ -27,6 +27,8 @@ from .screener import evaluate, extract_metrics
 from .us_data import build_us_record, compute_valuation
 from .valuation_flag import (pe_history_is_compatible, pe_history_stats,
                              tw_pe_source_coverage)
+
+_TW_TZ = timezone(timedelta(hours=8))
 
 
 def load_ai_chain_config(path: str | Path) -> dict:
@@ -135,31 +137,68 @@ def _validate_output_side(cfg: dict) -> None:
             raise ValueError(f"{mid}:company/name/unit 必填")
         if metric.get("value_type") not in valid_types:
             raise ValueError(f"{mid}:value_type 必須為 level/growth_rate")
-        if metric.get("period_basis") != "calendar_quarter":
-            raise ValueError(f"{mid}:period_basis 目前必須為 calendar_quarter")
+        if metric.get("period_basis") not in {"calendar_quarter", "fiscal_quarter"}:
+            raise ValueError(f"{mid}:period_basis 必須為 calendar_quarter/fiscal_quarter")
         periods = set()
+        calendar_periods = set()
         for i, obs in enumerate(metric.get("observations") or [], 1):
             period = str(obs.get("period") or "")
-            if not re.fullmatch(r"\d{4}Q[1-4]", period) or period in periods:
-                raise ValueError(f"{mid} observation#{i}:period 需為 YYYYQn 且不可重複")
+            fiscal = metric.get("period_basis") == "fiscal_quarter"
+            if fiscal:
+                valid_period = re.fullmatch(r"FY\d{2,4}Q[1-4]", period)
+            else:
+                valid_period = re.fullmatch(r"\d{4}Q[1-4]", period)
+            if not valid_period or period in periods:
+                raise ValueError(f"{mid} observation#{i}:period 格式錯誤或重複")
             periods.add(period)
-            if _quarter_index(period) > _quarter_index(as_of):
+            if fiscal and not obs.get("calendar_period"):
+                raise ValueError(f"{mid} {period}:fiscal_quarter 必須填 calendar_period")
+            if not fiscal and obs.get("calendar_period") not in (None, period):
+                raise ValueError(f"{mid} {period}:日曆季不可映射成其他 calendar_period")
+            comparable_period = str(obs.get("calendar_period") or period)
+            if (not re.fullmatch(r"\d{4}Q[1-4]", comparable_period)
+                    or comparable_period in calendar_periods):
+                raise ValueError(f"{mid} {period}:calendar_period 需為 YYYYQn")
+            calendar_periods.add(comparable_period)
+            if _quarter_index(comparable_period) > _quarter_index(as_of):
                 raise ValueError(f"{mid} {period}:不可晚於 as_of_period {as_of}")
+            period_end = obs.get("period_end")
+            if fiscal and not period_end:
+                raise ValueError(f"{mid} {period}:fiscal_quarter 必須填 period_end")
+            end_date = None
+            if period_end:
+                try:
+                    end_date = date.fromisoformat(str(period_end))
+                except ValueError as e:
+                    raise ValueError(f"{mid} {period}:period_end 需為 YYYY-MM-DD") from e
+                end_period = f"{end_date.year}Q{(end_date.month - 1) // 3 + 1}"
+                if end_period != comparable_period:
+                    raise ValueError(f"{mid} {period}:calendar_period 與 period_end 不一致")
             if obs.get("status") not in valid_status:
                 raise ValueError(f"{mid} {period}:status 必須為 disclosed/not_disclosed")
             if obs["status"] == "disclosed" and not isinstance(obs.get("value"), (int, float)):
                 raise ValueError(f"{mid} {period}:disclosed 必須填 value")
-            if obs.get("kind", "exact") not in {"exact", "minimum"}:
-                raise ValueError(f"{mid} {period}:kind 必須為 exact/minimum")
+            if obs.get("kind", "exact") not in {"exact", "minimum", "derived"}:
+                raise ValueError(f"{mid} {period}:kind 必須為 exact/minimum/derived")
+            if obs.get("scope_break") not in (None, True, False):
+                raise ValueError(f"{mid} {period}:scope_break 必須為 boolean")
             if obs["status"] == "not_disclosed" and obs.get("value") is not None:
                 raise ValueError(f"{mid} {period}:not_disclosed 不可沿用 value")
             if not obs.get("source") or not obs.get("disclosure_date"):
                 raise ValueError(f"{mid} {period}:source/disclosure_date 必填")
             raw_date = str(obs["disclosure_date"])
             try:
-                date.fromisoformat(raw_date + "-01" if len(raw_date) == 7 else raw_date)
+                disclosed = date.fromisoformat(raw_date + "-01" if len(raw_date) == 7 else raw_date)
             except ValueError as e:
                 raise ValueError(f"{mid} {period}:disclosure_date 需為 YYYY-MM 或 YYYY-MM-DD") from e
+            year, quarter = int(comparable_period[:4]), int(comparable_period[-1])
+            period_start = date(year, (quarter - 1) * 3 + 1, 1)
+            if disclosed < period_start:
+                raise ValueError(f"{mid} {period}:disclosure_date 不可早於所屬季度")
+            if disclosed > datetime.now(_TW_TZ).date():
+                raise ValueError(f"{mid} {period}:disclosure_date 不可晚於今天")
+            if end_date and disclosed < end_date:
+                raise ValueError(f"{mid} {period}:disclosure_date 不可早於 period_end")
 
 
 def build_output_side(cfg: dict) -> dict:
@@ -170,8 +209,9 @@ def build_output_side(cfg: dict) -> dict:
     rows, counts = [], {"accel": 0, "decel": 0, "flat": 0,
                        "not_disclosed": 0, "pending": 0, "insufficient": 0}
     for metric in output_cfg.get("metrics") or []:
-        obs = sorted(metric.get("observations") or [], key=lambda x: x["period"])
-        by_period = {x["period"]: x for x in obs}
+        obs = sorted(metric.get("observations") or [],
+                     key=lambda x: x.get("calendar_period") or x["period"])
+        by_period = {x.get("calendar_period") or x["period"]: x for x in obs}
         previous_period = _shift_compact_quarter(as_of, -1)
         previous2_period = _shift_compact_quarter(as_of, -2)
         latest = by_period.get(as_of)
@@ -187,30 +227,56 @@ def build_output_side(cfg: dict) -> dict:
             else:
                 break
         if latest is None:
-            direction = "pending"
+            direction, direction_reason = "pending", "最新期尚未輸入"
         elif latest["status"] == "not_disclosed":
-            direction = "not_disclosed"
+            direction, direction_reason = "not_disclosed", "公司本季未揭露可比數值"
+        elif latest.get("kind", "exact") != "exact":
+            direction, direction_reason = "insufficient", "下限／衍生值・不精算"
+        elif latest.get("scope_break"):
+            direction, direction_reason = "insufficient", "口徑斷點"
         elif not previous or previous["status"] != "disclosed":
-            direction = "insufficient"
+            direction, direction_reason = "insufficient", "前期未揭露"
+        elif previous.get("kind", "exact") != "exact":
+            direction, direction_reason = "insufficient", "前期下限／衍生值・不精算"
         else:
             cur, old = float(latest["value"]), float(previous["value"])
             if metric["value_type"] == "growth_rate":
                 delta = cur - old              # 百分點
             else:
                 # level 要判「加速度」需連續三季:比較本季成長率與前季成長率。
-                if not previous2 or previous2["status"] != "disclosed" or not old or not previous2["value"]:
-                    direction = "insufficient"
+                if previous.get("scope_break"):
+                    direction, direction_reason = "insufficient", "口徑斷點"
                     counts[direction] += 1
                     rows.append({**metric, "latest": latest, "previous": previous,
-                                 "previous2": previous2,
-                                 "direction": direction, "non_disclosure_streak": missing_streak})
+                                 "previous2": previous2, "direction": direction,
+                                 "direction_reason": direction_reason,
+                                 "non_disclosure_streak": missing_streak})
+                    continue
+                if not previous2 or previous2["status"] != "disclosed":
+                    direction, direction_reason = "insufficient", "需連續三季"
+                    counts[direction] += 1
+                    rows.append({**metric, "latest": latest, "previous": previous,
+                                 "previous2": previous2, "direction": direction,
+                                 "direction_reason": direction_reason,
+                                 "non_disclosure_streak": missing_streak})
+                    continue
+                if (previous2.get("kind", "exact") != "exact"
+                        or not old or not previous2["value"]):
+                    direction, direction_reason = "insufficient", "前三期非精確值"
+                    counts[direction] += 1
+                    rows.append({**metric, "latest": latest, "previous": previous,
+                                 "previous2": previous2, "direction": direction,
+                                 "direction_reason": direction_reason,
+                                 "non_disclosure_streak": missing_streak})
                     continue
                 delta = ((cur / old - 1) - (old / float(previous2["value"]) - 1)) * 100
             direction = "accel" if delta > flat else "decel" if delta < -flat else "flat"
+            direction_reason = f"可比數值變化 {delta:+.1f} 個百分點"
         counts[direction] += 1
         rows.append({**metric, "latest": latest, "previous": previous,
-                     "previous2": previous2,
-                     "direction": direction, "non_disclosure_streak": missing_streak})
+                      "previous2": previous2,
+                      "direction": direction, "direction_reason": direction_reason,
+                      "non_disclosure_streak": missing_streak})
     return {"metrics": rows, "counts": counts, "as_of_period": as_of,
             "scale_warning": output_cfg.get("scale_warning") or "",
             "scale_warning_source": output_cfg.get("scale_warning_source") or ""}
