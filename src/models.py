@@ -195,10 +195,13 @@ class ValuationMetric:
     thresholds: str               # 速查表用:便宜 / 合理 / 貴 的門檻文字
     driven_by: str                # 被哪些輸入影響 (標明日變/季變)
     source: str                   # 資料來源
+    display_override: str = ""    # 例如 N/M；區分已知不適用與資料缺漏 N/A
 
     @property
     def display(self) -> str:
         """格式化顯示值,如 '25.9x' / '1.8%' / '0.94' / 'N/A'。"""
+        if self.display_override:
+            return self.display_override
         if self.value is None:
             return "N/A"
         # 無單位(PEG 這種比值)用 2 位小數,才看得出 0.94 vs 1.02 的差別

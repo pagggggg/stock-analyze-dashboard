@@ -200,6 +200,9 @@ jobs:
           idx = open("public/index.html", encoding="utf-8").read()
           ai_path = "public/ai-chain.html"
           thesis_path = "public/stock_2330.html"
+          ux_pages = ["public/index.html", "public/stock_2330.html", "public/stock_7799.html",
+                      "public/stock_2890.html", "public/stock_5871.html",
+                      "public/stock_9941.html", "public/screener.html"]
           required_us = {"ASML", "AMAT", "LRCX", "KLAC"}
           # 詳情頁數以首頁實際連結為準，而不是只看目錄裡有幾個檔案；
           # 前者才能確認使用者真的能從本次首頁進入個股頁。
@@ -228,6 +231,18 @@ jobs:
               data_ok = False
           ok = (data_ok and actual_ids == expected_ids and linked >= floor
                 and pe_schema_ok == n_universe)
+          ux_ok = all(os.path.exists(path) for path in ux_pages)
+          if ux_ok:
+              negative = open("public/stock_7799.html", encoding="utf-8").read()
+              financial = open("public/stock_2890.html", encoding="utf-8").read()
+              lenders = [open(path, encoding="utf-8").read()
+                         for path in ("public/stock_5871.html", "public/stock_9941.html")]
+              detail_2330 = open("public/stock_2330.html", encoding="utf-8").read()
+              ux_ok = ("快速摘要" in detail_2330 and 'class="stock-filters"' in idx
+                       and 'class="stock-cards"' in idx and "本次新訊號" in idx
+                       and "N/M" in negative and "負現金流" in negative
+                       and "N/M" in financial and "金融業" in financial
+                       and all("N/M" in page and "金融業" in page for page in lenders))
           us_river_ok = required_us <= expected_ids
           for sid in required_us:
               path = f"data/universe/{sid}.json"
@@ -276,7 +291,7 @@ jobs:
                              and "價格 US$" in page and "法定申報期限 fallback" not in page)
           index_market_ok = ("台股 " in idx and "美股 " in idx
                              and "USD " in idx and "TWD " in idx)
-          ok = ok and index_market_ok
+          ok = ok and index_market_ok and ux_ok
           ai_ok = os.path.exists(ai_path)
           thesis_ok = os.path.exists(thesis_path)
           if thesis_ok:
@@ -346,6 +361,7 @@ jobs:
           print(f"AI 產業鏈頁完整:{ai_ok}")
           print(f"2330 Thesis 完整:{thesis_ok}")
           print(f"美股河流圖完整:{us_river_ok}")
+          print(f"第一階段 UX 完整:{ux_ok}")
           with open(os.environ["GITHUB_OUTPUT"], "a") as f:
               f.write(f"ok={'true' if ok and ai_ok and thesis_ok and us_river_ok else 'false'}\n")
               f.write(f"linked={linked}\nfloor={floor}\n")

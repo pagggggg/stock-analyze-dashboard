@@ -196,6 +196,10 @@ def c2_eps_positive(rec: dict, cfg: dict) -> Cond:
 
 def c3_ocf_positive(rec: dict, cfg: dict) -> Cond:
     """近 N 年(≈12季)累積 OCF 為正,且近 N 年至少 M 年全年 OCF 為正。看長期,濾單季波動。"""
+    from .metrics import is_financial_company
+    if is_financial_company(rec.get("stock_id", ""), rec.get("industry", ""),
+                            rec.get("market", "twse")):
+        return Cond("pass", "金融業不適用一般企業 OCF 篩選")
     conf = cfg["layer1"]["ocf_positive"]
     n = conf["years"]
     annual = rec.get("annual_ocf") or {}
@@ -222,7 +226,9 @@ def c4_debt_ratio(rec: dict, cfg: dict, stock_id: str) -> Cond:
     缺總資產時退回『淨負債/權益』。金融股依設定排除此條。"""
     conf = cfg["layer1"]["debt_ratio"]
     sid = int(stock_id) if stock_id.isdigit() else -1
-    if conf.get("exclude_financial") and conf["financial_id_min"] <= sid <= conf["financial_id_max"]:
+    from .metrics import is_financial_company
+    if conf.get("exclude_financial") and is_financial_company(
+            stock_id, rec.get("industry", ""), rec.get("market", "twse")):
         return Cond("pass", "金融股,依設定排除此條")
 
     bs = rec.get("latest_bs")
@@ -427,8 +433,10 @@ def evaluate(rec: dict, cfg: dict) -> ScreenResult:
 
     # 估值檢查(僅供參考,不用於淘汰):前瞻PE / PEG / FCF Yield
     v = rec.get("valuation") or {}
-    r.metrics["forward_pe"] = v.get("forward_pe")
-    r.metrics["peg"] = v.get("peg")
+    raw_fpe = v.get("forward_pe")
+    raw_peg = v.get("peg")
+    r.metrics["forward_pe"] = raw_fpe if raw_fpe is not None and raw_fpe > 0 else None
+    r.metrics["peg"] = raw_peg if raw_peg is not None and raw_peg > 0 else None
     r.metrics["fcf_yield"] = v.get("fcf_yield")
     # 估值旗標(只加旗標、不淘汰):用個股近N年PE分布
     ph = rec.get("pe_hist") or {}
@@ -444,16 +452,18 @@ def evaluate(rec: dict, cfg: dict) -> ScreenResult:
     r.metrics["trailing_pe"] = ph.get("current_trailing_pe") if current_ok else None
     r.metrics["pe_basis_label"] = (
         "Yahoo 調整後EPS" if rec.get("market") == "us" else "FinMind basic EPS")
-    from .valuation_flag import compute_flag
-    r.metrics["flag"] = compute_flag(r.metrics["trailing_pe"],
-                                     v.get("forward_pe"), v.get("peg"),
-                                     r.metrics["pe_median"] if current_ok else None,
-                                     r.metrics["pe_p90"] if current_ok else None, cfg)
-    # 共識覆蓋家數 + 是否「低覆蓋」(下游 PEG/修正動能 標記僅供參考,不刪資料)
     cov = v.get("coverage")
     rc = (cfg.get("universe_builder") or {}).get("reliable_coverage", 3)
+    low_coverage = cov is not None and cov < rc
+    from .valuation_flag import compute_flag
+    r.metrics["flag"] = compute_flag(r.metrics["trailing_pe"],
+                                      r.metrics["forward_pe"],
+                                      None if low_coverage else r.metrics["peg"],
+                                      r.metrics["pe_median"] if current_ok else None,
+                                      r.metrics["pe_p90"] if current_ok else None, cfg)
+    # 共識覆蓋家數 + 是否「低覆蓋」(下游 PEG/修正動能 標記僅供參考,不刪資料)
     r.metrics["coverage"] = cov
-    r.metrics["low_coverage"] = (cov is not None and cov < rc)
+    r.metrics["low_coverage"] = low_coverage
 
     # ---- 不依賴分析師共識的兩個補充欄位(口徑不同,獨立顯示,絕不覆蓋前瞻欄) ----
     hp = rec.get("hist_peg") or {}

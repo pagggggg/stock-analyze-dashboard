@@ -40,7 +40,8 @@ C_BLUE = "#2563eb"    # 中性 / 藍
 
 _VERDICT_COLOR = {
     "便宜": C_CHEAP, "合理": C_FAIR, "偏貴": C_PRICEY, "貴": C_EXP,
-    "前瞻參考": C_BLUE, "資料不足": C_NA,
+    "前瞻參考": C_BLUE, "資料不足": C_NA, "不適用": C_NA,
+    "負現金流": C_EXP, "無現金流": C_EXP,
 }
 _LIGHT_COLOR = {"green": C_CHEAP, "yellow": "#eab308", "red": C_EXP, "gray": C_NA}
 _LIGHT_WORD = {"green": "綠 · 健康", "yellow": "黃 · 留意", "red": "紅 · 警訊", "gray": "— · 資料不足"}
@@ -162,20 +163,29 @@ def _fig_eps(quarters: list[QuarterFinancials], scenarios: dict[str, EPSScenario
 # ======================================================================
 def _parse_consensus(rows: list[dict]) -> list[dict]:
     """字串列 → [{dt, y0, y1}],並去掉「和前一列完全相同」的重複列。"""
-    out: list[dict] = []
-    prev = None
-    for r in rows:
+    parsed: list[dict] = []
+    for i, r in enumerate(rows):
         try:
             y0 = float(r["eps_y0"]) if r.get("eps_y0") not in (None, "") else None
             y1 = float(r["eps_y1"]) if r.get("eps_y1") not in (None, "") else None
         except (TypeError, ValueError):
             continue
         dt = (r.get("datetime") or "").strip()
-        cur = (dt, y0, y1)
+        try:
+            order = datetime.fromisoformat(dt).timestamp()
+        except (ValueError, OSError):
+            order = float("inf")
+        parsed.append({"dt": dt, "y0": y0, "y1": y1, "order": order, "i": i})
+    parsed.sort(key=lambda x: (x["order"], x["i"]))
+
+    out: list[dict] = []
+    prev = None
+    for r in parsed:
+        cur = (r["dt"], r["y0"], r["y1"])
         if cur == prev:            # 連續完全重複 → 跳過(避免同一時點重跑塞爆)
             continue
         prev = cur
-        out.append({"dt": dt, "y0": y0, "y1": y1})
+        out.append({"dt": r["dt"], "y0": r["y0"], "y1": r["y1"]})
     return out
 
 
@@ -193,18 +203,18 @@ def _revision_markers(xs: list[str], ys: list[float]):
     return up_x, up_y, dn_x, dn_y
 
 
-def _fig_consensus(rows: list[dict]) -> str:
+def _fig_consensus(rows: list[dict], currency: str = "TWD") -> str:
     pts = _parse_consensus(rows)
     if len(pts) < 1:
-        return _placeholder("尚無共識EPS歷史紀錄(auto 模式跑過幾次後,這裡會累積折線)。")
+        return _placeholder("尚無可比較的共識 EPS 歷史；累積多次更新後才會形成趨勢。")
     xs = [p["dt"] for p in pts]
     y0 = [p["y0"] for p in pts]
     y1 = [p["y1"] for p in pts]
 
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=xs, y=y0, name="2026(今年FY)共識EPS",
+    fig.add_trace(go.Scatter(x=xs, y=y0, name="今年FY共識EPS",
                              mode="lines+markers", line=dict(color=C_BLUE, width=2.4)))
-    fig.add_trace(go.Scatter(x=xs, y=y1, name="2027(明年FY)共識EPS",
+    fig.add_trace(go.Scatter(x=xs, y=y1, name="明年FY共識EPS",
                              mode="lines+markers", line=dict(color=C_CHEAP, width=2.4)))
     # 上修(綠▲)/ 下修(紅▼)標記(對 2026 那條)
     ux, uy, dx, dy = _revision_markers(xs, y0)
@@ -214,8 +224,8 @@ def _fig_consensus(rows: list[dict]) -> str:
     if dx:
         fig.add_trace(go.Scatter(x=dx, y=dy, name="下修", mode="markers",
                                  marker=dict(color=C_EXP, size=13, symbol="triangle-down")))
-    fig.update_yaxes(title_text="共識 EPS (NT$)")
-    fig.update_xaxes(type="category")
+    fig.update_yaxes(title_text=f"共識 EPS ({'US$' if currency == 'USD' else 'NT$'})")
+    fig.update_xaxes(type="date")
     return _fig_div(_layout(fig, height=360))
 
 
@@ -263,6 +273,7 @@ def _cards_html(dash: DashboardResult | None) -> str:
             f'<div class="card-val" style="color:{color}">{_esc(m.display)}</div>'
             f'<div class="badge" style="background:{color}">{_esc(m.verdict)}</div>'
             f'<div class="card-note">{_esc(m.measures)}</div>'
+            f'<div class="card-source">{_esc(m.source)}</div>'
             f'</div>'
         )
     return f'<div class="cards">{"".join(cells)}</div>'
@@ -475,6 +486,8 @@ section h2 { font-size: 1.15rem; margin: 4px 0 12px; padding-bottom: 8px;
 .badge { display: inline-block; color: #fff; font-size: .8rem; font-weight: 700;
   padding: 2px 10px; border-radius: 999px; }
 .card-note { font-size: .82rem; color: #64748b; margin-top: 8px; }
+.card-source { font-size: .72rem; color: #64748b; margin-top: 8px; padding-top: 7px;
+  border-top: 1px solid #f1f5f9; }
 .lights { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 12px; margin-top: 12px; }
 .light-card { border: 1px solid #eef2f7; border-radius: 12px; padding: 14px; background:#fff; }

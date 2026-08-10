@@ -135,10 +135,13 @@ def build_screener_page(results, funnel, cfg, generated: str) -> str:
     w('<div class="wrap">')
     w('<header>')
     w('<div><a class="back" href="index.html">← 回總表</a></div>')
-    w("<h1>兩層選股篩選器(台股全市場)</h1>")
+    tw_n = sum(1 for r in results if r.market != "us")
+    us_n = sum(1 for r in results if r.market == "us")
+    w(f"<h1>兩層選股篩選器（可分析母體 {len(results)} 檔）</h1>")
     deep = sum(1 for r in results)
     w(f'<div class="meta">更新時間 {generated}　|　評估 {deep} 檔　|　'
-      f'通過第一層 <b>{funnel["layer1_pass"]}</b>　兩層全過 <b>{funnel["both_pass"]}</b></div>')
+      f'台股 {tw_n}・美股 {us_n}　|　通過第一層 <b>{funnel["layer1_pass"]}</b>　'
+      f'通過目前設定條件 <b>{funnel["both_pass"]}</b></div>')
     w('<div class="table-warn">📌 只用公開數據做資格/品質研究,<b>無持倉/交易紀錄</b>;'
       '本表僅供<b>縮小研究範圍,非買進清單</b>。門檻全在 <code>config/screener.yaml</code>。</div>')
     w("</header>")
@@ -150,7 +153,7 @@ def build_screener_page(results, funnel, cfg, generated: str) -> str:
     ered = [r for r in essence if r.metrics.get("flag") == "red"]
     ena = [r for r in essence if r.metrics.get("flag") in (None, "na")]
     w("<section>")
-    w(f"<h2>★ 精華清單:兩層全過 + 估值旗標分組（{len(essence)} 檔）</h2>")
+    w(f"<h2>★ 通過目前設定條件 + 估值旗標分組（{len(essence)} 檔）</h2>")
     if not essence:
         w('<div class="stream-empty">目前沒有股票兩層全過(⑦⑧⑨ 任一未達標或資料不足都不算)。</div>')
     else:
@@ -195,12 +198,13 @@ def build_screener_page(results, funnel, cfg, generated: str) -> str:
             ib = r.metrics["ib_ratio"]
             tot = r.metrics.get("total_ratio")
             thr = r.metrics.get("debt_thr")
-            mk = _SYM[r.layer1["c4"].status]
+            exempt = "金融業不適用" in r.layer1["c4"].detail
+            mk = "不適用" if exempt else _SYM[r.layer1["c4"].status]
             star = "" if r.metrics.get("has_ib_items", True) else "＊"
             tot_s = f"{tot:.1f}%" if tot is not None else "—"
             diff = f"−{tot - ib:.1f}pp" if tot is not None else "—"
             w(f"<tr><td>{_esc(r.stock_id)}</td><td>{_esc(r.name)}</td><td>{_esc(r.industry)}</td>"
-              f"<td class='num'>{ib:.1f}%{star}</td><td class='num'>&lt;{thr:.0f}%</td>"
+              f"<td class='num'>{'N/M' if exempt else f'{ib:.1f}%{star}'}</td><td class='num'>{'—' if exempt else f'&lt;{thr:.0f}%'}</td>"
               f"<td>{mk}</td><td class='num'>{tot_s}</td><td class='num'>{diff}</td></tr>")
         w("</tbody></table></div>")
         w(_note("有息負債比 =(短期借款+長期借款+應付公司債)÷ 總資產。"

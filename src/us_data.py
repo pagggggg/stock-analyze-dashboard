@@ -51,7 +51,7 @@ def compute_valuation(ticker: str, price: float | None) -> dict | None:
     e0, e1 = yf.get("eps_y0"), yf.get("eps_y1")
     mcap, fcf = yf.get("marketCap"), yf.get("fcf_ttm")
     cov = yf.get("n_y0") or yf.get("n_q0") or yf.get("n_y1")   # 分析師共識覆蓋家數
-    fpe = (price / e0) if (price and e0) else None
+    fpe = (price / e0) if (price and e0 is not None and e0 > 0) else None
     g = ((e1 - e0) / e0 * 100) if (e0 and e1 and e0 != 0) else None
     peg = (fpe / g) if (fpe and g and g > 0) else None
     fy = (fcf / mcap * 100) if (fcf and mcap) else None

@@ -35,7 +35,7 @@ from .data_layer import (
 from .eps_calc import calculate_scenarios
 from .fcf_quality import FcfQualityResult, build_fcf_quality
 from .guidance import load_guidance
-from .metrics import build_dashboard
+from .metrics import build_dashboard, is_financial_company
 from .models import DashboardResult, EPSScenario, PEBand, QuarterFinancials
 from .river import (RiverSeries, build_pe_river, compute_pe_band_finmind,
                     supports_tw_filing_fallback)
@@ -59,6 +59,8 @@ class StockAnalysis:
     market: str = "twse"
     currency: str = "TWD"
     track_signals: bool = True
+    industry: str = ""
+    is_financial: bool = False
 
     dashboard: DashboardResult | None = None       # 四指標
     pe_band: PEBand | None = None
@@ -141,6 +143,13 @@ def analyze_stock(
 ) -> StockAnalysis:
     """把一檔股票的所有分析湊齊。任何一步失敗都會記進 errors,不中斷。"""
     a = StockAnalysis(stock_id=stock_id, name=name or stock_id)
+    try:
+        import json
+        rec = json.loads((ROOT / f"data/universe/{stock_id}.json").read_text(encoding="utf-8"))
+        a.industry = str(rec.get("industry") or "")
+    except (OSError, ValueError):
+        pass
+    a.is_financial = is_financial_company(stock_id, a.industry, a.market)
     filing_fallback_supported = supports_tw_filing_fallback(a.name)
 
     # ---- 1. 長區間損益(河流圖 TTM / FCF 的營收COGS / 近8季報表共用一份)----
@@ -185,7 +194,7 @@ def analyze_stock(
         a.eps_y1 = yf.get("eps_y1")
         a.n_analysts = yf.get("n_y0")
         a.consensus_source = f"yfinance 分析師共識 (抓取 {yf_date})"
-        if a.eps_y0 and a.eps_y1 and a.eps_y0 != 0:
+        if a.eps_y0 is not None and a.eps_y1 is not None and a.eps_y0 > 0:
             a.growth_pct = (a.eps_y1 - a.eps_y0) / a.eps_y0 * 100.0
 
     # ---- 月營收動能(台股每月10日前公告;不依賴分析師覆蓋)----
@@ -198,7 +207,7 @@ def analyze_stock(
         a.errors.append(f"月營收動能抓取失敗:{e}")
 
     # 前瞻PE 的年化EPS:共識今年FY 優先,抓不到退回 TTM(近4季實際)
-    if a.eps_y0:
+    if a.eps_y0 is not None:
         a.ann_eps = float(a.eps_y0)
         a.ann_eps_source = "共識今年FY EPS"
     else:
@@ -206,13 +215,14 @@ def analyze_stock(
         a.ann_eps_source = "近4季實際EPS(TTM,共識抓不到的替代)"
 
     # ---- 4. 四指標卡(沿用 metrics.build_dashboard)---------------------
-    if a.price and a.ann_eps and a.shares_bn:
+    if a.price and a.ann_eps is not None and a.shares_bn:
         growth_src = (f"共識 2027 {a.eps_y1:.1f} vs 2026 {a.eps_y0:.1f} → {a.growth_pct:.1f}%"
                       if a.growth_pct is not None else "(無成長率,PEG 無法計算)")
         try:
             a.dashboard = build_dashboard(
                 price=a.price, ann_eps=a.ann_eps, shares_bn=a.shares_bn,
                 pe_band=a.pe_band, yf=yf, growth_pct=a.growth_pct, growth_source=growth_src,
+                is_financial=a.is_financial,
             )
         except Exception as e:  # noqa: BLE001
             a.errors.append(f"指標計算失敗:{e}")
@@ -228,12 +238,13 @@ def analyze_stock(
             a.errors.append(f"河流圖失敗:{e}")
 
     # ---- 6. FCF 品質(資產負債 + 現金流)-------------------------------
-    try:
-        bal_piv, _ = fetch_balance_pivot(stock_id)
-        cf_piv, _ = fetch_cashflow_pivot(stock_id)
-        a.fcf = build_fcf_quality(income_piv, bal_piv, cf_piv)
-    except Exception as e:  # noqa: BLE001
-        a.errors.append(f"FCF 品質失敗:{e}")
+    if not a.is_financial:
+        try:
+            bal_piv, _ = fetch_balance_pivot(stock_id)
+            cf_piv, _ = fetch_cashflow_pivot(stock_id)
+            a.fcf = build_fcf_quality(income_piv, bal_piv, cf_piv)
+        except Exception as e:  # noqa: BLE001
+            a.errors.append(f"FCF 品質失敗:{e}")
 
     # ---- 7. 法說指引三情境試算(選配,只有提供 guidance 檔的股票才做)----
     if guidance_path:
@@ -265,7 +276,8 @@ def analyze_us_record(record: dict, pe_years: int = 5) -> StockAnalysis:
     sid = str(record["stock_id"])
     a = StockAnalysis(stock_id=sid, name=record.get("name") or sid,
                       market="us", currency=str(record.get("currency") or "USD"),
-                      track_signals=False)
+                      track_signals=False, industry=str(record.get("industry") or ""))
+    a.is_financial = is_financial_company(sid, a.industry, a.market)
     a.price = record.get("price_last")
     a.price_date = str(record.get("price_date") or "")
     detail = record.get("detail") or {}
@@ -312,12 +324,13 @@ def analyze_us_record(record: dict, pe_years: int = 5) -> StockAnalysis:
         ))
     if a.yf_raw.get("n_y0") is not None:
         a.n_analysts = int(a.yf_raw["n_y0"])
-    if a.price and a.ann_eps and a.shares_bn:
+    if a.price and a.ann_eps is not None and a.shares_bn:
         try:
             a.dashboard = build_dashboard(
                 price=float(a.price), ann_eps=float(a.ann_eps), shares_bn=float(a.shares_bn),
                 pe_band=a.pe_band, yf=a.yf_raw, growth_pct=a.growth_pct,
                 growth_source="Yahoo 分析師共識", currency=a.currency,
+                is_financial=a.is_financial,
             )
         except Exception as e:  # noqa: BLE001
             a.errors.append(f"美股估值指標計算失敗:{e}")
