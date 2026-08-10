@@ -119,7 +119,7 @@ def _fig_river(r: RiverSeries) -> str:
         textfont=dict(color=C_EXP, size=12),
         hovertemplate="現價 %{y:,.0f}<extra></extra>",
     ))
-    fig.update_yaxes(title_text="股價 (NT$)")
+    fig.update_yaxes(title_text=f"股價 ({'US$' if r.currency == 'USD' else 'NT$'})")
     return _fig_div(_layout(fig, height=420))
 
 

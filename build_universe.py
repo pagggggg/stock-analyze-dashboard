@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import argparse
+import math
 import os
 from datetime import datetime
 from pathlib import Path
@@ -29,6 +30,10 @@ ROOT = Path(__file__).resolve().parent
 UNIVERSE_YAML = ROOT / "config/universe.yaml"
 REPORT = ROOT / "reports/universe_report.md"
 UNIVERSE_DATA_DIR = ROOT / "data/universe"
+US_NAMES = {
+    "ASML": "ASML", "AMAT": "Applied Materials",
+    "LRCX": "Lam Research", "KLAC": "KLA",
+}
 
 
 def _load_dotenv(path: Path) -> None:
@@ -68,7 +73,8 @@ def _money(v, market):
 def _build_candidates(market: str, cfg: dict, full: bool) -> list[dict]:
     ub = cfg["universe_builder"]
     if market == "us":
-        return [{"stock_id": t, "name": t, "industry": ""} for t in (ub.get("us_test_ids") or [])]
+        return [{"stock_id": t, "name": US_NAMES.get(t, t), "industry": ""}
+                for t in (ub.get("us_test_ids") or [])]
     smap = load_tw_stock_map()
     if full:
         ids = list(smap)
@@ -288,7 +294,15 @@ def run(args) -> None:
               f"日均 {_money(r.liq_avg, market)}）")
 
     results, stats = build(candidates, market, cfg, meeting_ids, progress=_prog)
+    if market == "us" and any(not r.ok for r in results):
+        failed = ",".join(r.stock_id for r in results if not r.ok)
+        raise RuntimeError(f"美股母體快照抓取不完整，保留既有母體不覆寫:{failed}")
     passed = [r for r in results if r.passed]
+    if market == "us" and UNIVERSE_YAML.exists():
+        old_doc = yaml.safe_load(UNIVERSE_YAML.read_text(encoding="utf-8")) or {}
+        old_n = len(old_doc.get("us") or [])
+        if old_n and len(passed) < max(1, math.ceil(old_n * 0.7)):
+            raise RuntimeError(f"美股母體異常縮減 {old_n}→{len(passed)}，已停止覆寫與清檔")
     doc = _save_universe_yaml(market, passed)
     # 只有正式全市場台股建構或美股母體建構才清理。台股測試清單不可刪正式母體資料。
     if args.full or market == "us":

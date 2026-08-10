@@ -56,6 +56,9 @@ class StockAnalysis:
     price: float | None = None
     price_date: str = ""
     shares_bn: float | None = None
+    market: str = "twse"
+    currency: str = "TWD"
+    track_signals: bool = True
 
     dashboard: DashboardResult | None = None       # 四指標
     pe_band: PEBand | None = None
@@ -254,4 +257,69 @@ def analyze_stock(
     hist_path = ROOT / f"data/consensus/{stock_id}.csv"
     a.consensus_history = load_consensus_history(hist_path)
 
+    return a
+
+
+def analyze_us_record(record: dict, pe_years: int = 5) -> StockAnalysis:
+    """由已持久化的美股母體紀錄建立詳情頁，不在 push 建站時臨時連網。"""
+    sid = str(record["stock_id"])
+    a = StockAnalysis(stock_id=sid, name=record.get("name") or sid,
+                      market="us", currency=str(record.get("currency") or "USD"),
+                      track_signals=False)
+    a.price = record.get("price_last")
+    a.price_date = str(record.get("price_date") or "")
+    detail = record.get("detail") or {}
+    if detail.get("schema_version") != 1:
+        a.errors.append("美股詳情資料 schema 缺失或過期")
+        return a
+    try:
+        a.river = RiverSeries(**detail["river"])
+    except (KeyError, TypeError, ValueError) as e:
+        a.errors.append(f"美股河流圖資料錯誤:{e}")
+        return a
+    ph = record.get("pe_hist") or {}
+    if ph.get("status") == "ok":
+        a.pe_band = PEBand(
+            pe_low=float(ph["p10"]), pe_mid=float(ph["median"]), pe_high=float(ph["p90"]),
+            years_covered=f"{ph.get('window_start')}–{ph.get('as_of')},rolling {pe_years} 年",
+            source=a.river.source,
+        )
+    a.trailing_pe = ph.get("current_trailing_pe")
+    a.pe_median = ph.get("median")
+    a.pe_p90 = ph.get("p90")
+    a.pe_percentile = ph.get("percentile")
+    a.shares_bn = detail.get("shares_bn") or None
+    a.eps_y0 = detail.get("eps_y0")
+    a.eps_y1 = detail.get("eps_y1")
+    a.growth_pct = detail.get("growth_pct")
+    a.ann_eps = a.eps_y0
+    a.ann_eps_source = "Yahoo 分析師共識"
+    a.consensus_source = "Yahoo 分析師共識"
+    a.yf_raw = detail.get("yf") or {}
+    # ASML 的財報/共識原生為 EUR，但詳情頁市值與股價為 USD；貨幣欄位必須同口徑。
+    if detail.get("financial_currency") != detail.get("quote_currency"):
+        fx = detail.get("latest_fx")
+        if fx:
+            for key in ("ebitda", "totalDebt", "totalCash", "fcf_ttm", "ocf_ttm", "capex_ttm"):
+                if a.yf_raw.get(key) is not None:
+                    a.yf_raw[key] = float(a.yf_raw[key]) * float(fx)
+    for row in detail.get("quarters") or []:
+        a.quarters.append(QuarterFinancials(
+            quarter=str(row["period"]), revenue_twd_bn=0.0, gross_margin_pct=0.0,
+            opex_ratio_pct=0.0, tax_rate_pct=0.0, shares_bn=a.shares_bn or 0.0,
+            non_op_ratio_pct=0.0, reported_eps=float(row["eps"]),
+            source="Yahoo Reported EPS（拆股／幣別調整後）",
+        ))
+    if a.yf_raw.get("n_y0") is not None:
+        a.n_analysts = int(a.yf_raw["n_y0"])
+    if a.price and a.ann_eps and a.shares_bn:
+        try:
+            a.dashboard = build_dashboard(
+                price=float(a.price), ann_eps=float(a.ann_eps), shares_bn=float(a.shares_bn),
+                pe_band=a.pe_band, yf=a.yf_raw, growth_pct=a.growth_pct,
+                growth_source="Yahoo 分析師共識", currency=a.currency,
+            )
+        except Exception as e:  # noqa: BLE001
+            a.errors.append(f"美股估值指標計算失敗:{e}")
+    a.consensus_history = load_consensus_history(ROOT / f"data/consensus/{sid}.csv")
     return a

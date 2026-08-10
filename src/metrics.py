@@ -32,12 +32,15 @@ def build_dashboard(
     yf: dict | None,
     growth_pct: float | None,
     growth_source: str,
+    currency: str = "TWD",
 ) -> DashboardResult:
     """組裝儀表板。yf 為 None(抓取失敗)時,只會有前瞻PE、PEG(若有手填成長)。"""
     yf = yf or {}
     metrics: list[ValuationMetric] = []
+    is_usd = currency == "USD"
+    price_source = "Yahoo" if is_usd else "TWSE"
 
-    # 市值(十億台幣)= 現價 × 股數
+    # 市值(十億報價幣別)= 現價 × 股數
     market_cap_bn = price * shares_bn
 
     # ---- 1. 前瞻 PE = 現價 ÷ 年化EPS -------------------------------
@@ -56,7 +59,7 @@ def build_dashboard(
         verdict=pe_verdict,
         thresholds="不以 trailing 歷史河道判讀 forward PE",
         driven_by="現價(日變) + 我的年化EPS(法說指引→試算,季變)",
-        source="現價 TWSE + 年化EPS(共識/本工具試算)",
+        source=f"現價 {price_source} + 年化EPS(共識/本工具試算)",
     ))
 
     # ---- 2. PEG = 前瞻PE ÷ 盈餘成長率 -------------------------------
@@ -110,8 +113,8 @@ def build_dashboard(
         name="自由現金流殖利率 (FCF Yield)",
         value=fcf_yield, unit="%",
         formula=fcf_formula,
-        measures="用現價買,公司每年產生多少『可自由運用現金』回饋你;越高越划算。台積電擴產期通常偏低。",
-        reference="概略參考:台積電近年約 1~4%(重資本支出→偏低)",
+        measures="用現價買,公司每年產生多少『可自由運用現金』回饋你;越高越划算。",
+        reference="概略參考:重資本支出公司通常較低；須與自身歷史及同業比較",
         verdict=fcf_verdict,
         thresholds="便宜(高) >4%｜合理 2~4%｜偏貴(低) <2%",
         driven_by="現價(日變,影響市值) + 近4季自由現金流(季變)",
@@ -145,7 +148,7 @@ def build_dashboard(
         value=ev_ebitda, unit="x",
         formula=ev_formula,
         measures="把負債與現金也算進去的『整體企業』估值,排除資本結構與稅率差異,較能跨公司比。",
-        reference="概略參考:一般 10~20x;台積電近年約 12~22x",
+        reference="概略參考:一般 10~20x；仍須與自身歷史及同業比較",
         verdict=ev_verdict,
         thresholds="便宜 <12x｜合理 12~18x｜貴 >18x(經驗法則)",
         driven_by="現價(日變,影響市值→EV) + 負債/現金(季變) + EBITDA(季變)",

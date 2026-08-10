@@ -40,7 +40,7 @@ from src.data_layer import (
 )
 from src.river import current_trailing_pe, daily_pe_series, supports_tw_filing_fallback
 from src.screener import extract_metrics, load_config
-from src.us_data import build_us_record, compute_valuation
+from src.us_data import US_RIVER_TICKERS, build_us_record, compute_valuation
 from src.valuation_flag import (historical_peg, pe_history_is_compatible,
                                 pe_history_stats, pe_source_regressed,
                                 tw_pe_source_coverage)
@@ -55,8 +55,9 @@ def _bust_cache(stock_id: str, mode: str) -> None:
     prices=只刪股價/yfinance(日更新);all=連財報都刪(週更新)。"""
     from src.cache import CACHE_DIR
     price_keys = [f"finmind_price_{stock_id}", f"finmind_pxv_{stock_id}",
-                  f"yf_metrics_{stock_id}.TW", f"yf_cov_{stock_id}.TW",
-                  f"yf_metrics_{stock_id}", f"yf_cov_{stock_id}"]  # 後兩個給美股 ticker
+                   f"yf_metrics_{stock_id}.TW", f"yf_cov_{stock_id}.TW",
+                   f"yf_metrics_{stock_id}", f"yf_cov_{stock_id}",
+                   f"ai_chain_us_record_{stock_id}", f"ai_chain_us_record_v2_{stock_id}"]
     fin_keys = [f"finmind_fs_long_{stock_id}", f"finmind_bs_{stock_id}", f"finmind_cf_{stock_id}"]
     keys = price_keys if mode == "prices" else price_keys + fin_keys
     for k in keys:
@@ -131,6 +132,8 @@ def load_from_universe(cfg: dict) -> list[dict]:
         items = items[:lim]
 
     if market == "twse":
+        if not items:
+            return []
         info = _finmind_loader().taiwan_stock_info()
         ind = {str(r["stock_id"]): str(r["industry_category"]) for _, r in info.iterrows()}
         return [{"stock_id": str(s["stock_id"]), "name": s.get("name", s["stock_id"]),
@@ -175,6 +178,9 @@ def _fresh(path: Path, days: int, pe_years: int = 5) -> bool:
         ph = rec.get("pe_hist") or {}
         if rec.get("pe_refresh_error") or not pe_history_is_compatible(
                 ph, rec.get("market", "twse"), rec.get("price_date"), pe_years):
+            return False
+        if (rec.get("stock_id") in US_RIVER_TICKERS
+                and (rec.get("detail") or {}).get("schema_version") != 1):
             return False
         f = rec.get("fetched")
         return f is not None and (date.today() - date.fromisoformat(f)).days <= days
@@ -343,10 +349,21 @@ def _save(rec: dict) -> None:
                 rec.pop("pe_hist", None)
             if rec.get("pe_refresh_error"):
                 rec.pop("pe_hist", None)            # preserve old snapshot, but block commit/deploy
+                if old.get("market") == "us":
+                    # 美股價格、PE、河道、估值是一個同日期快照；任何一塊失敗就整組沿用。
+                    for k in ("currency", "industry", "fetched", "price_last", "price_date",
+                              "liq_avg_value", "liq_days", "pe_hist", "detail", "valuation"):
+                        if old.get(k) is not None:
+                            rec[k] = old[k]
+                    if (old.get("detail") or {}).get("schema_version") == 1:
+                        rec.pop("pe_refresh_error", None)
+                        rec["errors"] = list(old.get("errors") or []) + [
+                            "本次美股快照更新失敗，整組沿用前次完整資料"]
+                        rec["partial_update"] = True
             kept = []
             # 這些區塊「有比沒有好」:新的缺、舊的有 → 保留舊的
             for k in ("annual", "annual_bs", "annual_ocf", "latest_bs", "ocf_q",
-                      "pe_hist", "valuation", "hist_peg", "mrev",
+                       "pe_hist", "valuation", "hist_peg", "mrev", "detail",
                       "first_report", "latest_report",
                       "price_last", "price_date", "liq_avg_value", "liq_days"):
                 if not rec.get(k) and old.get(k):
@@ -405,9 +422,15 @@ def run(args) -> None:
     # --from-universe 時以 config/universe.yaml 的 us 清單為唯一真相；
     # 非母體模式才沿用 screener.yaml 的 extra_us 測試清單。
     if args.from_universe:
-        us = [str(x["stock_id"]) for x in (_universe_doc().get("us") or [])]
+        us_items = _universe_doc().get("us") or []
     else:
-        us = [str(x) for x in (cfg["universe"].get("extra_us") or [])]
+        us_items = [{"stock_id": str(x), "name": str(x)}
+                    for x in (cfg["universe"].get("extra_us") or [])]
+    only = {str(x).strip() for x in (cfg["universe"].get("stock_ids") or []) if str(x).strip()}
+    if only:
+        us_items = [x for x in us_items if str(x["stock_id"]) in only]
+    us = [str(x["stock_id"]) for x in us_items]
+    us_names = {str(x["stock_id"]): str(x.get("name") or x["stock_id"]) for x in us_items}
     if us:
         print(f"美股測試({len(us)} 檔,yfinance):")
         for j, ticker in enumerate(us, 1):
@@ -417,7 +440,7 @@ def run(args) -> None:
             elif _fresh(path, refetch_days, cfg["valuation_flag"]["pe_history_years"]):
                 print(f"  [{j}/{len(us)}] {ticker} 沿用本地")
                 continue
-            rec = build_us_record(str(ticker), str(ticker), cfg)
+            rec = build_us_record(str(ticker), us_names[ticker], cfg)
             _save(rec)
             val = (rec.get("valuation") or {}).get("forward_pe")
             print(f"  [{j}/{len(us)}] {ticker}（{rec.get('industry','')}）"

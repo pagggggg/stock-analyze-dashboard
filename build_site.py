@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -25,7 +26,7 @@ import yaml
 
 from src.ai_chain import build_ai_chain_data, load_ai_chain_config
 from src.ai_chain_html import build_ai_chain_page
-from src.analysis import analyze_stock
+from src.analysis import analyze_stock, analyze_us_record
 from src.scan_state import (Event, append_signal_log, compute_signals, load_signal_log,
                             load_state, save_state)
 from src.screener import load_config as load_screener_config, load_records, screen_all
@@ -69,14 +70,26 @@ def load_universe_stocks() -> list[dict]:
         raise SystemExit("找不到 config/universe.yaml,請先執行 python build_universe.py --market tw")
     doc = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
     items = doc.get("twse") or []
+    us_items = doc.get("us") or []
     gmap: dict[str, str] = {}
     try:
         wl, _ = load_watchlist(ROOT / "config/watchlist.yaml")
         gmap = {str(s["stock_id"]): s["guidance"] for s in wl if s.get("guidance")}
     except Exception:  # noqa: BLE001
         pass
-    return [{"stock_id": str(s["stock_id"]), "name": s.get("name", str(s["stock_id"])),
-             "guidance": gmap.get(str(s["stock_id"]))} for s in items]
+    tw = [{"stock_id": str(s["stock_id"]), "name": s.get("name", str(s["stock_id"])),
+           "guidance": gmap.get(str(s["stock_id"])), "market": "twse"} for s in items]
+    us = []
+    for s in us_items:
+        sid = str(s["stock_id"])
+        record_path = ROOT / f"data/universe/{sid}.json"
+        try:
+            record = json.loads(record_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if (record.get("detail") or {}).get("schema_version") == 1:
+            us.append({"stock_id": sid, "name": s.get("name", sid), "market": "us"})
+    return tw + us
 
 
 def run(args) -> None:
@@ -102,7 +115,13 @@ def run(args) -> None:
         name = s.get("name", sid)
         guidance = s.get("guidance")
         print(f"[{i}/{len(stocks)}] 分析 {sid} {name} …")
-        a = analyze_stock(sid, name, guidance_path=guidance, pe_years=pe_years)
+        if s.get("market") == "us":
+            record_path = ROOT / f"data/universe/{sid}.json"
+            if not record_path.exists():
+                raise RuntimeError(f"美股母體資料不存在:{record_path}")
+            a = analyze_us_record(json.loads(record_path.read_text(encoding="utf-8")), pe_years)
+        else:
+            a = analyze_stock(sid, name, guidance_path=guidance, pe_years=pe_years)
         status_txt = "OK" if a.ok else "四指標不足"
         print(f"        → {status_txt}"
               + (f";現價 {a.price}" if a.price else "")
@@ -115,7 +134,7 @@ def run(args) -> None:
     # 正式更新先把本次快照放進記憶體供圖表、訊號與 thesis 使用；所有頁面成功後才落盤。
     if not args.no_record:
         for a in analyses:
-            if a.eps_y0 is None and a.eps_y1 is None:
+            if a.market == "us" or (a.eps_y0 is None and a.eps_y1 is None):
                 continue
             a.consensus_history.append({
                 "datetime": build_now.strftime("%Y-%m-%d %H:%M"),
@@ -224,7 +243,7 @@ def run(args) -> None:
         from src.data_layer import record_consensus_history
 
         for a in analyses:
-            if a.eps_y0 is None and a.eps_y1 is None:
+            if a.market == "us" or (a.eps_y0 is None and a.eps_y1 is None):
                 continue
             record_consensus_history(
                 ROOT / f"data/consensus/{a.stock_id}.csv", a.eps_y0, a.eps_y1,
@@ -233,7 +252,7 @@ def run(args) -> None:
             )
         new_state = load_state(ROOT / "data/scan_state.json")
         for a in analyses:
-            if a.ok or getattr(a, "thesis", None):
+            if (a.ok or getattr(a, "thesis", None)) and getattr(a, "track_signals", True):
                 new_state[a.stock_id] = a.state_snapshot(new_state.get(a.stock_id))
         save_state(ROOT / "data/scan_state.json", new_state)
         append_signal_log(ROOT / "data/signal_log.csv", events)

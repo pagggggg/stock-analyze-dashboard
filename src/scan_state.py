@@ -220,7 +220,7 @@ def compute_signals(
     all_events: list[Event] = []
     new_state: dict = dict(prev_state)  # 保留沒掃到的舊檔
     for a in analyses:
-        if not a.ok and not getattr(a, "thesis", None):
+        if (not a.ok and not getattr(a, "thesis", None)) or not getattr(a, "track_signals", True):
             continue
         prev = prev_state.get(a.stock_id, {})
         _latch_unknown_thesis(a, prev)

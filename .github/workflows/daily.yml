@@ -193,12 +193,14 @@ jobs:
           DATA_HEALTHY: ${{ steps.sanity.outputs.healthy }}
         run: |
           python - <<'PY'
-          import glob, json, os, re, struct, yaml, zlib
+          import glob, json, math, os, re, struct, yaml, zlib
+          from datetime import date
           from src.ai_chain import build_output_side, load_ai_chain_config
           from src.valuation_flag import pe_history_is_compatible
           idx = open("public/index.html", encoding="utf-8").read()
           ai_path = "public/ai-chain.html"
           thesis_path = "public/stock_2330.html"
+          required_us = {"ASML", "AMAT", "LRCX", "KLAC"}
           # 詳情頁數以首頁實際連結為準，而不是只看目錄裡有幾個檔案；
           # 前者才能確認使用者真的能從本次首頁進入個股頁。
           linked = len(set(re.findall(r'href="stock_(\w+)\.html"', idx)))
@@ -222,8 +224,59 @@ jobs:
                   pe_schema_ok += 1
           data_ok = (os.environ["REFRESH_MODE"] == "none"
                      or os.environ.get("DATA_HEALTHY") == "true")
+          if data_ok and not actual_ids == expected_ids:
+              data_ok = False
           ok = (data_ok and actual_ids == expected_ids and linked >= floor
                 and pe_schema_ok == n_universe)
+          us_river_ok = required_us <= expected_ids
+          for sid in required_us:
+              path = f"data/universe/{sid}.json"
+              page_path = f"public/stock_{sid}.html"
+              if not os.path.exists(path) or not os.path.exists(page_path):
+                  us_river_ok = False
+                  continue
+              rec = json.load(open(path, encoding="utf-8"))
+              river = ((rec.get("detail") or {}).get("river") or {})
+              page = open(page_path, encoding="utf-8").read()
+              lengths = [len(river.get(k) or []) for k in
+                         ("dates", "price", "band_low", "band_mid", "band_high")]
+              current_pe = river.get("current_pe")
+              stored_pe = (rec.get("pe_hist") or {}).get("current_trailing_pe")
+              conversion = (rec.get("pe_hist") or {}).get("currency_conversion") or {}
+              detail_pe_ok = ((rec.get("pe_hist") or {}).get("schema_version") == 8
+                              and (rec.get("pe_hist") or {}).get("release_time_aware") is True
+                              and "first_market_close" in (rec.get("pe_hist") or {}).get("method", ""))
+              asml_currency_ok = (sid != "ASML" or (
+                  (rec.get("pe_hist") or {}).get("schema_version") == 8
+                  and conversion.get("from") == "EUR" and conversion.get("to") == "USD"
+                  and conversion.get("as_of") == rec.get("price_date")))
+              dates = river.get("dates") or []
+              numeric_rows = zip(*(river.get(k) or [] for k in
+                                   ("price", "band_low", "band_mid", "band_high")))
+              bands_ok = all(all(math.isfinite(float(v)) and float(v) > 0 for v in row)
+                             and float(row[1]) <= float(row[2]) <= float(row[3])
+                             for row in numeric_rows)
+              split_map = {d: float(v) for d, v in ((rec.get("detail") or {}).get("splits") or [])}
+              splits_ok = ((sid != "LRCX" or split_map.get("2024-10-03") == 10.0)
+                           and (sid != "KLAC" or split_map.get("2026-06-12") == 10.0))
+              fresh = (date.today() - date.fromisoformat(rec["price_date"])).days <= 7
+              us_river_ok = (us_river_ok and rec.get("market") == "us"
+                             and (rec.get("detail") or {}).get("schema_version") == 1
+                             and river.get("current_date") == rec.get("price_date")
+                             and len(set(lengths)) == 1 and 59 <= lengths[0] <= 61
+                             and dates == sorted(set(dates)) and bands_ok and splits_ok and fresh
+                             and detail_pe_ok
+                             and asml_currency_ok and abs(float(river["pe_mid"])
+                                 - float((rec.get("pe_hist") or {})["median"])) <= 0.1
+                             and current_pe is not None and stored_pe is not None
+                             and abs(float(current_pe) - float(stored_pe)) <= 0.2
+                             and f'href="stock_{sid}.html"' in idx
+                             and f'href="stock_{sid}.html"' in open(ai_path, encoding="utf-8").read()
+                             and "本益比河流圖" in page and "\\u80a1\\u50f9 (US$)" in page
+                             and "價格 US$" in page and "法定申報期限 fallback" not in page)
+          index_market_ok = ("台股 " in idx and "美股 " in idx
+                             and "USD " in idx and "TWD " in idx)
+          ok = ok and index_market_ok
           ai_ok = os.path.exists(ai_path)
           thesis_ok = os.path.exists(thesis_path)
           if thesis_ok:
@@ -292,10 +345,11 @@ jobs:
           print(f"PE schema/date 完整:{pe_schema_ok}/{n_universe}")
           print(f"AI 產業鏈頁完整:{ai_ok}")
           print(f"2330 Thesis 完整:{thesis_ok}")
+          print(f"美股河流圖完整:{us_river_ok}")
           with open(os.environ["GITHUB_OUTPUT"], "a") as f:
-              f.write(f"ok={'true' if ok and ai_ok and thesis_ok else 'false'}\n")
+              f.write(f"ok={'true' if ok and ai_ok and thesis_ok and us_river_ok else 'false'}\n")
               f.write(f"linked={linked}\nfloor={floor}\n")
-          print("品質檢查通過。" if ok and ai_ok and thesis_ok else "品質不足,將跳過部署。")
+          print("品質檢查通過。" if ok and ai_ok and thesis_ok and us_river_ok else "品質不足,將跳過部署。")
           PY
 
       - name: Skip deploy (quality gate)

@@ -47,6 +47,7 @@ class RiverSeries:
     current_price: float      # 現價
     current_pe: float | None  # 現價 ÷ 最新 TTM EPS(trailing PE)
     source: str = ""
+    currency: str = "TWD"
 
 
 def _filing_available_date(qend: date) -> date:
@@ -222,6 +223,84 @@ def build_pe_river(
         pe_low=round(pe_lo, 1), pe_mid=round(pe_mid, 1), pe_high=round(pe_hi, 1),
         current_date=cd, current_price=round(cp, 1),
         current_pe=round(cpe, 1) if cpe else None, source=source,
+    )
+
+
+def build_pe_river_us(hist, earnings_dates=None, years: int = 5,
+                      eps_events: list[tuple[date, float]] | None = None,
+                      fx_series: list[tuple[date, float]] | None = None,
+                      source_note: str = "") -> RiverSeries:
+    """Yahoo 美股河道：拆股調整 Close ÷ 實際公告日可得的四季 Reported EPS。"""
+    from .valuation_flag import pe_series_us
+
+    if hist is None or not len(hist):
+        raise ValueError("美股河流圖缺股價序列")
+    daily_pe = pe_series_us(hist, earnings_dates, years=years, eps_events=eps_events,
+                            fx_series=fx_series, release_time_aware=True)
+    if not daily_pe:
+        raise ValueError("美股河流圖缺可用 Reported EPS")
+    pe_by_date = {d: pe for d, pe in daily_pe}
+    price_rows = []
+    for ts, row in hist.sort_index().iterrows():
+        try:
+            close = float(row["Close"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if close > 0:
+            price_rows.append({"date": ts.date().isoformat(), "close": close})
+    monthly = _monthly_price(price_rows, exclude_open_month=True)
+    first_pe_date = date.fromisoformat(daily_pe[0][0])
+    pe_dates = [date.fromisoformat(d) for d, _ in daily_pe]
+    pe_values = [pe for _, pe in daily_pe]
+    pts = []
+    for dstr, close in monthly:
+        d = date.fromisoformat(dstr)
+        current_pe = pe_by_date.get(dstr)
+        if current_pe is None:
+            continue
+        ttm = close / current_pe
+        cutoff = _shift_years(d, -years)
+        vals = sorted(pe for pd, pe in zip(pe_dates, pe_values) if cutoff < pd <= d)
+        min_samples = max(252, int(years * 252 * 0.60))
+        if (ttm <= 0 or len(vals) < min_samples
+                or first_pe_date > cutoff + timedelta(days=7)):
+            continue
+        pts.append((dstr, close, ttm, _percentile(vals, .10),
+                    _percentile(vals, .50), _percentile(vals, .90)))
+    if not pts:
+        raise ValueError("美股河流圖:不足完整 rolling 歷史")
+    # 與台股頁一致只呈現最近 rolling 視窗；更早資料僅供每月分位暖機。
+    display_start = _shift_years(date.fromisoformat(price_rows[-1]["date"]), -years)
+    pts = [x for x in pts if date.fromisoformat(x[0]) >= display_start]
+    if not pts:
+        raise ValueError("美股河流圖:最近五年月頻資料不足")
+
+    latest = price_rows[-1]
+    cd, cp = latest["date"], latest["close"]
+    cpe = pe_by_date.get(cd)
+    cutoff = _shift_years(date.fromisoformat(cd), -years)
+    current_vals = sorted(pe for pd, pe in zip(pe_dates, pe_values)
+                          if cutoff < pd <= date.fromisoformat(cd))
+    min_samples = max(252, int(years * 252 * 0.60))
+    if (cpe is None or first_pe_date > cutoff + timedelta(days=7)
+            or len(current_vals) < min_samples):
+        raise ValueError(f"美股河流圖:有效 PE 歷史不足完整 rolling {years} 年")
+    pe_lo = _percentile(current_vals, .10)
+    pe_mid = _percentile(current_vals, .50)
+    pe_hi = _percentile(current_vals, .90)
+    source = (f"Yahoo Close（拆股調整、不含股息）÷首個可交易收盤日起可得的四季 Reported EPS；"
+              f"截至 {cd} rolling {years}年 P10/P50/P90")
+    if source_note:
+        source += f"；{source_note}"
+    return RiverSeries(
+        dates=[x[0] for x in pts],
+        price=[round(x[1], 2) for x in pts],
+        band_low=[round(x[2] * x[3], 2) for x in pts],
+        band_mid=[round(x[2] * x[4], 2) for x in pts],
+        band_high=[round(x[2] * x[5], 2) for x in pts],
+        pe_low=round(pe_lo, 1), pe_mid=round(pe_mid, 1), pe_high=round(pe_hi, 1),
+        current_date=cd, current_price=round(cp, 2), current_pe=round(cpe, 1),
+        source=source, currency="USD",
     )
 
 

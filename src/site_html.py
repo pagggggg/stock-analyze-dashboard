@@ -65,7 +65,7 @@ _STATUS = {
 # ======================================================================
 # 個股詳情頁的 EPS 走勢圖(相容「有/無」法說三情境)
 # ======================================================================
-def _fig_eps_site(quarters, scenarios, quarter_label: str) -> str:
+def _fig_eps_site(quarters, scenarios, quarter_label: str, currency: str = "TWD") -> str:
     actual = quarters[-8:] if len(quarters) > 8 else quarters
     ax = [q.quarter for q in actual]
     ay = [round(q.reported_eps, 2) for q in actual]
@@ -89,7 +89,7 @@ def _fig_eps_site(quarters, scenarios, quarter_label: str) -> str:
             hovertemplate="%{x}<br>試算 EPS %{y:.2f}<extra></extra>",
         ))
     fig.update_layout(barmode="group", bargap=0.25)
-    fig.update_yaxes(title_text="單季 EPS (NT$)")
+    fig.update_yaxes(title_text=f"單季 EPS ({'US$' if currency == 'USD' else 'NT$'})")
     fig.update_xaxes(type="category")
     return _fig_div(_layout(fig, height=360))
 
@@ -139,18 +139,22 @@ def _scan_table(rows: list[tuple]) -> str:
     """rows: list of (analysis, momentum_dir, momentum_pct)。"""
     body = []
     for a, mdir, mpct in rows:
-        price_txt = _n(a.price, 0) if a.price else "N/A"
+        is_us = getattr(a, "market", "twse") == "us"
+        price_txt = _n(a.price, 2 if is_us else 0) if a.price else "N/A"
         price_sort = a.price if a.price else "nan"
         mcolor, mlabel = _MOM.get(mdir, _MOM["na"])
         mtxt = mlabel + (f" {mpct:+.1f}%" if mpct not in (None, 0.0) and mdir in ("up", "down") else "")
         msort = mpct if (mpct is not None and mdir in ("up", "down")) else "nan"
         detail = (f'<a href="stock_{a.stock_id}.html">{_esc(a.name)}</a>'
                   if a.ok else _esc(a.name))
+        market_label = "美股" if is_us else "台股"
+        currency = getattr(a, "currency", "TWD")
         body.append(
             "<tr>"
             f'<td data-sort="{a.stock_id}">{_esc(a.stock_id)}</td>'
-            f'<td class="name">{detail}</td>'
-            f'<td class="num" data-sort="{price_sort}">{price_txt}</td>'
+            f'<td class="name" data-sort="{_esc(a.name.lower())}">{detail}</td>'
+            f'<td data-sort="{market_label}">{market_label}</td>'
+            f'<td class="num" data-sort="{price_sort}" title="{_esc(a.price_date)}">{currency} {price_txt}</td>'
             f'{_metric_cell(a, "forward_pe", "x")}'
             f'{_metric_cell(a, "peg", "", 2)}'
             f'{_metric_cell(a, "fcf_yield", "%")}'
@@ -160,8 +164,8 @@ def _scan_table(rows: list[tuple]) -> str:
             "</tr>"
         )
     heads = [
-        ("代號", 0), ("名稱", 1), ("收盤價", 2), ("前瞻PE", 3), ("PEG", 4),
-        ("FCF Yield", 5), ("EV/EBITDA", 6), ("盈餘修正動能", 7), ("月營收動能", 8),
+        ("代號", 0), ("名稱", 1), ("市場", 2), ("收盤價", 3), ("前瞻PE", 4), ("PEG", 5),
+        ("FCF Yield", 6), ("EV/EBITDA", 7), ("盈餘修正動能", 8), ("月營收動能", 9),
     ]
     th = "".join(f'<th onclick="sortTable({i})">{_esc(h)} ⇅</th>' for h, i in heads)
     return (
@@ -266,8 +270,14 @@ def build_index_html(
                 and not e.message.startswith("Thesis 目前仍為紅燈"))
     n_yellow = sum(1 for e in events if e.level == "yellow")
     # 價格是「哪一個交易日的收盤價」——不標出來,使用者會誤以為是即時報價
-    pdates = sorted({a.price_date for a, _, _ in rows if getattr(a, "price_date", None)})
-    price_day = pdates[-1] if pdates else None
+    tw_dates = sorted({a.price_date for a, _, _ in rows
+                       if getattr(a, "market", "twse") != "us" and getattr(a, "price_date", None)})
+    us_dates = sorted({a.price_date for a, _, _ in rows
+                       if getattr(a, "market", "twse") == "us" and getattr(a, "price_date", None)})
+    price_days = "、".join(filter(None, [
+        f"台股 {tw_dates[-1]}" if tw_dates else "",
+        f"美股 {us_dates[-1]}" if us_dates else "",
+    ])) or "最近交易日"
     count_txt = ""
     if not first_run or n_red or n_yellow:
         # 狀態燈是彩色底(綠/黃/紅),計數若再用紅/黃字會「紅底紅字」看不見 →
@@ -311,7 +321,7 @@ def build_index_html(
     <h1>個人選股分析儀表板</h1>
     <div class="meta">更新時間 {generated}　|　觀察清單 {len(rows)} 檔　|　資料:FinMind + yfinance(公開市場數據)</div>
     <div class="notice">🕐 <b>本站不是即時報價。</b>表中「收盤價」為
-      <b>{_esc(price_day) if price_day else "最近交易日"}</b> 的收盤價,
+      <b>{_esc(price_days)}</b> 的收盤價,
       每個交易日收盤後(約下午,實際時間視雲端排程而定)更新一次。
       <b>盤中看到的數字不會跟著跳動</b> —— 所有指標(前瞻PE / PEG / FCF Yield / EV·EBITDA)
       都是用這個收盤價算的,下單前請自行以券商即時報價為準。</div>
@@ -453,19 +463,24 @@ def _whatif_block(a) -> str:
     }
     data = _json.dumps({a.stock_id: params}, ensure_ascii=False)
     sid = _esc(a.stock_id)
+    is_us = getattr(a, "market", "twse") == "us"
     mis = f"https://mis.twse.com.tw/stock/fibest.jsp?stock={sid}"
-    yhoo = f"https://tw.stock.yahoo.com/quote/{sid}.TW"
+    yhoo = (f"https://finance.yahoo.com/quote/{sid}/" if is_us
+            else f"https://tw.stock.yahoo.com/quote/{sid}.TW")
+    quote_links = (f'<a href="{yhoo}" target="_blank" rel="noopener">Yahoo Finance</a>' if is_us else
+                   f'<a href="{mis}" target="_blank" rel="noopener">證交所即時報價</a> 或 '
+                   f'<a href="{yhoo}" target="_blank" rel="noopener">Yahoo 股市</a>')
+    currency_label = "US$" if a.currency == "USD" else "NT$"
     return f"""
   <section>
     <h2>換個價格試算(即時報價可用這裡換算)</h2>
     <div class="notice">本站的收盤價每日更新一次、<b>盤中不會跳動</b>。
       想知道「現在這個價位」的估值,先到
-      <a href="{mis}" target="_blank" rel="noopener">證交所即時報價</a> 或
-      <a href="{yhoo}" target="_blank" rel="noopener">Yahoo 股市</a> 看現價,
+      {quote_links} 看現價,
       再填進下面欄位,四個指標會<b>立刻用新價格重算</b>(判讀門檻與本頁完全相同)。
       也可以直接試算「如果跌到 X / 漲到 Y」。</div>
     <div class="wi-bar">
-      <label for="wi-price">價格 NT$</label>
+      <label for="wi-price">價格 {currency_label}</label>
       <input id="wi-price" type="number" step="0.01" min="0" value="{a.price}"
              oninput="whatIf('{sid}')" onkeydown="if(event.key==='Enter')whatIf('{sid}')">
       <button onclick="whatIf('{sid}')">試算</button>
@@ -546,8 +561,10 @@ def _thesis_html(a) -> str:
 def build_detail_html(a, generated: str) -> str:
     # 頂部小摘要
     parts = []
+    is_us = getattr(a, "market", "twse") == "us"
+    currency_label = "US$" if a.currency == "USD" else "NT$"
     if a.price:
-        parts.append(f"現價 <b>NT$ {_n(a.price, 0)}</b>（{_esc(a.price_date)}）")
+        parts.append(f"現價 <b>{currency_label} {_n(a.price, 2 if is_us else 0)}</b>（{_esc(a.price_date)}）")
     if a.eps_y0:
         g = f"，成長 {a.growth_pct:+.1f}%" if a.growth_pct is not None else ""
         parts.append(f"今年共識EPS <b>{_n(a.eps_y0, 2)}</b>{g}")
@@ -557,7 +574,8 @@ def build_detail_html(a, generated: str) -> str:
 
     river_div = _fig_river(a.river) if a.river else _placeholder("河流圖資料不足。")
     fcf_dual = _fig_fcf_dual(a.fcf) if a.fcf else _placeholder("FCF 雙線資料不足。")
-    eps_div = _fig_eps_site(a.quarters, a.scenarios, a.quarter_label) if a.quarters else _placeholder("EPS 資料不足。")
+    eps_div = (_fig_eps_site(a.quarters, a.scenarios, a.quarter_label, a.currency)
+               if a.quarters else _placeholder("EPS 資料不足。"))
     cons_div = _fig_consensus(a.consensus_history or [])
 
     river_zone = ""
@@ -590,6 +608,16 @@ def build_detail_html(a, generated: str) -> str:
         f'百分位 <b>{pct_txt}</b>'
         '</div>'
     )
+    if is_us:
+        river_note = (
+            '河道 =「當時公告後可得的近四季 Reported EPS」×<b>截至當月為止</b> rolling 5年 '
+            'trailing PE P10/P50/P90。Yahoo Close 採拆股調整、不含股息；財報通常盤後公布，'
+            '從市場可交易的第一個收盤日起生效。' + _esc(a.river.source if a.river else '') + '。')
+    else:
+        river_note = (
+            '河道 =「當時可得的近四季實際EPS」×<b>截至當月為止</b> rolling 5年 trailing PE P10/P50/P90。'
+            'FinMind 無實際公告日欄位,本國發行人財報生效日採法定申報期限 fallback；'
+            'KY/外國發行人不套用此假設。')
 
     err = ""
     if a.errors:
@@ -618,9 +646,8 @@ def build_detail_html(a, generated: str) -> str:
     <h2>本益比河流圖</h2>
     {position}
     {river_div}
-    {_note('河道 =「當時可得的近四季實際EPS」×<b>截至當月為止</b> rolling 5年 trailing PE P10/P50/P90。'
+    {_note(river_note +
            '圖例數字是目前分位:'+_esc(a.pe_band.years_covered if a.pe_band else '資料不足')+'。'
-           'FinMind 無實際公告日欄位,本國發行人財報生效日採法定申報期限 fallback；KY/外國發行人不套用此假設。'
            '黑線只畫完整月末;未完成月份只顯示紅色最新點。'
            '<b>河道不再為了包住股價而向外擴張</b>;股價超出上緣/下緣是極端估值訊號,不是繪圖錯誤。'
            '股價貼近<b style="color:'+C_CHEAP+'">綠</b>相對便宜、貼近或超過<b style="color:'+C_EXP+'">紅</b>相對貴。' + river_zone)}
@@ -645,7 +672,7 @@ def build_detail_html(a, generated: str) -> str:
     {_note('<span style="color:'+C_CHEAP+'">▲上修</span>/<span style="color:'+C_EXP+'">▼下修</span>;每日重跑會累積更長折線。')}
   </section>
 {_whatif_block(a)}
-  <footer><div><a class="back" href="index.html">← 回總表</a>　|　資料:FinMind + yfinance,不構成投資建議。</div></footer>
+  <footer><div><a class="back" href="index.html">← 回總表</a>　|　資料:{'Yahoo Finance' if is_us else 'FinMind + yfinance'},不構成投資建議。</div></footer>
 </div>
 """
     return _page(f"{a.name} {a.stock_id} 詳情", body, plotly=True)
@@ -734,10 +761,11 @@ function sortTable(n){
   var dir=t.getAttribute('data-col')==String(n)&&t.getAttribute('data-dir')=='asc'?'desc':'asc';
   t.setAttribute('data-col',n); t.setAttribute('data-dir',dir);
   rows.sort(function(a,b){
-    var xs=a.cells[n].getAttribute('data-sort'), ys=b.cells[n].getAttribute('data-sort');
+    var xs=a.cells[n].getAttribute('data-sort')||a.cells[n].innerText.toLowerCase();
+    var ys=b.cells[n].getAttribute('data-sort')||b.cells[n].innerText.toLowerCase();
     var x=parseFloat(xs), y=parseFloat(ys);
     var xn=isNaN(x), yn=isNaN(y);
-    if(xn&&yn){ return xs<ys?-1:xs>ys?1:0; }
+    if(xn&&yn){ var c=xs<ys?-1:xs>ys?1:0; return dir=='asc'?c:-c; }
     if(xn) return 1; if(yn) return -1;            /* N/A 永遠沉底 */
     return dir=='asc'? x-y : y-x;
   });

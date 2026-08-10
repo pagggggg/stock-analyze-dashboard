@@ -20,22 +20,30 @@ from .river import _percentile
 
 
 PE_SCHEMA_VERSION = 6
+US_PE_SCHEMA_VERSION = 8
 TW_PE_BASIS = "trailing_pe_rolling"
 US_PE_BASIS = "adjusted_trailing_pe_rolling"
 TW_PE_METHOD = "finmind_basic_eps_statutory_fallback_latest_restated"
-US_PE_METHOD = "yahoo_reported_adjusted_eps_earnings_date"
+US_PE_METHOD = "yahoo_reported_adjusted_eps_first_market_close_fx_normalized"
 
 
-def _pe_schema(market: str) -> dict:
+def _pe_schema(market: str, currency_conversion: bool = False,
+               release_time_aware: bool = False) -> dict:
     if market == "us":
         return {
+            "schema_version": US_PE_SCHEMA_VERSION if release_time_aware else PE_SCHEMA_VERSION,
             "basis": US_PE_BASIS,
-            "method": US_PE_METHOD,
-            "eps_basis": "Yahoo Reported EPS (adjusted)",
-            "availability": "earnings date + 1 calendar day",
+            "method": (US_PE_METHOD if currency_conversion else
+                       "yahoo_reported_adjusted_eps_first_market_close" if release_time_aware else
+                       "yahoo_reported_adjusted_eps_earnings_date"),
+            "eps_basis": ("Yahoo Reported EPS (adjusted; converted to quote currency)"
+                          if currency_conversion else "Yahoo Reported EPS (adjusted)"),
+            "availability": ("first US market close after release timestamp" if release_time_aware
+                             else "earnings date + 1 calendar day"),
             "price_basis": "Yahoo Close (split-adjusted, not dividend-adjusted)",
         }
     return {
+        "schema_version": PE_SCHEMA_VERSION,
         "basis": TW_PE_BASIS,
         "method": TW_PE_METHOD,
         "eps_basis": "FinMind basic EPS (latest-restated values)",
@@ -49,8 +57,14 @@ def pe_history_is_compatible(ph: dict, market: str, price_date: str | None,
     """Whether a stored PE snapshot was computed by the current, date-bound schema."""
     if not isinstance(ph, dict) or not price_date:
         return False
-    schema = _pe_schema(market)
-    if (ph.get("schema_version") != PE_SCHEMA_VERSION
+    schema = _pe_schema(market, bool(ph.get("currency_conversion")),
+                        bool(ph.get("release_time_aware")))
+    conversion = ph.get("currency_conversion") or {}
+    if market == "us" and conversion and (
+            conversion.get("from") != "EUR" or conversion.get("to") != "USD"
+            or conversion.get("as_of") != price_date):
+        return False
+    if (ph.get("schema_version") != schema["schema_version"]
             or ph.get("basis") != schema["basis"]
             or ph.get("method") != schema["method"]
             or ph.get("market") != market
@@ -152,7 +166,8 @@ def tw_pe_source_coverage(price_rows: list[dict], income: dict, years: int = 5) 
     }
 
 
-def us_pe_source_coverage(hist, earnings_dates, years: int = 5) -> dict:
+def us_pe_source_coverage(hist, earnings_dates, years: int = 5,
+                          eps_events: list[tuple[date, float]] | None = None) -> dict:
     prices = []
     if hist is not None and len(hist):
         try:
@@ -163,8 +178,8 @@ def us_pe_source_coverage(hist, earnings_dates, years: int = 5) -> dict:
         except (KeyError, TypeError, ValueError, AttributeError):
             pass
     price_end = max(prices) if prices else None
-    events = []
-    if earnings_dates is not None and len(earnings_dates) and "Reported EPS" in earnings_dates.columns:
+    events = [d for d, _ in (eps_events or [])]
+    if eps_events is None and earnings_dates is not None and len(earnings_dates) and "Reported EPS" in earnings_dates.columns:
         for ts, row in earnings_dates.iterrows():
             try:
                 eps = float(row["Reported EPS"])
@@ -258,22 +273,28 @@ def pe_history_stats(pe_series: list, current_trailing_pe: float | None,
                       years: int = 5, min_days: int = 60,
                       current_date: str | None = None, market: str = "twse",
                       insufficient_reason: str | None = None,
-                      source_coverage: dict | None = None) -> dict:
+                      source_coverage: dict | None = None,
+                      currency_conversion: dict | None = None,
+                      release_time_aware: bool = False) -> dict:
     """由 trailing PE 序列算近 N 年分布與「目前 trailing PE」所在百分位。
 
     歷史序列是收盤價÷依資料可用日落後的 TTM 實際 EPS，因此只能和目前 trailing PE 比；
     把 forward PE 放進來會使成長股系統性顯得較便宜，是已知的口徑混用。
     """
-    schema = _pe_schema(market)
+    schema = _pe_schema(market, bool(currency_conversion), release_time_aware)
     current_raw = (float(current_trailing_pe)
                    if current_trailing_pe is not None
                    and math.isfinite(current_trailing_pe) and current_trailing_pe > 0 else None)
     current = round(current_raw, 1) if current_raw is not None else None
     if current_date is None and pe_series:
         current_date = max(d for d, _ in pe_series)
-    base = {"schema_version": PE_SCHEMA_VERSION, **schema, "market": market,
+    base = {**schema, "market": market,
             "years": years, "current_date": current_date, "as_of": current_date,
             "current_trailing_pe": current, "source_coverage": source_coverage or {}}
+    if currency_conversion:
+        base["currency_conversion"] = currency_conversion
+    if release_time_aware:
+        base["release_time_aware"] = True
     try:
         as_of = date.fromisoformat(current_date or "")
     except ValueError:
@@ -358,12 +379,10 @@ def historical_peg(annual: dict, price: float | None, years: int = 5) -> dict | 
     }
 
 
-def pe_series_us(hist, earnings_dates, years: int = 5) -> list:
-    """美股 point-in-time trailing PE:收盤 ÷ 已公告最近四季 Reported EPS。
-
-    財報通常盤後公布，生效日取公告日次日；不再用年度 EPS 回填整個曆年。
-    """
-    if hist is None or not len(hist) or earnings_dates is None or not len(earnings_dates):
+def _us_reported_eps_events(earnings_dates,
+                            release_time_aware: bool = False) -> list[tuple[date, float]]:
+    """Yahoo earnings table -> deduplicated availability-date EPS events."""
+    if earnings_dates is None or not len(earnings_dates):
         return []
     events_by_date: dict[date, float] = {}
     for ts, row in earnings_dates.iterrows():
@@ -372,9 +391,34 @@ def pe_series_us(hist, earnings_dates, years: int = 5) -> list:
         except (KeyError, TypeError, ValueError):
             continue
         if math.isfinite(eps):
-            # Yahoo can return duplicate rows for one announcement. Keep one event only.
-            events_by_date.setdefault(ts.date(), eps)
-    events = [(d + timedelta(days=1), eps) for d, eps in sorted(events_by_date.items())]
+            if release_time_aware:
+                try:
+                    local = ts.tz_convert("America/New_York") if ts.tzinfo else ts
+                    effective = local.date() + (timedelta(days=1) if local.hour >= 16 else timedelta())
+                except (AttributeError, TypeError):
+                    effective = ts.date() + timedelta(days=1)
+            else:
+                effective = ts.date() + timedelta(days=1)
+            events_by_date.setdefault(effective, eps)
+    return sorted(events_by_date.items())
+
+
+def pe_series_us(hist, earnings_dates=None, years: int = 5,
+                 eps_events: list[tuple[date, float]] | None = None,
+                 fx_series: list[tuple[date, float]] | None = None,
+                 release_time_aware: bool = False) -> list:
+    """美股 point-in-time trailing PE:收盤 ÷ 已公告最近四季 Reported EPS。
+
+    依發布時間取市場可交易的第一個收盤日；不再用年度 EPS 回填整個曆年。
+    """
+    if hist is None or not len(hist):
+        return []
+    events = (list(eps_events) if eps_events is not None else
+              _us_reported_eps_events(earnings_dates, release_time_aware))
+    if not events:
+        return []
+    fx_dates = [d for d, _ in (fx_series or [])]
+    fx_values = [value for _, value in (fx_series or [])]
     out, run, i = [], [], 0
     for ts, row in hist.sort_index().iterrows():
         d = ts.date()
@@ -394,6 +438,12 @@ def pe_series_us(hist, earnings_dates, years: int = 5) -> list:
         if (d - run[-1][0]).days > 150:
             continue                                # 缺下一季時，不無限沿用舊 TTM
         ttm = sum(eps for _, eps in run[-4:])
+        if fx_series:
+            from bisect import bisect_right
+            fx_i = bisect_right(fx_dates, d) - 1
+            if fx_i < 0 or (d - fx_dates[fx_i]).days > 7:
+                continue
+            ttm *= fx_values[fx_i]
         try:
             close = float(row["Close"])
         except (TypeError, ValueError, KeyError):
@@ -403,16 +453,17 @@ def pe_series_us(hist, earnings_dates, years: int = 5) -> list:
     return out
 
 
-def us_pe_source_error(hist, earnings_dates, years: int = 5) -> str | None:
+def us_pe_source_error(hist, earnings_dates, years: int = 5,
+                       eps_events: list[tuple[date, float]] | None = None) -> str | None:
     """Detect malformed/truncated Yahoo inputs before classifying history as insufficient."""
-    coverage = us_pe_source_coverage(hist, earnings_dates, years)
+    coverage = us_pe_source_coverage(hist, earnings_dates, years, eps_events)
     if not coverage["price_n"]:
         return "price_history_fetch_error"
     if coverage["price_n"] < 60:
         return "price_history_truncated"
-    if earnings_dates is None or not len(earnings_dates):
+    if eps_events is None and (earnings_dates is None or not len(earnings_dates)):
         return "earnings_dates_fetch_error"
-    if "Reported EPS" not in earnings_dates.columns:
+    if eps_events is None and "Reported EPS" not in earnings_dates.columns:
         return "earnings_dates_invalid"
 
     if coverage["eps_n"] < 4:

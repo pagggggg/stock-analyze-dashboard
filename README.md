@@ -111,6 +111,7 @@ open public/index.html            # 本機預覽
 - 層級關係不代表營收、獲利或股價必然連動。
 - 產出側追蹤 PLTR、Microsoft AI/Copilot、Google Cloud backlog、AWS AI run rate、Agentforce ARR、ServiceNow AI ACV；下限、財季、口徑斷點與未揭露分開標示。
 - 台積電詳情頁另有個人 Thesis 狀態：四項證偽條件、近八季毛利率、人工競爭標記與部位規則；任一紅燈會提升首頁狀態並寫入訊號流水。
+- AI 設備層的 ASML、AMAT、LRCX、KLAC 可由首頁搜尋或產業鏈頁進入美股詳情；河流圖使用 Yahoo 拆股調整後股價與實際財報公告日 EPS。ASML 的 EUR EPS 依各交易日當時 EUR/USD 換算為 USD，避免幣別混算。
 - 30 個產業節點與產出側公司使用本地 Logo；無可用官方圖示時採名稱縮寫標章，載入失敗仍會退回縮寫。
 
 ### 每日自動更新 + 部署 GitHub Pages
