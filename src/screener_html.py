@@ -8,16 +8,51 @@
 from __future__ import annotations
 
 from .dashboard_html import C_CHEAP, C_EXP, C_FAIR, C_NA, _esc, _note
-from .screener import L1_LABELS, L2_LABELS, ScreenResult
+from .screener import (L1_LABELS, L2_LABELS, P90_RELEASE_NOTE,
+                       PRICE_LEVEL_WARNING, ScreenResult)
 from .site_html import _page
 from .valuation_flag import FLAG, RED_WARNING
 
 _SYM = {"pass": "✅", "fail": "❌", "na": "⚠️"}
 _FLAG_COLOR = {"green": C_CHEAP, "yellow": "#eab308", "red": C_EXP, "na": C_NA}
 
-
 def _fv(v, unit: str = "", dp: int = 1) -> str:
     return "—" if v is None else f"{v:,.{dp}f}{unit}"
+
+
+def _price(v, currency: str, market: str, approximate: bool = False) -> str:
+    if v is None:
+        return "N/M"
+    unit = "US$" if currency == "USD" else "NT$"
+    return f"{'約 ' if approximate else ''}{unit} {v:,.2f}"
+
+
+def _move(v, p90: bool = False, warning_active: bool = False) -> str:
+    if v is None:
+        return "N/M"
+    if abs(v) < 0.05:
+        return "已在該價位"
+    if p90 and not warning_active:
+        return f"未觸發（距 P90 {abs(v):.1f}%）"
+    word = "需上漲" if v > 0 else "需回落"
+    return f"{word} {abs(v):.1f}%"
+
+
+def _price_level_cells(r: ScreenResult) -> str:
+    m = r.metrics
+    close = _price(m.get("close_price"), m.get("currency", "TWD"), r.market)
+    close_date = m.get("close_date") or "N/M"
+    return (f"<td class='num'>{close}<br><small>{_esc(close_date)}</small></td>"
+            f"<td class='num'>{_price(m.get('price_p50'), m.get('currency', 'TWD'), r.market, True)}</td>"
+            f"<td class='num'>{_move(m.get('move_to_p50_pct'))}</td>"
+            f"<td class='num'>{_price(m.get('price_p90'), m.get('currency', 'TWD'), r.market, True)}</td>"
+            f"<td class='num'>{_move(m.get('move_to_p90_pct'), True, bool(m.get('p90_warning_active')))}</td>")
+
+
+def _price_warning() -> str:
+    warning = _esc(PRICE_LEVEL_WARNING).replace("\n", "<br>")
+    return (f'<div class="warn price-level-warning"><b>價格推算警語</b><br>{warning}'
+            f'<br><br><small>{_esc(P90_RELEASE_NOTE)}</small></div>')
 
 
 def _flag_html(r) -> str:
@@ -80,13 +115,18 @@ def _l2_table(rows: list[ScreenResult]) -> str:
             "<tr>"
             f"<td>{_esc(r.stock_id)}</td><td>{_esc(r.name)}</td><td>{_esc(r.industry)}</td>"
             f"<td>{_flag_html(r)}</td>"
+            f"{_price_level_cells(r)}"
             f"<td>{_q(r.layer2['q7'])}</td><td>{_q(r.layer2['q8'])}</td>"
             f"<td>{_q(r.layer2['q9'])}</td><td>{mom}</td></tr>"
         )
     return (
+        _price_warning() +
         '<div class="swipe-hint">← 手機可左右滑動看更多欄位 →</div>'
-        '<div class="table-scroll"><table class="tbl"><thead><tr>'
-        "<th>代號</th><th>名稱</th><th>產業</th><th>🚩旗標</th><th>⑦營收CAGR</th><th>⑧毛利率趨勢</th>"
+        '<div class="table-scroll"><table class="tbl price-level-table"><thead><tr>'
+        "<th>代號</th><th>名稱</th><th>產業</th><th>🚩旗標</th>"
+        "<th>收盤價<br><small>日期</small></th><th>歷史中樞價<br><small>P50</small></th><th>至 P50<br><small>需變動</small></th>"
+        "<th>解除高估警戒價<br><small>P90*</small></th><th>至 P90<br><small>需變動</small></th>"
+        "<th>⑦營收CAGR</th><th>⑧毛利率趨勢</th>"
         "<th>⑨ROE</th><th>⑩修正動能</th></tr></thead><tbody>"
         + "".join(body) + "</tbody></table></div>"
     )
@@ -107,6 +147,7 @@ def _val_tbl(rows: list[ScreenResult]) -> str:
         body.append(
             f"<tr><td>{_esc(r.stock_id)}</td><td>{_esc(r.name)}</td><td>{mkt}</td>"
             f"<td>{_flag_html(r)}</td>"
+            f"{_price_level_cells(r)}"
             f"<td class='num'>{_fv(m.get('forward_pe'), 'x')}</td>"
             f"<td class='num'>{_fv(m.get('trailing_pe'), 'x')}</td>"
             f"<td class='num'>{_fv(m.get('pe_median'), 'x')}</td>"
@@ -117,9 +158,13 @@ def _val_tbl(rows: list[ScreenResult]) -> str:
             f"{_hpeg_cell(r)}{_mrev_cell(r)}</tr>"
         )
     return (
+        _price_warning() +
         '<div class="swipe-hint">← 手機可左右滑動看更多欄位 →</div>'
-        '<div class="table-scroll"><table class="tbl"><thead><tr>'
-        "<th>代號</th><th>名稱</th><th>市場</th><th>🚩旗標</th><th>前瞻PE</th><th>目前trailing PE</th>"
+        '<div class="table-scroll"><table class="tbl price-level-table"><thead><tr>'
+        "<th>代號</th><th>名稱</th><th>市場</th><th>🚩旗標</th>"
+        "<th>收盤價<br><small>日期</small></th><th>歷史中樞價<br><small>P50</small></th><th>至 P50<br><small>需變動</small></th>"
+        "<th>解除高估警戒價<br><small>P90*</small></th><th>至 P90<br><small>需變動</small></th>"
+        "<th>前瞻PE</th><th>目前trailing PE</th>"
         "<th>近5年trailing中位</th><th>近5年trailing P90</th><th>trailing百分位</th><th>前瞻PEG</th><th>共識覆蓋</th>"
         "<th>歷史PEG<br><span style='font-weight:400;font-size:.8em'>(不需共識)</span></th>"
         "<th>月營收動能<br><span style='font-weight:400;font-size:.8em'>(不需共識)</span></th>"

@@ -388,6 +388,43 @@ L2_LABELS = {
     "q7": "⑦ 營收CAGR", "q8": "⑧ 毛利率趨勢", "q9": "⑨ ROE", "q10": "⑩ 修正動能",
 }
 
+PRICE_LEVEL_WARNING = """「歷史中樞價是以目前 TTM EPS 乘上該股自身近5年 trailing PE 分位數推算,
+不是預測價,也不是買進或賣出價位。
+
+
+重要限制:成長股在主升段可長期高於中樞而不回歸。本站回測顯示,
+台積電曾連續逾5年未觸及歷史中位估值區,期間股價持續上漲。
+以『等待回到中樞』作為進場條件,經回測驗證績效劣於不擇時分批進場。」"""
+
+P90_RELEASE_NOTE = ("P90 價只代表解除『目前 trailing PE > 歷史 P90』這一項警戒；"
+                    "若前瞻 PE 或 PEG 仍超過門檻,整體紅旗仍可能保留。")
+
+
+def derive_trailing_price_levels(close, close_date, current_pe, pe_p50, pe_p90) -> dict:
+    """以同一 TTM EPS 將 trailing PE P50/P90 轉回價格；無效輸入一律不推算。"""
+    import math
+
+    values = (close, current_pe, pe_p50, pe_p90)
+    try:
+        close_f, current_f, p50_f, p90_f = (float(x) for x in values)
+    except (TypeError, ValueError):
+        return {"close_price": None, "close_date": None, "price_p50": None,
+                "move_to_p50_pct": None, "price_p90": None, "move_to_p90_pct": None}
+    if (not close_date or not all(math.isfinite(x) and x > 0
+                                  for x in (close_f, current_f, p50_f, p90_f))):
+        return {"close_price": None, "close_date": None, "price_p50": None,
+                "move_to_p50_pct": None, "price_p90": None, "move_to_p90_pct": None}
+    price_p50 = close_f * p50_f / current_f
+    price_p90 = close_f * p90_f / current_f
+    return {
+        "close_price": close_f, "close_date": str(close_date),
+        "price_p50": price_p50,
+        "move_to_p50_pct": (price_p50 / close_f - 1) * 100,
+        "price_p90": price_p90,
+        "move_to_p90_pct": (price_p90 / close_f - 1) * 100,
+        "p90_warning_active": current_f > p90_f,
+    }
+
 
 def evaluate(rec: dict, cfg: dict) -> ScreenResult:
     sid = rec["stock_id"]
@@ -452,6 +489,10 @@ def evaluate(rec: dict, cfg: dict) -> ScreenResult:
     r.metrics["trailing_pe"] = ph.get("current_trailing_pe") if current_ok else None
     r.metrics["pe_basis_label"] = (
         "Yahoo 調整後EPS" if rec.get("market") == "us" else "FinMind basic EPS")
+    r.metrics["currency"] = rec.get("currency") or ("USD" if r.market == "us" else "TWD")
+    r.metrics.update(derive_trailing_price_levels(
+        rec.get("price_last"), rec.get("price_date"), r.metrics["trailing_pe"],
+        r.metrics["pe_median"], r.metrics["pe_p90"]))
     cov = v.get("coverage")
     rc = (cfg.get("universe_builder") or {}).get("reliable_coverage", 3)
     low_coverage = cov is not None and cov < rc

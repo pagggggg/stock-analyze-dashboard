@@ -11,7 +11,8 @@
 
 from __future__ import annotations
 
-from .screener import L1_LABELS, L2_LABELS, ScreenResult
+from .screener import (L1_LABELS, L2_LABELS, P90_RELEASE_NOTE,
+                       PRICE_LEVEL_WARNING, ScreenResult)
 from .valuation_flag import FLAG, RED_WARNING
 
 _SYM = {"pass": "✅", "fail": "❌", "na": "⚠️"}
@@ -36,6 +37,8 @@ def _val_rows(results: list[ScreenResult], with_market: bool = True) -> str:
         cov_s = "—" if cov is None else (f"{cov} ⚠低覆蓋" if low else str(cov))
         out.append(
             f"| {r.stock_id} | {r.name} |{mcell} {_flag(r)} | "
+            f"{_price_cell(r)} | {_price(m.get('price_p50'), m.get('currency'), r.market, True)} | {_move(m.get('move_to_p50_pct'))} | "
+            f"{_price(m.get('price_p90'), m.get('currency'), r.market, True)} | {_move(m.get('move_to_p90_pct'), True, bool(m.get('p90_warning_active')))} | "
             f"{_fv(m.get('forward_pe'), 'x')} | {_fv(m.get('trailing_pe'), 'x')} | {_fv(m.get('pe_median'), 'x')} | "
             f"{_fv(m.get('pe_p90'), 'x')} | {(str(int(pct)) + '%') if pct is not None else '—'} | "
             f"{peg_s} | {cov_s} |"
@@ -43,8 +46,8 @@ def _val_rows(results: list[ScreenResult], with_market: bool = True) -> str:
     return "\n".join(out)
 
 
-_VAL_HEAD = ("| 代號 | 名稱 | 市場 | 🚩旗標 | 前瞻PE | 目前trailing PE | 近5年trailing中位 | 近5年trailing P90 | trailing百分位 | 前瞻PEG | 共識覆蓋 |\n"
-             "| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
+_VAL_HEAD = ("| 代號 | 名稱 | 市場 | 🚩旗標 | 收盤價(日期) | 歷史中樞價P50 | 至P50需變動 | 解除高估警戒價P90* | 至P90需變動 | 前瞻PE | 目前trailing PE | 近5年trailing中位 | 近5年trailing P90 | trailing百分位 | 前瞻PEG | 共識覆蓋 |\n"
+             "| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
 
 
 def _cell(cond) -> str:
@@ -66,6 +69,37 @@ def _fv(v, unit: str = "", dp: int = 1) -> str:
     return "—" if v is None else f"{v:,.{dp}f}{unit}"
 
 
+def _price(v, currency: str, market: str, approximate: bool = False) -> str:
+    if v is None:
+        return "N/M"
+    unit = "US$" if currency == "USD" else "NT$"
+    return f"{'約 ' if approximate else ''}{unit} {v:,.2f}"
+
+
+def _move(v, p90: bool = False, warning_active: bool = False) -> str:
+    if v is None:
+        return "N/M"
+    if abs(v) < 0.05:
+        return "已在該價位"
+    if p90 and not warning_active:
+        return f"未觸發（距 P90 {abs(v):.1f}%）"
+    return f"{'需上漲' if v > 0 else '需回落'} {abs(v):.1f}%"
+
+
+def _price_cell(r: ScreenResult) -> str:
+    m = r.metrics
+    if m.get("close_price") is None or not m.get("close_date"):
+        return "N/M"
+    return f"{_price(m['close_price'], m.get('currency'), r.market)} ({m['close_date']})"
+
+
+def _price_warning_md() -> str:
+    lines = PRICE_LEVEL_WARNING.splitlines()
+    return ("> **價格推算警語**\n" +
+            "\n".join(f"> {line}" if line else ">" for line in lines) +
+            f"\n>\n> {P90_RELEASE_NOTE}")
+
+
 def _rows(results: list[ScreenResult]) -> str:
     out = []
     for r in results:
@@ -74,6 +108,9 @@ def _rows(results: list[ScreenResult]) -> str:
             mom += " ⚠低覆蓋"
         out.append(
             f"| {r.stock_id} | {r.name} | {r.industry} | {_flag(r)} | "
+            f"{_price_cell(r)} | {_price(r.metrics.get('price_p50'), r.metrics.get('currency'), r.market, True)} | "
+            f"{_move(r.metrics.get('move_to_p50_pct'))} | {_price(r.metrics.get('price_p90'), r.metrics.get('currency'), r.market, True)} | "
+            f"{_move(r.metrics.get('move_to_p90_pct'), True, bool(r.metrics.get('p90_warning_active')))} | "
             f"{_cell(r.layer2['q7'])} | {_cell(r.layer2['q8'])} | "
             f"{_cell(r.layer2['q9'])} | {mom} |"
         )
@@ -181,8 +218,10 @@ def build_screener_report(results, funnel, cfg, generated: str, universe_desc: s
     if not passers:
         w("_(目前沒有股票通過第一層。可能是本地資料尚少,或門檻較嚴。)_")
     else:
-        w("| 代號 | 名稱 | 產業 | 🚩旗標 | ⑦營收CAGR | ⑧毛利率趨勢 | ⑨ROE | ⑩修正動能 |")
-        w("| --- | --- | --- | --- | --- | --- | --- | --- |")
+        w(_price_warning_md())
+        w("")
+        w("| 代號 | 名稱 | 產業 | 🚩旗標 | 收盤價(日期) | 歷史中樞價P50 | 至P50需變動 | 解除高估警戒價P90* | 至P90需變動 | ⑦營收CAGR | ⑧毛利率趨勢 | ⑨ROE | ⑩修正動能 |")
+        w("| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- | --- | --- | --- |")
         w(_rows(passers))
         w("")
         w("> 🚩估值旗標**只加註、不淘汰**(見第五節門檻)。⑦⑧⑨ 品質門檻:✅達標/❌未達標/⚠️資料不足;"
@@ -207,6 +246,8 @@ def build_screener_report(results, funnel, cfg, generated: str, universe_desc: s
             w(f"### {title}({len(rows)} 檔)")
             w("")
             if rows:
+                w(_price_warning_md())
+                w("")
                 w(_VAL_HEAD)
                 w(_val_rows(rows))
             else:
@@ -233,6 +274,8 @@ def build_screener_report(results, funnel, cfg, generated: str, universe_desc: s
     show += us_extra
     show.sort(key=lambda r: (r.metrics.get("flag") != "red", r.market != "us", r.stock_id))
     if show:
+        w(_price_warning_md())
+        w("")
         w(_VAL_HEAD)
         w(_val_rows(show))
         w("")

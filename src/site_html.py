@@ -950,6 +950,9 @@ table.tbl th { background: #f1f5f9; padding: 9px 8px; text-align: left; white-sp
 table.tbl td { padding: 9px 8px; border-bottom: 1px solid #eef2f7; }
 table.tbl td.num { text-align: right; font-variant-numeric: tabular-nums; }
 table.tbl tbody tr:hover { background: #f8fafc; }
+.price-level-table { min-width: 1500px !important; }
+.price-level-table small { color:#64748b; font-weight:500; }
+.price-level-warning { line-height:1.65; border-left:5px solid #f59e0b; }
 code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: .85em; }
 .screener-cta { display: block; background: linear-gradient(135deg,#065f46,#047857); color: #fff;
   border-radius: 14px; padding: 16px 18px; margin: 14px 0; text-decoration: none;

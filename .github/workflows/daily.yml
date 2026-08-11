@@ -196,6 +196,7 @@ jobs:
           import glob, json, math, os, re, struct, yaml, zlib
           from datetime import date
           from src.ai_chain import build_output_side, load_ai_chain_config
+          from src.screener import P90_RELEASE_NOTE, PRICE_LEVEL_WARNING
           from src.valuation_flag import pe_history_is_compatible
           idx = open("public/index.html", encoding="utf-8").read()
           ai_path = "public/ai-chain.html"
@@ -232,6 +233,7 @@ jobs:
           ok = (data_ok and actual_ids == expected_ids and linked >= floor
                 and pe_schema_ok == n_universe)
           ux_ok = all(os.path.exists(path) for path in ux_pages)
+          price_levels_ok = os.path.exists("public/screener.html")
           if ux_ok:
               negative = open("public/stock_7799.html", encoding="utf-8").read()
               financial = open("public/stock_2890.html", encoding="utf-8").read()
@@ -243,6 +245,33 @@ jobs:
                        and "N/M" in negative and "負現金流" in negative
                        and "N/M" in financial and "金融業" in financial
                        and all("N/M" in page and "金融業" in page for page in lenders))
+          if price_levels_ok:
+              screener = open("public/screener.html", encoding="utf-8").read()
+              rec_2330 = json.load(open("data/universe/2330.json", encoding="utf-8"))
+              ph = rec_2330.get("pe_hist") or {}
+              close = float(rec_2330["price_last"])
+              current_pe = float(ph["current_trailing_pe"])
+              p50_price = close * float(ph["median"]) / current_pe
+              p90_price = close * float(ph["p90"]) / current_pe
+              p50_move = (p50_price / close - 1) * 100
+              p90_move = (p90_price / close - 1) * 100
+              def move_text(value, p90=False):
+                  if p90 and current_pe <= float(ph["p90"]):
+                      return f"未觸發（距 P90 {abs(value):.1f}%）"
+                  return f"{'需上漲' if value > 0 else '需回落'} {abs(value):.1f}%"
+              price_levels_ok = (
+                  all(text in screener for text in (
+                      "收盤價", "歷史中樞價", "P50", "解除高估警戒價", "P90*",
+                      "至 P50", "至 P90", f"NT$ {close:,.2f}", rec_2330["price_date"],
+                      f"約 NT$ {p50_price:,.2f}", f"約 NT$ {p90_price:,.2f}",
+                      move_text(p50_move), move_text(p90_move, True),
+                      P90_RELEASE_NOTE.replace(">", "&gt;"), "未觸發（距 P90"))
+                  and all(line.replace(">", "&gt;") in screener
+                          for line in PRICE_LEVEL_WARNING.splitlines() if line)
+                  and screener.count("價格推算警語") == screener.count('class="tbl price-level-table"')
+                  and screener.count("N/M") >= 5
+                  and "約 US$" in screener)
+          ok = ok and price_levels_ok
           us_river_ok = required_us <= expected_ids
           for sid in required_us:
               path = f"data/universe/{sid}.json"
@@ -362,6 +391,7 @@ jobs:
           print(f"2330 Thesis 完整:{thesis_ok}")
           print(f"美股河流圖完整:{us_river_ok}")
           print(f"第一階段 UX 完整:{ux_ok}")
+          print(f"P50/P90 價格欄完整:{price_levels_ok}")
           with open(os.environ["GITHUB_OUTPUT"], "a") as f:
               f.write(f"ok={'true' if ok and ai_ok and thesis_ok and us_river_ok else 'false'}\n")
               f.write(f"linked={linked}\nfloor={floor}\n")
