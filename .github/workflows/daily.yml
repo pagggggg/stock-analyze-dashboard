@@ -7,7 +7,7 @@
 #
 # 三種觸發、做的事不同:
 #   schedule(每日 台灣 14:30) 更新股價 + 重算指標 + 重建 + commit 資料 + 部署
-#   schedule(每週六 台灣 03:00)同樣更新價格；財報依 30~44 天 TTL 分散自然更新
+#   schedule(每週六 台灣 06:00)同樣更新價格；財報依 30~44 天 TTL 分散自然更新
 #   push                         只重建 + 部署；手動可選 none/prices/all
 #
 # ★ 單一 writer 原則:本 workflow 是 data/main/gh-pages 的唯一寫入者。
@@ -21,7 +21,7 @@ name: daily-update
 on:
   schedule:
     - cron: "30 6 * * 1-5"    # 台灣 14:30(週一~週五,台股盤後)→ 只更新股價
-    - cron: "0 19 * * 5"      # 台灣 週六 03:00 → 價格補跑；財報由 TTL 分散更新
+    - cron: "0 22 * * 5"      # 台灣 週六 06:00；美股正常收盤後 → 價格補跑
   push:
     branches: [main]          # 你 push 程式碼時重建部署(資料 commit 帶 [skip ci] 不會觸發)
   workflow_dispatch:
@@ -69,6 +69,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Test AI quote pipeline
+        run: python -m unittest discover -s tests -p "test_*.py"
+
       # 快取種子:CI 第一次跑(或快取被 GitHub 清掉)時,cache/ 是空的,
       # build_site 會為 239 檔重抓財報 → 直接撞爆 FinMind 每小時上限 → 大量分析失敗。
       # (實際發生過:產出的網站只剩 28 個詳情頁,原本 222。)
@@ -100,7 +103,7 @@ jobs:
             echo "refresh=none" >> $GITHUB_OUTPUT
           elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "refresh=${{ inputs.refresh }}" >> $GITHUB_OUTPUT
-          elif [ "${{ github.event.schedule }}" = "0 19 * * 5" ]; then
+          elif [ "${{ github.event.schedule }}" = "0 22 * * 5" ]; then
             # 週六:同樣只抓股價。財報不需要在這裡硬抓 ——
             # 財報快取 TTL 為 30~44 天(依代號打散),每天會有十幾檔自然到期並更新,
             # 若這裡用 --refresh all 反而會一次強制重抓 717 次,必定撞爆每小時上限。
@@ -115,6 +118,10 @@ jobs:
           FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
         run: |
           python fetch_universe.py --from-universe --refresh ${{ steps.mode.outputs.refresh }}
+
+      - name: Update AI US quotes
+        if: steps.mode.outputs.refresh != 'none'
+        run: python update_ai_quotes.py
 
       - name: Screen
         if: steps.mode.outputs.refresh != 'none'
@@ -196,7 +203,9 @@ jobs:
           import glob, json, math, os, re, struct, yaml, zlib
           from datetime import date
           from src.ai_chain import build_output_side, load_ai_chain_config
+          from src.ai_quotes import expected_quote_tickers, load_quote_snapshot
           from src.screener import P90_RELEASE_NOTE, PRICE_LEVEL_WARNING
+          from src.us_data import US_DETAIL_SCHEMA_VERSION
           from src.valuation_flag import pe_history_is_compatible
           idx = open("public/index.html", encoding="utf-8").read()
           ai_path = "public/ai-chain.html"
@@ -282,8 +291,9 @@ jobs:
               rec = json.load(open(path, encoding="utf-8"))
               river = ((rec.get("detail") or {}).get("river") or {})
               page = open(page_path, encoding="utf-8").read()
-              lengths = [len(river.get(k) or []) for k in
-                         ("dates", "price", "band_low", "band_mid", "band_high")]
+              band_lengths = [len(river.get(k) or []) for k in
+                              ("dates", "band_low", "band_mid", "band_high")]
+              price_lengths = [len(river.get(k) or []) for k in ("price_dates", "price")]
               current_pe = river.get("current_pe")
               stored_pe = (rec.get("pe_hist") or {}).get("current_trailing_pe")
               conversion = (rec.get("pe_hist") or {}).get("currency_conversion") or {}
@@ -295,20 +305,26 @@ jobs:
                   and conversion.get("from") == "EUR" and conversion.get("to") == "USD"
                   and conversion.get("as_of") == rec.get("price_date")))
               dates = river.get("dates") or []
-              numeric_rows = zip(*(river.get(k) or [] for k in
-                                   ("price", "band_low", "band_mid", "band_high")))
+              band_rows = zip(*(river.get(k) or [] for k in
+                              ("band_low", "band_mid", "band_high")))
               bands_ok = all(all(math.isfinite(float(v)) and float(v) > 0 for v in row)
-                             and float(row[1]) <= float(row[2]) <= float(row[3])
-                             for row in numeric_rows)
+                             and float(row[0]) <= float(row[1]) <= float(row[2])
+                             for row in band_rows)
+              prices_ok = all(math.isfinite(float(v)) and float(v) > 0
+                              for v in river.get("price") or [])
               split_map = {d: float(v) for d, v in ((rec.get("detail") or {}).get("splits") or [])}
               splits_ok = ((sid != "LRCX" or split_map.get("2024-10-03") == 10.0)
                            and (sid != "KLAC" or split_map.get("2026-06-12") == 10.0))
               fresh = (date.today() - date.fromisoformat(rec["price_date"])).days <= 7
               us_river_ok = (us_river_ok and rec.get("market") == "us"
-                             and (rec.get("detail") or {}).get("schema_version") == 1
-                             and river.get("current_date") == rec.get("price_date")
-                             and len(set(lengths)) == 1 and 59 <= lengths[0] <= 61
-                             and dates == sorted(set(dates)) and bands_ok and splits_ok and fresh
+                              and (rec.get("detail") or {}).get("schema_version") == US_DETAIL_SCHEMA_VERSION
+                              and river.get("current_date") == rec.get("price_date")
+                              and len(set(band_lengths)) == 1 and 59 <= band_lengths[0] <= 61
+                              and len(set(price_lengths)) == 1 and price_lengths[0] >= 1000
+                              and dates == sorted(set(dates))
+                              and (river.get("price_dates") or []) == sorted(set(river.get("price_dates") or []))
+                              and (river.get("price_dates") or [None])[-1] == rec.get("price_date")
+                              and bands_ok and prices_ok and splits_ok and fresh
                              and detail_pe_ok
                              and asml_currency_ok and abs(float(river["pe_mid"])
                                  - float((rec.get("pe_hist") or {})["median"])) <= 0.1
@@ -322,6 +338,7 @@ jobs:
                              and "USD " in idx and "TWD " in idx)
           ok = ok and index_market_ok and ux_ok
           ai_ok = os.path.exists(ai_path)
+          quotes_ok = False
           thesis_ok = os.path.exists(thesis_path)
           if thesis_ok:
               thesis = open(thesis_path, encoding="utf-8").read()
@@ -339,6 +356,16 @@ jobs:
           if ai_ok:
               ai = open(ai_path, encoding="utf-8").read()
               cfg = load_ai_chain_config("config/ai_chain.yaml")
+              quote_expected = expected_quote_tickers(cfg)
+              quote_snapshot = load_quote_snapshot(
+                  "data/ai_chain_quotes.json", quote_expected, max_age_days=7)
+              quote_dates = {q["close_date"] for q in quote_snapshot["quotes"].values()}
+              quotes_ok = (len(quote_expected) == 16 and set(quote_snapshot["quotes"]) == quote_expected
+                           and f'data-ai-quote-tickers="{len(quote_expected)}"' in ai
+                           and all(ai.count(f'data-quote-ticker="{ticker}"') >= 1
+                                   for ticker in quote_expected)
+                           and all(date_value in ai for date_value in quote_dates)
+                           and "美股行情為最近交易日收盤價,不是即時報價" in ai)
               output = build_output_side(cfg)
               counts = output["counts"]
               expected_layers = len(cfg.get("layers") or [])
@@ -372,7 +399,7 @@ jobs:
               card_counts_ok = all(
                   ai.count(f'data-output-direction="{key}"') == value
                   for key, value in counts.items())
-              ai_ok = (ai.count('class="chain-layer"') == expected_layers
+              ai_ok = (quotes_ok and ai.count('class="chain-layer"') == expected_layers
                         and "四大雲端業者季度 Capex" in ai
                         and 'data-ai-capex-companies="4"' in ai
                         and 'data-ai-unavailable="0"' in ai
@@ -392,6 +419,7 @@ jobs:
           print(f"美股河流圖完整:{us_river_ok}")
           print(f"第一階段 UX 完整:{ux_ok}")
           print(f"P50/P90 價格欄完整:{price_levels_ok}")
+          print(f"AI 美股行情完整:{quotes_ok}")
           with open(os.environ["GITHUB_OUTPUT"], "a") as f:
               f.write(f"ok={'true' if ok and ai_ok and thesis_ok and us_river_ok else 'false'}\n")
               f.write(f"linked={linked}\nfloor={floor}\n")
@@ -414,7 +442,7 @@ jobs:
             echo "資料無變動,略過 commit"
           else
             git commit -m "chore(data): 自動更新 $(date -u '+%F %H:%M')Z [skip ci]"
-            git push origin main
+            git push origin HEAD:main
           fi
 
       # 先確保新共識/訊號狀態已安全寫回 main，再發布對應頁面。
@@ -424,6 +452,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          git fetch origin main
+          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" || {
+            echo "main 在建站期間已變更，略過舊產物部署" >&2
+            exit 1
+          }
           cd public
           touch .nojekyll
           git init -q

@@ -721,12 +721,13 @@ def build_detail_html(a, generated: str) -> str:
         river_note = (
             '河道 =「當時公告後可得的近四季 Reported EPS」×<b>截至當月為止</b> rolling 5年 '
             'trailing PE P10/P50/P90。Yahoo Close 採拆股調整、不含股息；財報通常盤後公布，'
-            '從市場可交易的第一個收盤日起生效。' + _esc(a.river.source if a.river else '') + '。')
+            '從市場可交易的第一個收盤日起生效；黑線為每日收盤。'
+            + _esc(a.river.source if a.river else '') + '。')
     else:
         river_note = (
             '河道 =「當時可得的近四季實際EPS」×<b>截至當月為止</b> rolling 5年 trailing PE P10/P50/P90。'
             'FinMind 無實際公告日欄位,本國發行人財報生效日採法定申報期限 fallback；'
-            'KY/外國發行人不套用此假設。')
+            'KY/外國發行人不套用此假設；黑線為每日收盤。')
 
     err = ""
     if a.errors:
@@ -759,7 +760,7 @@ def build_detail_html(a, generated: str) -> str:
     {river_div}
     {_note(river_note +
            '圖例數字是目前分位:'+_esc(a.pe_band.years_covered if a.pe_band else '資料不足')+'。'
-           '黑線只畫完整月末;未完成月份只顯示紅色最新點。'
+           '河道按月更新歷史分位，黑線按交易日更新收盤價；紅點標示最新收盤。'
            '<b>河道不再為了包住股價而向外擴張</b>;股價超出上緣/下緣是極端估值訊號,不是繪圖錯誤。'
            '股價貼近<b style="color:'+C_CHEAP+'">綠</b>相對便宜、貼近或超過<b style="color:'+C_EXP+'">紅</b>相對貴。' + river_zone)}
   </section>
@@ -997,6 +998,16 @@ code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: .85
 .ticker-logo .company-logo { width:26px; height:26px; flex-basis:26px; }
 .ticker-logo .company-logo img { width:21px; height:21px; }
 .guidance-head b { font-size:1.05rem; color:#0f172a; }
+.quote-box { display:grid; grid-template-columns:1fr auto; gap:1px 10px; margin-top:10px;
+  padding:8px 10px; border-radius:9px; background:#f8fafc; border:1px solid #e2e8f0;
+  color:#334155; text-decoration:none; font-variant-numeric:tabular-nums; }
+.quote-box b { font-size:.95rem; color:#0f172a; }
+.quote-box span { font-size:.8rem; font-weight:800; text-align:right; }
+.quote-box small { grid-column:1 / -1; color:#64748b; font-size:.7rem; }
+.quote-box.up span { color:#15803d; }.quote-box.down span { color:#b91c1c; }.quote-box.flat span { color:#64748b; }
+.quote-box.compact { display:inline-grid; min-width:122px; margin:0; padding:5px 7px; }
+.quote-box.compact b { font-size:.82rem; }.quote-box.compact span { font-size:.72rem; }
+.quote-cell { min-width:130px; }.quote-na { color:#64748b; font-size:.78rem; }
 .direction { border-radius:999px; padding:2px 9px; font-size:.76rem; font-weight:700; white-space:nowrap; }
 .direction.up { color:#166534; background:#dcfce7; }
 .direction.flat { color:#475569; background:#f1f5f9; }

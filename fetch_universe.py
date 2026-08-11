@@ -40,7 +40,8 @@ from src.data_layer import (
 )
 from src.river import current_trailing_pe, daily_pe_series, supports_tw_filing_fallback
 from src.screener import extract_metrics, load_config
-from src.us_data import US_RIVER_TICKERS, build_us_record, compute_valuation
+from src.us_data import (US_DETAIL_SCHEMA_VERSION, US_RIVER_TICKERS,
+                         build_us_record, compute_valuation)
 from src.valuation_flag import (historical_peg, pe_history_is_compatible,
                                 pe_history_stats, pe_source_regressed,
                                 tw_pe_source_coverage)
@@ -180,7 +181,7 @@ def _fresh(path: Path, days: int, pe_years: int = 5) -> bool:
                 ph, rec.get("market", "twse"), rec.get("price_date"), pe_years):
             return False
         if (rec.get("stock_id") in US_RIVER_TICKERS
-                and (rec.get("detail") or {}).get("schema_version") != 1):
+                and (rec.get("detail") or {}).get("schema_version") != US_DETAIL_SCHEMA_VERSION):
             return False
         f = rec.get("fetched")
         return f is not None and (date.today() - date.fromisoformat(f)).days <= days
@@ -355,7 +356,8 @@ def _save(rec: dict) -> None:
                               "liq_avg_value", "liq_days", "pe_hist", "detail", "valuation"):
                         if old.get(k) is not None:
                             rec[k] = old[k]
-                    if (old.get("detail") or {}).get("schema_version") == 1:
+                    if ((old.get("detail") or {}).get("schema_version")
+                            == US_DETAIL_SCHEMA_VERSION):
                         rec.pop("pe_refresh_error", None)
                         rec["errors"] = list(old.get("errors") or []) + [
                             "本次美股快照更新失敗，整組沿用前次完整資料"]

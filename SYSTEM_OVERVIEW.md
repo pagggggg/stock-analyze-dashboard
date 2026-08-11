@@ -118,7 +118,7 @@ data/universe/<代號>.json
 - 歷史每個月使用截至當月為止的 rolling 5 年 P10/P50/P90,不把今天才知道的分位套回過去。
 - FinMind 只提供目前可取得的財報值,歷史序列屬「按可用日落後、使用最新重編值」,不是保存每次原始申報版本的嚴格 point-in-time 資料庫。
 - 台股歷史 PE 採 FinMind basic EPS；美股採 Yahoo Reported EPS(調整後口徑)。兩者只和各股自身歷史比較,不跨口徑混算。
-- 黑色股價線只畫完整月末；進行中的月份只顯示紅色最新點。
+- 河道按月重算歷史分位；黑色股價線按每個交易日更新，紅點標示最新收盤。
 - 河道保留真實歷史分位,**不再為了包住股價而向外擴張**。
 - 股價可以高於 P90 或低於 P10；超出河道本身就是極端估值資訊,不是繪圖錯誤。
 
@@ -141,7 +141,7 @@ data/universe/<代號>.json
 - 頁面最下方「產出側」追蹤企業實際 AI 付費/合約指標。最新值會和前期比較；已確認未揭露才計入連續未揭露,尚未輸入不冒充未揭露。
 - 產出側的下限值與衍生值不參與精確加速度判定；Salesforce 保留原生財季與截止日；backlog 範圍改變會標口徑斷點。
 - `config/thesis_2330.yaml` 定義台積電個人持有 thesis。條件 1 是回測驗證出場訊號；條件 2 僅有共識水準年減代理、逐季下修未直接回測；條件 3、4 為未回測人工補充門檻。資料不足顯示灰燈，不冒充未觸發。
-- 美股設備標的 ASML、AMAT、LRCX、KLAC 的 `data/universe/*.json → detail.river` 保存可離線重建的月頻河道。口徑為 Yahoo split-adjusted Close 與發布後首個可交易收盤日可得的 Reported EPS；ASML 的 EUR EPS 依各交易日當時 EUR/USD 換成 USD 後再做歷史相對位階。
+- 美股設備標的 ASML、AMAT、LRCX、KLAC 的 `data/universe/*.json → detail.river` 保存可離線重建的月頻河道與日收盤黑線。口徑為 Yahoo split-adjusted Close 與發布後首個可交易收盤日可得的 Reported EPS；ASML 的 EUR EPS 依各交易日當時 EUR/USD 換成 USD 後再做歷史相對位階。
 - 公司 Logo 為本地資產；官方圖示不可得時使用名稱縮寫標章。商標權利仍屬各公司。
 
 ## 五、資料不足與來源原則

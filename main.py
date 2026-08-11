@@ -295,7 +295,8 @@ def run(args) -> None:
                     cp = current_price[0] if current_price_date and current_price else None
                     river_series = build_pe_river(
                         price_rows, inc_piv, current_price=cp, current_date=current_price_date)
-                    print(f"[HTML] 河流圖:{len(river_series.dates)} 個月頻點")
+                    print(f"[HTML] 河流圖:{len(river_series.dates)} 個月頻河道點、"
+                          f"{len(river_series.price_dates)} 個日收盤點")
             except Exception as e:  # noqa: BLE001
                 print(f"[HTML] 河流圖略過({e})")
             # FCF 品質:資產負債(存貨/應收)+ 現金流(OCF/Capex)+ 損益(營收/COGS)

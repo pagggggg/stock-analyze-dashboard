@@ -57,7 +57,41 @@ def _logo(sid: str, name: str, logos: dict) -> str:
             f'<span class="logo-fallback" hidden>{escape(first)}</span></span>')
 
 
-def _guidance_card(ticker: str, company: dict, cloud: dict, logos: dict) -> str:
+def _quote_url(ticker: str) -> str:
+    return f"https://finance.yahoo.com/quote/{escape(ticker)}/"
+
+
+def _quote_html(ticker: str, quote: dict | None, compact: bool = False,
+                detail_url: str | None = None) -> str:
+    if not quote:
+        return '<span class="quote-na">行情 N/M</span>'
+    pct = float(quote["change_pct"])
+    display_pct = round(pct, 1)
+    cls = "up" if display_pct > 0 else "down" if display_pct < 0 else "flat"
+    arrow = "▲" if display_pct > 0 else "▼" if display_pct < 0 else "—"
+    pct_text = f"{display_pct:+.1f}%" if display_pct else "0.0%"
+    compact_class = " compact" if compact else ""
+    close = float(quote["close"])
+    close_date = escape(str(quote["close_date"]))
+    if detail_url:
+        link = f'href="{escape(detail_url)}" title="{escape(ticker)} 個股詳情"'
+        destination = "站內個股詳情"
+    else:
+        link = (f'href="{_quote_url(ticker)}" target="_blank" rel="noopener" '
+                f'title="Yahoo Finance 最近交易日收盤；不是即時報價"')
+        destination = "Yahoo Finance（另開視窗）"
+    body = (f'<a class="quote-box {cls}{compact_class}" data-quote-ticker="{escape(ticker)}" '
+            f'data-quote-date="{close_date}" {link} '
+            f'aria-label="{escape(ticker)} 最近收盤 US$ {close:,.2f}，單日漲跌 {pct_text}，'
+            f'{close_date}，前往 {destination}">'
+            f'<b>US$ {close:,.2f}</b>'
+            f'<span>{arrow} {pct_text}</span>'
+            f'<small>{close_date}</small></a>')
+    return body
+
+
+def _guidance_card(ticker: str, company: dict, cloud: dict, logos: dict,
+                   quote: dict | None = None) -> str:
     entries = company.get("entries") or []
     numeric_calendar = [x for x in entries if x["period"]["basis"] == "calendar_year"
                         and x["amount"]["kind"] != "undisclosed"]
@@ -112,6 +146,7 @@ def _guidance_card(ticker: str, company: dict, cloud: dict, logos: dict) -> str:
     return f'''
     <article class="guidance-card">
       <div class="guidance-head"><div class="logo-name">{_logo(ticker, ticker, logos)}<b>{ticker}</b></div><span class="direction {direction_class}">{escape(direction)}</span></div>
+      {_quote_html(ticker, quote)}
       <div class="guidance-amount">{amount}</div>
       <div class="guidance-period">{period}</div>
       <div class="guidance-compare {'yes' if comparable else 'no'}">{'可並列（日曆年；口徑仍不同）' if comparable else '不可直接比較'}</div>
@@ -143,7 +178,7 @@ def _output_period(obs: dict | None) -> str:
     return period
 
 
-def _output_side(data: dict, logos: dict) -> str:
+def _output_side(data: dict, logos: dict, quotes: dict) -> str:
     out = data.get("output_side") or {"metrics": [], "counts": {}}
     c = out.get("counts") or {}
     cards = []
@@ -182,6 +217,7 @@ def _output_side(data: dict, logos: dict) -> str:
           <div class="guidance-head"><div class="logo-name">{_logo(company, metric.get('company_name', company), logos)}
             <div><b>{escape(metric.get('company_name', company))}</b><small>{company}</small></div></div>
             <span class="direction {cls}">{escape(direction)}</span></div>
+          {_quote_html(company, quotes.get(company))}
           <h4>{escape(metric['name'])}</h4>
           <div class="output-values">
             <div><span>最新</span><b>{_output_value(metric, latest)}</b><small>{_output_period(latest) if latest else '尚未輸入'}</small></div>
@@ -254,17 +290,24 @@ def _cycle_html(cycle: dict) -> str:
 def _node_row(node: dict, detail_ids: set[str], logos: dict) -> str:
     m = node["member"]
     r = node.get("result")
+    quote = node.get("quote")
+    detail_url = f'stock_{escape(m["id"])}.html' if m["id"] in detail_ids else None
+    name = escape(m["name"])
+    if detail_url:
+        name = f'<a href="{detail_url}">{name}</a>'
+    elif m["market"] == "us":
+        name = f'<a href="{_quote_url(m["id"])}" target="_blank" rel="noopener">{name}</a>'
     if not r:
         reason = escape(node.get("unavailable") or "資料不足")
-        return (f'<tr class="unavailable"><td>{_logo(m["id"], m["name"], logos)} {escape(m["id"])}</td><td>{escape(m["name"])}</td>'
-                f'<td colspan="6">⚠ 不納入:{reason}</td><td>{_cycle_html(node["cycle"])}</td></tr>')
+        return (f'<tr class="unavailable"><td>{_logo(m["id"], m["name"], logos)} {escape(m["id"])}</td>'
+                f'<td>{name}</td><td>{escape(m["market"])}</td>'
+                f'<td class="quote-cell">{_quote_html(m["id"], quote, True, detail_url) if m["market"] == "us" else "—"}</td>'
+                f'<td colspan="5">⚠ 不納入:{reason}</td><td>{_cycle_html(node["cycle"])}</td></tr>')
     x = r.metrics
-    name = escape(m["name"])
-    if m["id"] in detail_ids:
-        name = f'<a href="stock_{escape(m["id"])}.html">{name}</a>'
     trend = {"accel": "▲加速", "decel": "▼減速", "flat": "—持平"}.get(x.get("mrev_trend"), "—")
     return (
         f'<tr><td><span class="ticker-logo">{_logo(m["id"], m["name"], logos)}<b>{escape(m["id"])}</b></span></td><td class="name">{name}</td><td title="{escape(x.get("pe_basis_label", ""))}">{escape(m["market"])}</td>'
+        f'<td class="quote-cell">{_quote_html(m["id"], quote, True, detail_url) if m["market"] == "us" else "—"}</td>'
         f'<td class="num">{_n(x.get("trailing_pe"), 1, "x")}</td>'
         f'<td class="num">{_n(x.get("pe_pct"), 0, "%")}</td><td>{_flag_html(x.get("flag", "na"))}</td>'
         f'<td class="num">{_n(x.get("mrev_yoy_recent"), 1, "%")} {trend}</td>'
@@ -288,10 +331,11 @@ def build_ai_chain_page(data: dict, generated: str, detail_ids: set[str]) -> str
     logos = data.get("logos") or {}
     guidance = data.get("guidance") or {}
     errors = cloud.get("errors") or {}
+    quotes = data.get("quotes") or {}
     guidance_cards = []
     for ticker in ("MSFT", "GOOGL", "AMZN", "META"):
         company = guidance.get(ticker) or {}
-        guidance_cards.append(_guidance_card(ticker, company, cloud, logos))
+        guidance_cards.append(_guidance_card(ticker, company, cloud, logos, quotes.get(ticker)))
 
     layer_html = []
     for i, layer in enumerate(data["layers"], 1):
@@ -309,7 +353,7 @@ def build_ai_chain_page(data: dict, generated: str, detail_ids: set[str]) -> str
             {f'<p>{escape(layer.get("description"))}</p>' if layer.get('description') else ''}
             <div class="swipe-hint">← 手機可左右滑動看更多欄位 →</div>
             <div class="table-scroll"><table class="tbl ai-table"><thead><tr>
-              <th>代號</th><th>名稱</th><th>市場</th><th>trailing PE</th><th>PE百分位</th>
+              <th>代號</th><th>名稱</th><th>市場</th><th>最近收盤</th><th>trailing PE</th><th>PE百分位</th>
               <th>估值旗標</th><th>月營收動能</th><th>共識覆蓋</th><th>循環標記</th>
             </tr></thead><tbody>{rows}</tbody></table></div>
             <div class="transmission"><b>Capex 傳導檢查:</b>{escape(_transmission_text(layer['transmission']))}</div>
@@ -318,7 +362,7 @@ def build_ai_chain_page(data: dict, generated: str, detail_ids: set[str]) -> str
 
     source_note = "、".join(f"{k}:{v}" for k, v in errors.items()) or "四家公司皆取得資料"
     body = f"""
-<div class="wrap ai-wrap" data-ai-capex-companies="{cloud.get('available_companies', 0)}" data-ai-layers="{len(data['layers'])}" data-ai-unavailable="{len(data['unavailable'])}">
+<div class="wrap ai-wrap" data-ai-capex-companies="{cloud.get('available_companies', 0)}" data-ai-layers="{len(data['layers'])}" data-ai-unavailable="{len(data['unavailable'])}" data-ai-quote-tickers="{len(quotes)}">
   <header>
     <div><a class="back" href="index.html">← 回總表</a></div>
     <h1>AI 產業鏈全景圖</h1>
@@ -326,7 +370,8 @@ def build_ai_chain_page(data: dict, generated: str, detail_ids: set[str]) -> str
     <div class="warn">⚠️ 本圖為研究工具。層級關係描述供應鏈位置,<b>不代表營收、獲利或股價必然連動</b>；
       公司也可能跨越多個層級。估值歷史位階一律使用 trailing PE 對 trailing PE。<br>
       台股採 FinMind basic EPS 與本國發行人法定期限 fallback；美股採 Yahoo Reported EPS(調整後)與實際 earnings date。
-      兩者只做各股自身歷史比較,不跨口徑混算。</div>
+      兩者只做各股自身歷史比較,不跨口徑混算。<br>
+      <b>美股行情為最近交易日收盤價,不是即時報價；單日漲跌只供資訊,不納入基本面訊號或評分。</b></div>
   </header>
 
   <section class="capex-hero">
@@ -342,7 +387,7 @@ def build_ai_chain_page(data: dict, generated: str, detail_ids: set[str]) -> str
   </section>
 
   <div class="chain-flow">{''.join(layer_html)}</div>
-  {_output_side(data, logos)}
+  {_output_side(data, logos, quotes)}
   <footer>資料:FinMind、yfinance；估值與動能沿用主篩選器。缺資料標示不納入,不以替代值硬湊。公司名稱與商標權利屬各公司所有,Logo 僅作識別用途。</footer>
 </div>"""
     return _page("AI 產業鏈全景圖", body, plotly=True)

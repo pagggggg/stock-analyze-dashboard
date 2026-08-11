@@ -2,10 +2,10 @@
 本益比河流圖資料 (river.py)
 ============================
 把「長區間日股價」+「長區間每季 EPS」+「逐月 rolling N 年本益比分位」
-組成『本益比河流圖』要用的月頻序列:
+組成『本益比河流圖』要用的月頻河道與日頻股價:
 
     河道三條線 = TTM EPS(當月) × 當月當時可得的 rolling {P10,P50,P90}
-    股價線                             = 每月收盤
+    股價線                             = 每日收盤
     現價標記                           = 最新一筆收盤
 
 判讀:股價線落在 P10 附近=相對便宜、貼近或超過 P90=相對貴。
@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from datetime import date, timedelta
 
@@ -33,10 +34,11 @@ def supports_tw_filing_fallback(name: str) -> bool:
 
 @dataclass
 class RiverSeries:
-    """河流圖用的月頻序列 + 現價標記。"""
+    """河流圖用的月頻河道、日頻股價與現價標記。"""
 
-    dates: list[str]          # 已完成月份的月末交易日
-    price: list[float]        # 對應月收盤價
+    dates: list[str]          # 河道的月末交易日
+    price_dates: list[str]    # 黑色股價線的每日交易日
+    price: list[float]        # 對應每日收盤價
     band_low: list[float]     # 低本益比河道 = TTM EPS × pe_low
     band_mid: list[float]     # 中本益比河道 = TTM EPS × pe_mid
     band_high: list[float]    # 高本益比河道 = TTM EPS × pe_high
@@ -135,6 +137,31 @@ def _monthly_price(price_rows: list[dict], exclude_open_month: bool = False) -> 
     return [(by_month[k]["date"], by_month[k]["close"]) for k in months]
 
 
+def _daily_price_line(price_rows: list[dict], start: str, end: str,
+                      current_date: str | None = None,
+                      current_price: float | None = None,
+                      decimals: int = 2) -> tuple[list[str], list[float]]:
+    """取顯示區間內每日收盤；呼叫端另有較新收盤時補到黑線末端。"""
+    by_date: dict[str, float] = {}
+    for row in price_rows:
+        try:
+            dstr = str(row["date"])
+            close = float(row["close"])
+            date.fromisoformat(dstr)
+        except (KeyError, TypeError, ValueError):
+            continue
+        if start <= dstr <= end and math.isfinite(close) and close > 0:
+            by_date[dstr] = close
+    if current_date and current_price is not None and start <= current_date <= end:
+        close = float(current_price)
+        if math.isfinite(close) and close > 0:
+            by_date[current_date] = close
+    dates = sorted(by_date)
+    if not dates:
+        raise ValueError("河流圖:顯示區間沒有日收盤價")
+    return dates, [round(by_date[d], decimals) for d in dates]
+
+
 def _ttm_asof(ttm_series: list[tuple[date, date, float]], d: date) -> float | None:
     """取當日有效的 TTM EPS；下一季應申報日到達後不可再沿用舊值。"""
     val = None
@@ -161,7 +188,7 @@ def build_pe_river(
     if not ttm or not price_rows:
         raise ValueError("河流圖資料不足(缺 EPS 或股價序列)")
 
-    # 黑色股價線只畫完整月末；未完成月份僅用紅色最新點顯示。
+    # 河道維持月頻，歷史分位仍只在月末重算；黑色股價線另保留日頻。
     monthly = _monthly_price(price_rows, exclude_open_month=True)
     daily_pe = daily_pe_series(price_rows, income_pivot)
     first_pe_date = date.fromisoformat(daily_pe[0][0]) if daily_pe else None
@@ -207,19 +234,20 @@ def build_pe_river(
 
     # 第二遍:用原始歷史分位畫河道三線
     dates: list[str] = []
-    price: list[float] = []
     lo: list[float] = []
     mid: list[float] = []
     hi: list[float] = []
     for dstr, close, e, rolling_lo, rolling_mid, rolling_hi in pts:
         dates.append(dstr)
-        price.append(round(close, 1))
         lo.append(round(e * rolling_lo, 1))
         mid.append(round(e * rolling_mid, 1))
         hi.append(round(e * rolling_hi, 1))
 
+    price_dates, price = _daily_price_line(
+        price_rows, dates[0], cd, cd, cp, decimals=1)
     return RiverSeries(
-        dates=dates, price=price, band_low=lo, band_mid=mid, band_high=hi,
+        dates=dates, price_dates=price_dates, price=price,
+        band_low=lo, band_mid=mid, band_high=hi,
         pe_low=round(pe_lo, 1), pe_mid=round(pe_mid, 1), pe_high=round(pe_hi, 1),
         current_date=cd, current_price=round(cp, 1),
         current_pe=round(cpe, 1) if cpe else None, source=source,
@@ -292,9 +320,11 @@ def build_pe_river_us(hist, earnings_dates=None, years: int = 5,
               f"截至 {cd} rolling {years}年 P10/P50/P90")
     if source_note:
         source += f"；{source_note}"
+    price_dates, prices = _daily_price_line(
+        price_rows, pts[0][0], cd, cd, cp, decimals=2)
     return RiverSeries(
         dates=[x[0] for x in pts],
-        price=[round(x[1], 2) for x in pts],
+        price_dates=price_dates, price=prices,
         band_low=[round(x[2] * x[3], 2) for x in pts],
         band_mid=[round(x[2] * x[4], 2) for x in pts],
         band_high=[round(x[2] * x[5], 2) for x in pts],

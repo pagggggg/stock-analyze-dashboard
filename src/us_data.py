@@ -20,6 +20,7 @@ from bisect import bisect_right
 from datetime import date, datetime, timedelta, timezone
 
 US_RIVER_TICKERS = frozenset({"ASML", "AMAT", "LRCX", "KLAC"})
+US_DETAIL_SCHEMA_VERSION = 2
 EXPECTED_CURRENCIES = {
     "ASML": ("USD", "EUR"),
     "AMAT": ("USD", "USD"),
@@ -357,7 +358,8 @@ def build_us_record(ticker: str, name: str, cfg: dict) -> dict:
                                   else rec["valuation"].get("fcf_yield")),
                 })
                 detail = {
-                    "schema_version": 1, "quote_currency": quote_currency,
+                    "schema_version": US_DETAIL_SCHEMA_VERSION,
+                    "quote_currency": quote_currency,
                     "financial_currency": financial_currency, "fx_note": fx_note,
                     "latest_fx": latest_fx,
                     "shares_bn": ((yf_raw.get("sharesOutstanding")

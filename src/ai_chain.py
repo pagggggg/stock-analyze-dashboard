@@ -18,6 +18,7 @@ from pathlib import Path
 import yaml
 
 from .cache import cache_get, cache_set
+from .ai_quotes import expected_quote_tickers, load_quote_snapshot
 from .data_layer import (fetch_balance_pivot, fetch_cashflow_pivot,
                          fetch_daily_price_value, fetch_income_pivot,
                          fetch_month_revenue, fetch_price_daily_finmind,
@@ -625,7 +626,11 @@ def lag_correlations(capex_yoy: list[dict], layer_yoy: list[dict], cfg: dict) ->
 
 
 def build_ai_chain_data(chain_cfg: dict, screener_cfg: dict,
-                        records: list[dict], screen_results: list) -> dict:
+                        records: list[dict], screen_results: list,
+                        quotes_path: str | Path | None = None) -> dict:
+    quote_path = Path(quotes_path) if quotes_path else Path(__file__).resolve().parent.parent / "data/ai_chain_quotes.json"
+    quote_snapshot = load_quote_snapshot(quote_path, expected_quote_tickers(chain_cfg))
+    quotes = quote_snapshot["quotes"]
     record_map, unavailable = load_member_records(chain_cfg, screener_cfg, records)
     screen_map = {r.stock_id: r for r in screen_results}
     # 額外標的也走同一個 evaluate()，不重寫任何估值或動能公式。
@@ -642,6 +647,7 @@ def build_ai_chain_data(chain_cfg: dict, screener_cfg: dict,
             cycle = classify_cyclical(m, chain_cfg) if m["id"] in record_map else {
                 "status": "unknown", "reason": unavailable.get(m["id"], "無資料")}
             nodes.append({"member": m, "result": r, "cycle": cycle,
+                          "quote": quotes.get(m["id"]),
                           "unavailable": unavailable.get(m["id"])})
         available = {m["id"] for m in layer.get("members") or [] if m["id"] in record_map}
         rev_yoy = aggregate_layer_revenue(layer.get("members") or [], available)
@@ -659,4 +665,5 @@ def build_ai_chain_data(chain_cfg: dict, screener_cfg: dict,
     return {"cloud": cloud, "layers": layers, "unavailable": unavailable,
             "logos": chain_cfg.get("logos") or {},
             "guidance": chain_cfg["cloud_capex"].get("guidance") or {},
-            "output_side": build_output_side(chain_cfg)}
+            "output_side": build_output_side(chain_cfg),
+            "quotes": quotes, "quote_source": quote_snapshot.get("source") or ""}

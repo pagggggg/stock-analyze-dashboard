@@ -39,6 +39,7 @@ from .metrics import build_dashboard, is_financial_company
 from .models import DashboardResult, EPSScenario, PEBand, QuarterFinancials
 from .river import (RiverSeries, build_pe_river, compute_pe_band_finmind,
                     supports_tw_filing_fallback)
+from .us_data import US_DETAIL_SCHEMA_VERSION
 from .valuation import build_valuation
 
 if TYPE_CHECKING:
@@ -281,7 +282,7 @@ def analyze_us_record(record: dict, pe_years: int = 5) -> StockAnalysis:
     a.price = record.get("price_last")
     a.price_date = str(record.get("price_date") or "")
     detail = record.get("detail") or {}
-    if detail.get("schema_version") != 1:
+    if detail.get("schema_version") != US_DETAIL_SCHEMA_VERSION:
         a.errors.append("美股詳情資料 schema 缺失或過期")
         return a
     try:

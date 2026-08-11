@@ -63,7 +63,7 @@ python main.py --data-mode auto --html
 | --- | --- |
 | 三行摘要(置頂大字) | 我的單季EPS試算 · 合理股價中樞 · 現價溢價/折價 |
 | ① 估值儀表板卡片 | 前瞻PE僅顯示藍色參考值;PEG / FCF Yield / EV·EBITDA 依各自門檻著色,各附白話一行 |
-| ② 本益比河流圖 | 逐月 rolling 5年 trailing PE P10/P50/P90 河道 + 現價標記；本國發行人財報生效採法定期限 fallback，KY/外國發行人不套用 |
+| ② 本益比河流圖 | 逐月 rolling 5年 trailing PE P10/P50/P90 河道 + 每日收盤黑線 + 現價標記；本國發行人財報生效採法定期限 fallback，KY/外國發行人不套用 |
 | ③ EPS 走勢 | 近8季實際EPS + 3Q26 三情境試算(斜線紋柱區分實際/試算) |
 | ④ 共識EPS監控 | 2026/2027 共識EPS 歷史折線 + 上修(▲綠)/下修(▼紅)標記 |
 | ⑤ **FCF 品質檢查**(新功能) | 資本支出年增率(領先2年)vs 營收年增率雙線;**存貨天數 / 應收天數 / OCF年增率**三燈號(綠/黃/紅,門檻寫在 `src/fcf_quality.py` 註解) |
@@ -110,6 +110,7 @@ open public/index.html            # 本機預覽
 - 循環標記沿用獨立循環回測的「近10年季度資料三取二」定義；資料不足標未知。
 - 層級關係不代表營收、獲利或股價必然連動。
 - 產出側追蹤 PLTR、Microsoft AI/Copilot、Google Cloud backlog、AWS AI run rate、Agentforce ARR、ServiceNow AI ACV；下限、財季、口徑斷點與未揭露分開標示。
+- 產業鏈、四大雲端與產出側共 16 檔美股顯示最近交易日收盤價及單日漲跌；行情快照存於 `data/ai_chain_quotes.json`，不當作基本面訊號。
 - 台積電詳情頁另有個人 Thesis 狀態：四項證偽條件、近八季毛利率、人工競爭標記與部位規則；任一紅燈會提升首頁狀態並寫入訊號流水。
 - AI 設備層的 ASML、AMAT、LRCX、KLAC 可由首頁搜尋或產業鏈頁進入美股詳情；河流圖使用 Yahoo 拆股調整後股價與實際財報公告日 EPS。ASML 的 EUR EPS 依各交易日當時 EUR/USD 換算為 USD，避免幣別混算。
 - 30 個產業節點與產出側公司使用本地 Logo；無可用官方圖示時採名稱縮寫標章，載入失敗仍會退回縮寫。

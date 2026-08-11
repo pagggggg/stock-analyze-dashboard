@@ -106,19 +106,20 @@ def _fig_river(r: RiverSeries) -> str:
         fillcolor="rgba(220,38,38,0.08)", hoverinfo="skip",
     ))
     # 股價線
+    price_dp = 2 if r.currency == "USD" else 1
     fig.add_trace(go.Scatter(
-        x=r.dates, y=r.price, name="月收盤價",
+        x=r.price_dates, y=r.price, name="日收盤價",
         line=dict(color=C_PRICE, width=2.4),
-        hovertemplate="%{x}<br>股價 %{y:,.0f}<extra></extra>",
+        hovertemplate=f"%{{x}}<br>股價 %{{y:,.{price_dp}f}}<extra></extra>",
     ))
     # 現價標記
     pe_txt = f"(trailing PE {r.current_pe:g}x)" if r.current_pe else ""
     fig.add_trace(go.Scatter(
         x=[r.current_date], y=[r.current_price], name="現價",
         mode="markers+text", marker=dict(color=C_EXP, size=12, line=dict(color="white", width=1.5)),
-        text=[f" 現價 {r.current_price:,.0f} {pe_txt}"], textposition="top left",
+        text=[f" 現價 {r.current_price:,.{price_dp}f} {pe_txt}"], textposition="top left",
         textfont=dict(color=C_EXP, size=12),
-        hovertemplate="現價 %{y:,.0f}<extra></extra>",
+        hovertemplate=f"現價 %{{y:,.{price_dp}f}}<extra></extra>",
     ))
     fig.update_yaxes(title_text=f"股價 ({'US$' if r.currency == 'USD' else 'NT$'})")
     return _fig_div(_layout(fig, height=420))
@@ -404,7 +405,7 @@ def build_html_dashboard(
   <section>
     <h2>② 本益比河流圖(現在位於歷史估值哪一段?)</h2>
     {river_div}
-    {_note('河道 = 「當時可得的近四季實際EPS」×截至當月為止的 rolling 5年 P10/P50/P90;EPS 成長會讓河道往上抬。'
+    {_note('河道 = 「當時可得的近四季實際EPS」×截至當月為止的 rolling 5年 P10/P50/P90;EPS 成長會讓河道往上抬。黑線為每日收盤。'
            '<b>河道保留 rolling 歷史分位,不為包住股價而擴張</b>;股價可超出上下緣。'
            '股價線貼近<b style="color:'+C_CHEAP+'">綠(低本益比)</b>相對便宜、貼近或超過<b style="color:'+C_EXP+'">紅(高本益比)</b>'
            '相對貴。' + river_note_extra + ' FinMind 無公告日,本國發行人採法定期限 fallback；口徑為 trailing,與摘要的前瞻PE不同。')}

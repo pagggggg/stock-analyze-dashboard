@@ -33,6 +33,7 @@ from src.screener import load_config as load_screener_config, load_records, scre
 from src.screener_html import build_screener_page
 from src.site_html import write_site
 from src.thesis import evaluate_thesis, load_thesis
+from src.us_data import US_DETAIL_SCHEMA_VERSION
 
 ROOT = Path(__file__).resolve().parent
 TW_TZ = timezone(timedelta(hours=8))
@@ -87,7 +88,7 @@ def load_universe_stocks() -> list[dict]:
             record = json.loads(record_path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             continue
-        if (record.get("detail") or {}).get("schema_version") == 1:
+        if (record.get("detail") or {}).get("schema_version") == US_DETAIL_SCHEMA_VERSION:
             us.append({"stock_id": sid, "name": s.get("name", sid), "market": "us"})
     return tw + us
 
@@ -216,7 +217,8 @@ def run(args) -> None:
             screener_info = {"layer1_pass": sfun["layer1_pass"], "both_pass": sfun["both_pass"]}
             try:
                 acfg = load_ai_chain_config(ROOT / "config/ai_chain.yaml")
-                adata = build_ai_chain_data(acfg, scfg, recs, sres)
+                adata = build_ai_chain_data(
+                    acfg, scfg, recs, sres, ROOT / "data/ai_chain_quotes.json")
                 detail_ids = {a.stock_id for a in analyses if a.ok}
                 ai_chain_html = build_ai_chain_page(
                     adata, generated, detail_ids)

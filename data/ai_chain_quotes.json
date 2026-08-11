@@ -1,0 +1,151 @@
+{
+  "schema_version": 1,
+  "source": "Yahoo Finance Close (split-adjusted, not dividend-adjusted)",
+  "updated_at": "2026-08-11T06:52:20+00:00",
+  "quotes": {
+    "AMAT": {
+      "currency": "USD",
+      "close": 522.1199951171875,
+      "close_date": "2026-08-10",
+      "previous_close": 539.1400146484375,
+      "previous_date": "2026-08-07",
+      "change": -17.02001953125,
+      "change_pct": -3.156883011614046
+    },
+    "AMD": {
+      "currency": "USD",
+      "close": 469.55999755859375,
+      "close_date": "2026-08-10",
+      "previous_close": 483.3599853515625,
+      "previous_date": "2026-08-07",
+      "change": -13.79998779296875,
+      "change_pct": -2.8550124567989625
+    },
+    "AMZN": {
+      "currency": "USD",
+      "close": 278.0899963378906,
+      "close_date": "2026-08-10",
+      "previous_close": 274.4800109863281,
+      "previous_date": "2026-08-07",
+      "change": 3.6099853515625,
+      "change_pct": 1.315208833820075
+    },
+    "ASML": {
+      "currency": "USD",
+      "close": 1733.47998046875,
+      "close_date": "2026-08-10",
+      "previous_close": 1740.989990234375,
+      "previous_date": "2026-08-07",
+      "change": -7.510009765625,
+      "change_pct": -0.431364327638322
+    },
+    "AVGO": {
+      "currency": "USD",
+      "close": 422.3999938964844,
+      "close_date": "2026-08-10",
+      "previous_close": 427.760009765625,
+      "previous_date": "2026-08-07",
+      "change": -5.360015869140625,
+      "change_pct": -1.2530427685555374
+    },
+    "CRM": {
+      "currency": "USD",
+      "close": 197.50999450683594,
+      "close_date": "2026-08-10",
+      "previous_close": 192.74000549316406,
+      "previous_date": "2026-08-07",
+      "change": 4.769989013671875,
+      "change_pct": 2.4748307967860117
+    },
+    "GOOGL": {
+      "currency": "USD",
+      "close": 357.5199890136719,
+      "close_date": "2026-08-10",
+      "previous_close": 354.29998779296875,
+      "previous_date": "2026-08-07",
+      "change": 3.220001220703125,
+      "change_pct": 0.9088346970490716
+    },
+    "KLAC": {
+      "currency": "USD",
+      "close": 192.74000549316406,
+      "close_date": "2026-08-10",
+      "previous_close": 198.11000061035156,
+      "previous_date": "2026-08-07",
+      "change": -5.3699951171875,
+      "change_pct": -2.710612841675449
+    },
+    "LRCX": {
+      "currency": "USD",
+      "close": 306.3999938964844,
+      "close_date": "2026-08-10",
+      "previous_close": 311.3500061035156,
+      "previous_date": "2026-08-07",
+      "change": -4.95001220703125,
+      "change_pct": -1.589854539905004
+    },
+    "META": {
+      "currency": "USD",
+      "close": 594.9199829101562,
+      "close_date": "2026-08-10",
+      "previous_close": 592.0999755859375,
+      "previous_date": "2026-08-07",
+      "change": 2.82000732421875,
+      "change_pct": 0.4762721568140739
+    },
+    "MRVL": {
+      "currency": "USD",
+      "close": 208.55999755859375,
+      "close_date": "2026-08-10",
+      "previous_close": 218.72000122070312,
+      "previous_date": "2026-08-07",
+      "change": -10.160003662109375,
+      "change_pct": -4.645210134146466
+    },
+    "MSFT": {
+      "currency": "USD",
+      "close": 506.05999755859375,
+      "close_date": "2026-08-10",
+      "previous_close": 499.989990234375,
+      "previous_date": "2026-08-07",
+      "change": 6.07000732421875,
+      "change_pct": 1.2140257690705722
+    },
+    "MU": {
+      "currency": "USD",
+      "close": 861.0,
+      "close_date": "2026-08-10",
+      "previous_close": 877.5700073242188,
+      "previous_date": "2026-08-07",
+      "change": -16.57000732421875,
+      "change_pct": -1.8881692840371822
+    },
+    "NOW": {
+      "currency": "USD",
+      "close": 127.44000244140625,
+      "close_date": "2026-08-10",
+      "previous_close": 124.87999725341797,
+      "previous_date": "2026-08-07",
+      "change": 2.5600051879882812,
+      "change_pct": 2.049972168715926
+    },
+    "NVDA": {
+      "currency": "USD",
+      "close": 217.5500030517578,
+      "close_date": "2026-08-10",
+      "previous_close": 223.9600067138672,
+      "previous_date": "2026-08-07",
+      "change": -6.410003662109375,
+      "change_pct": -2.862119784760874
+    },
+    "PLTR": {
+      "currency": "USD",
+      "close": 175.22999572753906,
+      "close_date": "2026-08-10",
+      "previous_close": 172.00999450683594,
+      "previous_date": "2026-08-07",
+      "change": 3.220001220703125,
+      "change_pct": 1.871984956417842
+    }
+  }
+}
