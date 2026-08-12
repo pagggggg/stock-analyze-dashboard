@@ -6,14 +6,14 @@
 # 雲端 cron 不受你的電腦開關機影響,這是「每天自動更新」唯一可靠的作法。
 #
 # 三種觸發、做的事不同:
-#   schedule(每日 台灣 14:30) 更新股價 + 重算指標 + 重建 + commit 資料 + 部署
-#   schedule(每週六 台灣 06:00)同樣更新價格；財報依 30~44 天 TTL 分散自然更新
+#   schedule(平日 台灣 14:30) 更新台股 + 重算指標 + 記錄訊號 + 部署
+#   schedule(週二~六 06:17)  美股盤後更新 16 檔行情 + 4 檔河流圖 + 部署
 #   push                         只重建 + 部署；手動可選 none/prices/all
 #
 # ★ 單一 writer 原則:本 workflow 是 data/main/gh-pages 的唯一寫入者。
 #   本機 scripts 只供開發與手動驗證，不得 commit、push 或部署。
 #
-# 注意:cron 用 UTC。台灣 = UTC+8 → 台灣 14:30 = UTC 06:30。
+# 注意:cron 用 UTC。美股排程固定 UTC 22:17，可同時涵蓋夏令/冬令盤後。
 # GitHub 的排程在尖峰時可能延遲數分鐘至數十分鐘,這是平台特性,不保證準點。
 # ============================================================================
 name: daily-update
@@ -21,7 +21,7 @@ name: daily-update
 on:
   schedule:
     - cron: "30 6 * * 1-5"    # 台灣 14:30(週一~週五,台股盤後)→ 只更新股價
-    - cron: "0 22 * * 5"      # 台灣 週六 06:00；美股正常收盤後 → 價格補跑
+    - cron: "17 22 * * 1-5"   # 台灣 週二~週六 06:17；美股正常收盤後
   push:
     branches: [main]          # 你 push 程式碼時重建部署(資料 commit 帶 [skip ci] 不會觸發)
   workflow_dispatch:
@@ -69,27 +69,33 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Test AI quote pipeline
+      - name: Test quote pipelines
         run: python -m unittest discover -s tests -p "test_*.py"
 
       # 快取種子:CI 第一次跑(或快取被 GitHub 清掉)時,cache/ 是空的,
       # build_site 會為 239 檔重抓財報 → 直接撞爆 FinMind 每小時上限 → 大量分析失敗。
       # (實際發生過:產出的網站只剩 28 個詳情頁,原本 222。)
-      # 財報是 point-in-time 的公開資料且 TTL 30 天,先從 Release 下載一份種子最省事。
+      # 財報與建站用價格/共識快取先從 Release 下載；美股早晨只更新美股，
+      # 必須能離線沿用台股快取，不能因 Actions cache 被清掉就重抓 239 檔。
       - name: Seed financial cache (only if missing)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p cache
-          fs=$(ls cache/finmind_fs_long_*.json 2>/dev/null | wc -l | tr -d ' ')
-          mr=$(ls cache/finmind_mrev_*.json 2>/dev/null | wc -l | tr -d ' ')
+          shopt -s nullglob
+          fs_files=(cache/finmind_fs_long_*.json)
+          mr_files=(cache/finmind_mrev_*.json)
+          fs=${#fs_files[@]}
+          mr=${#mr_files[@]}
           echo "現有快取:財報 $fs 檔、月營收 $mr 檔"
           if [ "$fs" -lt 200 ] || [ "$mr" -lt 200 ]; then
             echo "不足,從 Release 下載種子快取…"
             if gh release download cache-seed -p fincache.tar.gz -O /tmp/fincache.tar.gz \
                  -R "$GITHUB_REPOSITORY" 2>/dev/null; then
               tar -xzf /tmp/fincache.tar.gz -C cache 2>/dev/null
-              echo "已解壓:財報 $(ls cache/finmind_fs_long_*.json 2>/dev/null | wc -l | tr -d ' ') 檔、月營收 $(ls cache/finmind_mrev_*.json 2>/dev/null | wc -l | tr -d ' ') 檔"
+              fs_files=(cache/finmind_fs_long_*.json)
+              mr_files=(cache/finmind_mrev_*.json)
+              echo "已解壓:財報 ${#fs_files[@]} 檔、月營收 ${#mr_files[@]} 檔"
             else
               echo "::warning::找不到 cache-seed release,本次可能因限流而資料不全(品質檢查會擋下部署)"
             fi
@@ -101,30 +107,53 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "push" ]; then
             echo "refresh=none" >> $GITHUB_OUTPUT
+            echo "scope=none" >> $GITHUB_OUTPUT
           elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "refresh=${{ inputs.refresh }}" >> $GITHUB_OUTPUT
-          elif [ "${{ github.event.schedule }}" = "0 22 * * 5" ]; then
-            # 週六:同樣只抓股價。財報不需要在這裡硬抓 ——
-            # 財報快取 TTL 為 30~44 天(依代號打散),每天會有十幾檔自然到期並更新,
-            # 若這裡用 --refresh all 反而會一次強制重抓 717 次,必定撞爆每小時上限。
+            if [ "${{ inputs.refresh }}" = "none" ]; then
+              echo "scope=none" >> $GITHUB_OUTPUT
+            else
+              echo "scope=all" >> $GITHUB_OUTPUT
+            fi
+          elif [ "${{ github.event.schedule }}" = "17 22 * * 1-5" ]; then
             echo "refresh=prices" >> $GITHUB_OUTPUT
+            echo "scope=us" >> $GITHUB_OUTPUT
           else
             echo "refresh=prices" >> $GITHUB_OUTPUT
+            echo "scope=tw" >> $GITHUB_OUTPUT
           fi
 
-      - name: Fetch market data
-        if: steps.mode.outputs.refresh != 'none'
+      - name: Fetch Taiwan market data
+        if: steps.mode.outputs.scope == 'tw'
+        env:
+          FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
+        run: |
+          python fetch_universe.py --from-universe --refresh prices --skip-us
+
+      - name: Fetch all market data
+        if: steps.mode.outputs.scope == 'all'
         env:
           FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
         run: |
           python fetch_universe.py --from-universe --refresh ${{ steps.mode.outputs.refresh }}
 
+      - name: Fetch US detail prices
+        if: steps.mode.outputs.scope == 'us'
+        run: |
+          python fetch_universe.py --from-universe --stock-ids ASML,AMAT,LRCX,KLAC --refresh prices
+
       - name: Update AI US quotes
-        if: steps.mode.outputs.refresh != 'none'
+        if: steps.mode.outputs.scope == 'us' || steps.mode.outputs.scope == 'all'
         run: python update_ai_quotes.py
 
+      - name: Update AI Taiwan quotes
+        if: steps.mode.outputs.scope == 'tw' || steps.mode.outputs.scope == 'all'
+        env:
+          FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
+        run: python update_ai_tw_quotes.py
+
       - name: Screen
-        if: steps.mode.outputs.refresh != 'none'
+        if: steps.mode.outputs.scope == 'tw' || steps.mode.outputs.scope == 'all'
         env:
           FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
         run: python screen.py
@@ -134,8 +163,10 @@ jobs:
         env:
           FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
         run: |
-          if [ "${{ steps.mode.outputs.refresh }}" = "none" ]; then
-            python build_site.py --from-universe --no-record --out public
+          if [ "${{ steps.mode.outputs.scope }}" = "none" ] || [ "${{ steps.mode.outputs.scope }}" = "us" ]; then
+            ALLOW_STALE_CACHE=1 python build_site.py --from-universe --no-record --out public
+          elif [ "${{ steps.mode.outputs.scope }}" = "tw" ]; then
+            ALLOW_STALE_CACHE=1 python build_site.py --from-universe --out public
           else
             python build_site.py --from-universe --out public
           fi
@@ -144,7 +175,7 @@ jobs:
       # _save() 已保護「不用殘缺覆蓋完整」,這裡再做一道把關 ——
       # 缺漏太多就不要把資料 commit 回去,避免慢慢劣化 repo 裡的資料。
       - name: Data sanity check
-        if: steps.mode.outputs.refresh != 'none'
+        if: steps.mode.outputs.scope != 'none'
         id: sanity
         run: |
           python - <<'PY'
@@ -175,7 +206,7 @@ jobs:
           PY
 
       - name: Warn if data unhealthy
-        if: steps.mode.outputs.refresh != 'none' && steps.sanity.outputs.healthy != 'true'
+        if: steps.mode.outputs.scope != 'none' && steps.sanity.outputs.healthy != 'true'
         run: |
           echo "::warning::資料完整度不足(${{ steps.sanity.outputs.summary }}),已略過 commit 與部署。"
           echo "多半是撞到 FinMind 每小時上限;快取會保留,下次排程會自動補齊。"
@@ -197,6 +228,7 @@ jobs:
         id: quality
         env:
           REFRESH_MODE: ${{ steps.mode.outputs.refresh }}
+          UPDATE_SCOPE: ${{ steps.mode.outputs.scope }}
           DATA_HEALTHY: ${{ steps.sanity.outputs.healthy }}
         run: |
           python - <<'PY'
@@ -207,6 +239,7 @@ jobs:
           from src.screener import P90_RELEASE_NOTE, PRICE_LEVEL_WARNING
           from src.us_data import US_DETAIL_SCHEMA_VERSION
           from src.valuation_flag import pe_history_is_compatible
+          from src.tw_quotes import expected_tw_quote_tickers, load_tw_quote_snapshot
           idx = open("public/index.html", encoding="utf-8").read()
           ai_path = "public/ai-chain.html"
           thesis_path = "public/stock_2330.html"
@@ -319,6 +352,8 @@ jobs:
               us_river_ok = (us_river_ok and rec.get("market") == "us"
                               and (rec.get("detail") or {}).get("schema_version") == US_DETAIL_SCHEMA_VERSION
                               and river.get("current_date") == rec.get("price_date")
+                              and abs(float(river.get("current_price"))
+                                      - float(rec.get("price_last"))) <= 0.0001
                               and len(set(band_lengths)) == 1 and 59 <= band_lengths[0] <= 61
                               and len(set(price_lengths)) == 1 and price_lengths[0] >= 1000
                               and dates == sorted(set(dates))
@@ -359,13 +394,33 @@ jobs:
               quote_expected = expected_quote_tickers(cfg)
               quote_snapshot = load_quote_snapshot(
                   "data/ai_chain_quotes.json", quote_expected, max_age_days=7)
+              tw_quote_expected = expected_tw_quote_tickers(cfg)
+              tw_quote_snapshot = load_tw_quote_snapshot(
+                  "data/ai_chain_tw_quotes.json", tw_quote_expected, max_age_days=14)
               quote_dates = {q["close_date"] for q in quote_snapshot["quotes"].values()}
-              quotes_ok = (len(quote_expected) == 16 and set(quote_snapshot["quotes"]) == quote_expected
-                           and f'data-ai-quote-tickers="{len(quote_expected)}"' in ai
+              tw_quote_dates = {q["close_date"] for q in tw_quote_snapshot["quotes"].values()}
+              all_quote_expected = quote_expected | tw_quote_expected
+              quotes_ok = (len(quote_expected) == 16 and len(tw_quote_expected) == 17
+                           and f'data-ai-quote-tickers="{len(all_quote_expected)}"' in ai
+                           and f'data-ai-us-quote-tickers="{len(quote_expected)}"' in ai
+                           and f'data-ai-tw-quote-tickers="{len(tw_quote_expected)}"' in ai
                            and all(ai.count(f'data-quote-ticker="{ticker}"') >= 1
-                                   for ticker in quote_expected)
+                                   for ticker in all_quote_expected)
+                           and all(ai.count(f'data-quote-ticker="{ticker}"') == 1
+                                   for ticker in tw_quote_expected)
+                           and ai.count('data-quote-market="twse"') == 15
+                           and ai.count('data-quote-market="tpex"') == 2
                            and all(date_value in ai for date_value in quote_dates)
-                           and "美股行情為最近交易日收盤價,不是即時報價" in ai)
+                           and all(date_value in ai for date_value in tw_quote_dates)
+                           and "台股與美股行情均為最近交易日收盤價,不是即時報價" in ai
+                           and "台股行情更新" in ai and "美股行情更新" in ai)
+              for sid in required_us:
+                  rec = json.load(open(f"data/universe/{sid}.json", encoding="utf-8"))
+                  quotes_ok = (quotes_ok
+                               and rec.get("price_date")
+                               == quote_snapshot["quotes"][sid]["close_date"]
+                               and abs(float(rec.get("price_last"))
+                                       - float(quote_snapshot["quotes"][sid]["close"])) <= 0.0001)
               output = build_output_side(cfg)
               counts = output["counts"]
               expected_layers = len(cfg.get("layers") or [])
@@ -419,7 +474,7 @@ jobs:
           print(f"美股河流圖完整:{us_river_ok}")
           print(f"第一階段 UX 完整:{ux_ok}")
           print(f"P50/P90 價格欄完整:{price_levels_ok}")
-          print(f"AI 美股行情完整:{quotes_ok}")
+          print(f"AI 台美股行情完整:{quotes_ok}")
           with open(os.environ["GITHUB_OUTPUT"], "a") as f:
               f.write(f"ok={'true' if ok and ai_ok and thesis_ok and us_river_ok else 'false'}\n")
               f.write(f"linked={linked}\nfloor={floor}\n")
@@ -433,7 +488,7 @@ jobs:
           echo "這不是故障,是保護機制:寧可不更新,也不要用殘缺版本覆蓋線上好版本。"
 
       - name: Commit updated data
-        if: steps.mode.outputs.refresh != 'none' && steps.sanity.outputs.healthy == 'true' && steps.quality.outputs.ok == 'true'
+        if: steps.mode.outputs.scope != 'none' && steps.sanity.outputs.healthy == 'true' && steps.quality.outputs.ok == 'true'
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -472,18 +527,30 @@ jobs:
       # 只在整個流程都成功後才更新 —— 否則會把限流當下殘缺的快取存成種子,
       # 之後每次執行都從壞種子開始,越用越糟。
       - name: Refresh cache seed
-        if: steps.mode.outputs.refresh != 'none' && steps.sanity.outputs.healthy == 'true' && steps.quality.outputs.ok == 'true'
+        if: (steps.mode.outputs.scope == 'tw' || steps.mode.outputs.scope == 'all') && steps.sanity.outputs.healthy == 'true' && steps.quality.outputs.ok == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           cd cache
-          ls finmind_fs_long_*.json finmind_bs_*.json finmind_cf_*.json \
-             finmind_mrev_*.json > /tmp/seed.txt 2>/dev/null || true
-          n=$(wc -l < /tmp/seed.txt | tr -d ' ')
+          shopt -s nullglob
+          fs_files=(finmind_fs_long_*.json)
+          mr_files=(finmind_mrev_*.json)
+          fs=${#fs_files[@]}
+          mr=${#mr_files[@]}
+          if [ "$fs" -lt 200 ] || [ "$mr" -lt 200 ]; then
+            echo "::warning::財報/月營收快取不足(fs=$fs,mr=$mr),不更新種子"
+            exit 0
+          fi
+          seed_files=(finmind_fs_long_*.json finmind_bs_*.json finmind_cf_*.json
+                      finmind_mrev_*.json finmind_price_*.json finmind_pxv_*.json
+                      yf_metrics_*.json ai_chain_tpex_record_v2_*.json
+                      ai_chain_us_record_v2_*.json ai_chain_us_quarterly_v2_*.json)
+          n=${#seed_files[@]}
           if [ "$n" -lt 800 ]; then
             echo "::warning::快取僅 $n 檔(<800),不更新種子,避免把殘缺快取存成種子"
             exit 0
           fi
+          printf '%s\n' "${seed_files[@]}" > /tmp/seed.txt
           tar -czf /tmp/fincache.tar.gz -T /tmp/seed.txt
           cd ..
           gh release upload cache-seed /tmp/fincache.tar.gz --clobber -R "$GITHUB_REPOSITORY"

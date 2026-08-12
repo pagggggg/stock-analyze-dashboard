@@ -18,9 +18,12 @@ from __future__ import annotations
 
 from bisect import bisect_right
 from datetime import date, datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 US_RIVER_TICKERS = frozenset({"ASML", "AMAT", "LRCX", "KLAC"})
 US_DETAIL_SCHEMA_VERSION = 2
+_MARKET_TZ = ZoneInfo("America/New_York")
+_DAILY_BAR_READY = (16, 15)
 EXPECTED_CURRENCIES = {
     "ASML": ("USD", "EUR"),
     "AMAT": ("USD", "USD"),
@@ -40,6 +43,17 @@ def _get(df, row, col):
     except (TypeError, ValueError):
         return None
     return v if v == v else None      # 濾 NaN
+
+
+def _completed_history(hist, now: datetime | None = None):
+    """排除美東 16:15 前 Yahoo 可能提供的當日未完成 daily bar。"""
+    if hist is None or not len(hist):
+        return hist
+    market_now = (now or datetime.now(timezone.utc)).astimezone(_MARKET_TZ)
+    if (hist.index[-1].date() == market_now.date()
+            and (market_now.hour, market_now.minute) < _DAILY_BAR_READY):
+        return hist.iloc[:-1]
+    return hist
 
 
 def compute_valuation(ticker: str, price: float | None) -> dict | None:
@@ -186,6 +200,9 @@ def build_us_record(ticker: str, name: str, cfg: dict) -> dict:
     try:
         # Yahoo Close is split-adjusted but, unlike Adj Close, not dividend-adjusted.
         hist = t.history(period="max", auto_adjust=False, actions=True)
+        hist = _completed_history(hist)
+        if hist is None or not len(hist):
+            raise RuntimeError("最近沒有已完成的美股日線")
     except Exception as e:  # noqa: BLE001
         err.append(f"history:{e}")
         hist = None

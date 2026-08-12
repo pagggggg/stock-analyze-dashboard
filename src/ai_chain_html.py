@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from html import escape
+from zoneinfo import ZoneInfo
 
 import plotly.graph_objects as go
 
@@ -57,12 +59,15 @@ def _logo(sid: str, name: str, logos: dict) -> str:
             f'<span class="logo-fallback" hidden>{escape(first)}</span></span>')
 
 
-def _quote_url(ticker: str) -> str:
+def _quote_url(ticker: str, market: str = "us") -> str:
+    if market in ("twse", "tpex"):
+        suffix = "TW" if market == "twse" else "TWO"
+        return f"https://tw.stock.yahoo.com/quote/{escape(ticker)}.{suffix}"
     return f"https://finance.yahoo.com/quote/{escape(ticker)}/"
 
 
 def _quote_html(ticker: str, quote: dict | None, compact: bool = False,
-                detail_url: str | None = None) -> str:
+                detail_url: str | None = None, market: str = "us") -> str:
     if not quote:
         return '<span class="quote-na">行情 N/M</span>'
     pct = float(quote["change_pct"])
@@ -73,21 +78,38 @@ def _quote_html(ticker: str, quote: dict | None, compact: bool = False,
     compact_class = " compact" if compact else ""
     close = float(quote["close"])
     close_date = escape(str(quote["close_date"]))
+    currency = "NT$" if quote.get("currency") == "TWD" else "US$"
     if detail_url:
         link = f'href="{escape(detail_url)}" title="{escape(ticker)} 個股詳情"'
         destination = "站內個股詳情"
     else:
-        link = (f'href="{_quote_url(ticker)}" target="_blank" rel="noopener" '
-                f'title="Yahoo Finance 最近交易日收盤；不是即時報價"')
-        destination = "Yahoo Finance（另開視窗）"
+        link = (f'href="{_quote_url(ticker, market)}" target="_blank" rel="noopener" '
+                f'title="最近交易日收盤；不是即時報價"')
+        destination = "Yahoo（另開視窗）"
     body = (f'<a class="quote-box {cls}{compact_class}" data-quote-ticker="{escape(ticker)}" '
-            f'data-quote-date="{close_date}" {link} '
-            f'aria-label="{escape(ticker)} 最近收盤 US$ {close:,.2f}，單日漲跌 {pct_text}，'
+            f'data-quote-market="{escape(market)}" data-quote-date="{close_date}" {link} '
+            f'aria-label="{escape(ticker)} 最近收盤 {currency} {close:,.2f}，單日漲跌 {pct_text}，'
             f'{close_date}，前往 {destination}">'
-            f'<b>US$ {close:,.2f}</b>'
+            f'<b>{currency} {close:,.2f}</b>'
             f'<span>{arrow} {pct_text}</span>'
             f'<small>{close_date}</small></a>')
     return body
+
+
+def _quote_update_meta(label: str, updated_at: str, quotes: dict) -> str:
+    try:
+        updated = datetime.fromisoformat(updated_at).astimezone(ZoneInfo("Asia/Taipei"))
+        update_text = updated.strftime("%Y-%m-%d %H:%M")
+    except (TypeError, ValueError):
+        update_text = "N/M"
+    dates = sorted({str(q.get("close_date")) for q in quotes.values() if q.get("close_date")})
+    if not dates:
+        close_text = "N/M"
+    elif len(dates) == 1:
+        close_text = dates[0]
+    else:
+        close_text = f"{dates[0]}–{dates[-1]}"
+    return f"{label}行情更新 {update_text}（收盤日 {close_text}）"
 
 
 def _guidance_card(ticker: str, company: dict, cloud: dict, logos: dict,
@@ -295,19 +317,20 @@ def _node_row(node: dict, detail_ids: set[str], logos: dict) -> str:
     name = escape(m["name"])
     if detail_url:
         name = f'<a href="{detail_url}">{name}</a>'
-    elif m["market"] == "us":
-        name = f'<a href="{_quote_url(m["id"])}" target="_blank" rel="noopener">{name}</a>'
+    elif m["market"] in ("us", "twse", "tpex"):
+        name = (f'<a href="{_quote_url(m["id"], m["market"])}" target="_blank" '
+                f'rel="noopener">{name}</a>')
     if not r:
         reason = escape(node.get("unavailable") or "資料不足")
         return (f'<tr class="unavailable"><td>{_logo(m["id"], m["name"], logos)} {escape(m["id"])}</td>'
                 f'<td>{name}</td><td>{escape(m["market"])}</td>'
-                f'<td class="quote-cell">{_quote_html(m["id"], quote, True, detail_url) if m["market"] == "us" else "—"}</td>'
+                f'<td class="quote-cell">{_quote_html(m["id"], quote, True, detail_url, m["market"])}</td>'
                 f'<td colspan="5">⚠ 不納入:{reason}</td><td>{_cycle_html(node["cycle"])}</td></tr>')
     x = r.metrics
     trend = {"accel": "▲加速", "decel": "▼減速", "flat": "—持平"}.get(x.get("mrev_trend"), "—")
     return (
         f'<tr><td><span class="ticker-logo">{_logo(m["id"], m["name"], logos)}<b>{escape(m["id"])}</b></span></td><td class="name">{name}</td><td title="{escape(x.get("pe_basis_label", ""))}">{escape(m["market"])}</td>'
-        f'<td class="quote-cell">{_quote_html(m["id"], quote, True, detail_url) if m["market"] == "us" else "—"}</td>'
+        f'<td class="quote-cell">{_quote_html(m["id"], quote, True, detail_url, m["market"])}</td>'
         f'<td class="num">{_n(x.get("trailing_pe"), 1, "x")}</td>'
         f'<td class="num">{_n(x.get("pe_pct"), 0, "%")}</td><td>{_flag_html(x.get("flag", "na"))}</td>'
         f'<td class="num">{_n(x.get("mrev_yoy_recent"), 1, "%")} {trend}</td>'
@@ -332,6 +355,9 @@ def build_ai_chain_page(data: dict, generated: str, detail_ids: set[str]) -> str
     guidance = data.get("guidance") or {}
     errors = cloud.get("errors") or {}
     quotes = data.get("quotes") or {}
+    us_quotes = data.get("us_quotes") or {}
+    tw_quotes = data.get("tw_quotes") or {}
+    quote_updates = data.get("quote_updates") or {}
     guidance_cards = []
     for ticker in ("MSFT", "GOOGL", "AMZN", "META"):
         company = guidance.get(ticker) or {}
@@ -362,16 +388,18 @@ def build_ai_chain_page(data: dict, generated: str, detail_ids: set[str]) -> str
 
     source_note = "、".join(f"{k}:{v}" for k, v in errors.items()) or "四家公司皆取得資料"
     body = f"""
-<div class="wrap ai-wrap" data-ai-capex-companies="{cloud.get('available_companies', 0)}" data-ai-layers="{len(data['layers'])}" data-ai-unavailable="{len(data['unavailable'])}" data-ai-quote-tickers="{len(quotes)}">
+<div class="wrap ai-wrap" data-ai-capex-companies="{cloud.get('available_companies', 0)}" data-ai-layers="{len(data['layers'])}" data-ai-unavailable="{len(data['unavailable'])}" data-ai-quote-tickers="{len(quotes)}" data-ai-us-quote-tickers="{len(us_quotes)}" data-ai-tw-quote-tickers="{len(tw_quotes)}">
   <header>
     <div><a class="back" href="index.html">← 回總表</a></div>
     <h1>AI 產業鏈全景圖</h1>
-    <div class="meta">更新時間 {escape(generated)}　|　由資金源頭往上游排列</div>
+    <div class="meta">頁面建置 {escape(generated)}<br>
+      {escape(_quote_update_meta('台股', quote_updates.get('tw', ''), tw_quotes))}<br>
+      {escape(_quote_update_meta('美股', quote_updates.get('us', ''), us_quotes))}　|　由資金源頭往上游排列</div>
     <div class="warn">⚠️ 本圖為研究工具。層級關係描述供應鏈位置,<b>不代表營收、獲利或股價必然連動</b>；
       公司也可能跨越多個層級。估值歷史位階一律使用 trailing PE 對 trailing PE。<br>
       台股採 FinMind basic EPS 與本國發行人法定期限 fallback；美股採 Yahoo Reported EPS(調整後)與實際 earnings date。
       兩者只做各股自身歷史比較,不跨口徑混算。<br>
-      <b>美股行情為最近交易日收盤價,不是即時報價；單日漲跌只供資訊,不納入基本面訊號或評分。</b></div>
+      <b>台股與美股行情均為最近交易日收盤價,不是即時報價；單日漲跌只供資訊,不納入基本面訊號或評分。</b></div>
   </header>
 
   <section class="capex-hero">

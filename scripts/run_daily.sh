@@ -6,8 +6,8 @@ JOB="daily"; source "$(cd "$(dirname "$0")" && pwd)/_common.sh"
 pull_latest
 log "================ 每日更新開始 ================"
 # 1) 只重抓股價 + yfinance(--refresh prices);財報沿用快取
-retry python3 fetch_universe.py --from-universe --refresh prices || { fail "fetch prices 失敗"; exit 1; }
-retry python3 update_ai_quotes.py || { fail "AI 美股行情更新失敗"; exit 1; }
+retry python3 fetch_universe.py --from-universe --refresh prices --skip-us || { fail "fetch prices 失敗"; exit 1; }
+retry python3 update_ai_tw_quotes.py || { fail "AI 台股行情更新失敗"; exit 1; }
 # 2) 重跑篩選(估值旗標會隨新股價/PEG 更新)
 retry python3 screen.py || log "screen 有誤,續跑"
 # 3) 重建儀表板(掃描總表四指標、詳情頁、狀態燈/訊號流水;訊號仍只看訊號級變化)

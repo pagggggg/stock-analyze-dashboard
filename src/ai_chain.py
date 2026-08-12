@@ -28,6 +28,7 @@ from .screener import evaluate, extract_metrics
 from .us_data import build_us_record, compute_valuation
 from .valuation_flag import (pe_history_is_compatible, pe_history_stats,
                              tw_pe_source_coverage)
+from .tw_quotes import expected_tw_quote_tickers, load_tw_quote_snapshot
 
 _TW_TZ = timezone(timedelta(hours=8))
 
@@ -627,10 +628,16 @@ def lag_correlations(capex_yoy: list[dict], layer_yoy: list[dict], cfg: dict) ->
 
 def build_ai_chain_data(chain_cfg: dict, screener_cfg: dict,
                         records: list[dict], screen_results: list,
-                        quotes_path: str | Path | None = None) -> dict:
+                        quotes_path: str | Path | None = None,
+                        tw_quotes_path: str | Path | None = None) -> dict:
     quote_path = Path(quotes_path) if quotes_path else Path(__file__).resolve().parent.parent / "data/ai_chain_quotes.json"
-    quote_snapshot = load_quote_snapshot(quote_path, expected_quote_tickers(chain_cfg))
-    quotes = quote_snapshot["quotes"]
+    tw_quote_path = (Path(tw_quotes_path) if tw_quotes_path else
+                     Path(__file__).resolve().parent.parent / "data/ai_chain_tw_quotes.json")
+    us_snapshot = load_quote_snapshot(quote_path, expected_quote_tickers(chain_cfg))
+    tw_snapshot = load_tw_quote_snapshot(
+        tw_quote_path, expected_tw_quote_tickers(chain_cfg))
+    us_quotes, tw_quotes = us_snapshot["quotes"], tw_snapshot["quotes"]
+    quotes = {**us_quotes, **tw_quotes}
     record_map, unavailable = load_member_records(chain_cfg, screener_cfg, records)
     screen_map = {r.stock_id: r for r in screen_results}
     # 額外標的也走同一個 evaluate()，不重寫任何估值或動能公式。
@@ -666,4 +673,8 @@ def build_ai_chain_data(chain_cfg: dict, screener_cfg: dict,
             "logos": chain_cfg.get("logos") or {},
             "guidance": chain_cfg["cloud_capex"].get("guidance") or {},
             "output_side": build_output_side(chain_cfg),
-            "quotes": quotes, "quote_source": quote_snapshot.get("source") or ""}
+            "quotes": quotes, "us_quotes": us_quotes, "tw_quotes": tw_quotes,
+            "quote_updates": {"us": us_snapshot.get("updated_at") or "",
+                              "tw": tw_snapshot.get("updated_at") or ""},
+            "quote_sources": {"us": us_snapshot.get("source") or "",
+                              "tw": tw_snapshot.get("source") or ""}}

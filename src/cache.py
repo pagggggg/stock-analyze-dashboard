@@ -15,6 +15,7 @@ FinMind 免費版有請求上限,TWSE 也需要禮貌性節流,所以用「檔�
 from __future__ import annotations
 
 import json
+import os
 import time
 from pathlib import Path
 
@@ -36,6 +37,9 @@ def cache_get(key: str, ttl_seconds: float | None = None) -> dict | None:
         obj = json.loads(p.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
         return None
+    # push / 美股早晨只重建頁面時沿用完整快取，避免重抓全體台股。
+    if os.getenv("ALLOW_STALE_CACHE") == "1":
+        ttl_seconds = None
     if ttl_seconds is not None:
         age = time.time() - obj.get("fetched_at", 0)
         if age > ttl_seconds:

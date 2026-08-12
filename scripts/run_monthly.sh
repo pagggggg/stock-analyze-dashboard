@@ -14,6 +14,7 @@ retry python3 build_universe.py --market us || log "build_universe us 有誤,續
 # 2) 抓母體全量財務(--refresh all)
 retry python3 fetch_universe.py --from-universe --refresh all || { fail "fetch_universe 失敗"; exit 1; }
 retry python3 update_ai_quotes.py || { fail "AI 美股行情更新失敗"; exit 1; }
+retry python3 update_ai_tw_quotes.py || { fail "AI 台股行情更新失敗"; exit 1; }
 # 3) 完整篩選 + 重建站
 retry python3 screen.py || { fail "screen 失敗"; exit 1; }
 retry python3 build_site.py --from-universe || { fail "build_site 失敗"; exit 1; }

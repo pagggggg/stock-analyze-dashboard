@@ -103,6 +103,22 @@ class AIQuoteTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, message):
                     validate_quote_snapshot(snapshot, {"TEST"}, now=market_now)
 
+    def test_snapshot_rejects_mixed_close_dates(self):
+        market_now = datetime(2026, 8, 11, 17, 0, tzinfo=MARKET_TZ)
+        snapshot = {
+            "schema_version": 1,
+            "source": SOURCE,
+            "updated_at": market_now.astimezone(timezone.utc).isoformat(),
+            "quotes": {
+                "CURRENT": quote(market_now.date(), market_now.date() - timedelta(days=1)),
+                "STALE": quote(market_now.date() - timedelta(days=1),
+                               market_now.date() - timedelta(days=4)),
+            },
+        }
+
+        with self.assertRaisesRegex(ValueError, "收盤日不一致"):
+            validate_quote_snapshot(snapshot, {"CURRENT", "STALE"}, now=market_now)
+
     def test_invalid_fetch_preserves_valid_old_quote(self):
         close_date, previous_date = recent_dates()
         old_quote = quote(close_date, previous_date)

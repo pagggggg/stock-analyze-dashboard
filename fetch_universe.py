@@ -423,7 +423,9 @@ def run(args) -> None:
     # ---- 額外美股(yfinance)----
     # --from-universe 時以 config/universe.yaml 的 us 清單為唯一真相；
     # 非母體模式才沿用 screener.yaml 的 extra_us 測試清單。
-    if args.from_universe:
+    if args.skip_us:
+        us_items = []
+    elif args.from_universe:
         us_items = _universe_doc().get("us") or []
     else:
         us_items = [{"stock_id": str(x), "name": str(x)}
@@ -468,6 +470,8 @@ def main() -> None:
                    help="改讀 config/universe.yaml(可分析母體)當清單,而非全市場")
     p.add_argument("--refresh", choices=["", "prices", "all"], default="",
                    help="強制重抓:prices=只股價+yfinance(日更新);all=連財報(週更新)")
+    p.add_argument("--skip-us", action="store_true",
+                   help="只更新台股；供台股盤後排程避免抓到美股盤中未完成日線")
     run(p.parse_args())
 
 

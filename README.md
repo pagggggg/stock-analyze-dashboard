@@ -110,14 +110,14 @@ open public/index.html            # 本機預覽
 - 循環標記沿用獨立循環回測的「近10年季度資料三取二」定義；資料不足標未知。
 - 層級關係不代表營收、獲利或股價必然連動。
 - 產出側追蹤 PLTR、Microsoft AI/Copilot、Google Cloud backlog、AWS AI run rate、Agentforce ARR、ServiceNow AI ACV；下限、財季、口徑斷點與未揭露分開標示。
-- 產業鏈、四大雲端與產出側共 16 檔美股顯示最近交易日收盤價及單日漲跌；行情快照存於 `data/ai_chain_quotes.json`，不當作基本面訊號。
+- 產業鏈節點的 17 檔台股與 16 檔美股顯示最近交易日收盤價及單日漲跌；行情快照分別存於 `data/ai_chain_tw_quotes.json`、`data/ai_chain_quotes.json`，不當作基本面訊號。
 - 台積電詳情頁另有個人 Thesis 狀態：四項證偽條件、近八季毛利率、人工競爭標記與部位規則；任一紅燈會提升首頁狀態並寫入訊號流水。
 - AI 設備層的 ASML、AMAT、LRCX、KLAC 可由首頁搜尋或產業鏈頁進入美股詳情；河流圖使用 Yahoo 拆股調整後股價與實際財報公告日 EPS。ASML 的 EUR EPS 依各交易日當時 EUR/USD 換算為 USD，避免幣別混算。
 - 30 個產業節點與產出側公司使用本地 Logo；無可用官方圖示時採名稱縮寫標章，載入失敗仍會退回縮寫。
 
 ### 每日自動更新 + 部署 GitHub Pages
 
-`.github/workflows/daily.yml` 已設定好:每天定時(+ 每次 push / 手動)重跑 `build_site.py`,把更新後的狀態檔 commit 回 repo,並部署 `public/` 到 GitHub Pages。首次啟用步驟見本文件結尾或對話說明。
+`.github/workflows/daily.yml` 已設定好：平日台灣 14:30 更新台股、週二至週六約 06:17 更新美股盤後行情與四檔美股河流圖；每次 push / 手動執行也會重建並部署 `public/`。美股早晨建站使用 `--no-record`，不重複寫入台股共識與訊號。
 
 - **選填**:設 GitHub Secret `FINMIND_TOKEN`(至 finmindtrade.com 免費註冊)可提高抓取額度;本機可放 `.env`(已 gitignore)。
 

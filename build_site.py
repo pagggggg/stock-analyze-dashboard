@@ -218,7 +218,8 @@ def run(args) -> None:
             try:
                 acfg = load_ai_chain_config(ROOT / "config/ai_chain.yaml")
                 adata = build_ai_chain_data(
-                    acfg, scfg, recs, sres, ROOT / "data/ai_chain_quotes.json")
+                    acfg, scfg, recs, sres, ROOT / "data/ai_chain_quotes.json",
+                    ROOT / "data/ai_chain_tw_quotes.json")
                 detail_ids = {a.stock_id for a in analyses if a.ok}
                 ai_chain_html = build_ai_chain_page(
                     adata, generated, detail_ids)
