@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import math
 import os
+import tempfile
 from datetime import datetime
 from pathlib import Path
 
@@ -93,11 +94,35 @@ def _save_universe_yaml(market: str, passed: list) -> dict:
     doc[market] = [{"stock_id": r.stock_id, "name": r.name, "coverage": r.n_analysts}
                    for r in passed]
     UNIVERSE_YAML.parent.mkdir(parents=True, exist_ok=True)
-    UNIVERSE_YAML.write_text(
+    content = (
         "# 可分析母體(build_universe.py 產出)。篩選器讀這份當基礎池。\n"
         "# 覆蓋家數只標記、不守門；守門條件見 config/screener.yaml。\n"
-        + yaml.safe_dump(doc, allow_unicode=True, sort_keys=False), encoding="utf-8")
+        + yaml.safe_dump(doc, allow_unicode=True, sort_keys=False))
+    with tempfile.NamedTemporaryFile(
+            "w", encoding="utf-8", dir=UNIVERSE_YAML.parent,
+            prefix=f".{UNIVERSE_YAML.name}.", delete=False) as f:
+        f.write(content)
+        temp_path = Path(f.name)
+    os.replace(temp_path, UNIVERSE_YAML)
     return doc
+
+
+def _validate_universe_update(market: str, results: list, passed: list,
+                              old_doc: dict) -> None:
+    """資料源不完整或母體異常縮減時，禁止覆寫既有 manifest。"""
+    if not passed:
+        raise RuntimeError(f"{market} 母體結果為空，已停止覆寫")
+    if market == "us" and any(not r.ok for r in results):
+        failed = ",".join(r.stock_id for r in results if not r.ok)
+        raise RuntimeError(f"美股母體快照抓取不完整，保留既有母體不覆寫:{failed}")
+    if market == "twse" and any(not r.ok for r in results):
+        failed = ",".join(r.stock_id for r in results if not r.ok)
+        raise RuntimeError(
+            f"台股母體必要快照抓取不完整，保留既有母體不覆寫:{failed}")
+    old_n = len(old_doc.get(market) or [])
+    if old_n and len(passed) < max(1, math.ceil(old_n * 0.7)):
+        raise RuntimeError(
+            f"{market} 母體異常縮減 {old_n}→{len(passed)}，已停止覆寫與清檔")
 
 
 def _prune_data_files(doc: dict) -> list[str]:
@@ -279,11 +304,16 @@ def run(args) -> None:
 
     meeting_ids: set[str] = set()
     if market == "twse":
-        try:
-            meeting_ids = fetch_meeting_ids_tw(cfg["universe_builder"]["tw"]["meeting_lookback_days"])
-            print(f"MOPS 法說會:近一年有 {len(meeting_ids)} 家上市公司召開")
-        except Exception as e:  # noqa: BLE001
-            print(f"! MOPS 法說會抓取失敗({e}),③ 法說會條件將多為資料不足")
+        if cfg["universe_builder"]["tw"].get("require_meeting", True):
+            try:
+                meeting_ids = fetch_meeting_ids_tw(
+                    cfg["universe_builder"]["tw"]["meeting_lookback_days"])
+                print(f"MOPS 法說會:近一年有 {len(meeting_ids)} 家上市公司召開")
+            except Exception as e:  # noqa: BLE001 - required gate must fail closed
+                raise RuntimeError(
+                    f"MOPS 法說會抓取失敗，保留既有母體不覆寫:{e}") from e
+        else:
+            print("MOPS 法說會:設定未要求，略過")
 
     print(f"{mkt_zh}母體評估:{len(candidates)} 檔(逐檔 yfinance,請稍候)")
 
@@ -294,22 +324,14 @@ def run(args) -> None:
               f"日均 {_money(r.liq_avg, market)}）")
 
     results, stats = build(candidates, market, cfg, meeting_ids, progress=_prog)
-    if market == "us" and any(not r.ok for r in results):
-        failed = ",".join(r.stock_id for r in results if not r.ok)
-        raise RuntimeError(f"美股母體快照抓取不完整，保留既有母體不覆寫:{failed}")
     passed = [r for r in results if r.passed]
-    if market == "us" and UNIVERSE_YAML.exists():
-        old_doc = yaml.safe_load(UNIVERSE_YAML.read_text(encoding="utf-8")) or {}
-        old_n = len(old_doc.get("us") or [])
-        if old_n and len(passed) < max(1, math.ceil(old_n * 0.7)):
-            raise RuntimeError(f"美股母體異常縮減 {old_n}→{len(passed)}，已停止覆寫與清檔")
+    old_doc = (yaml.safe_load(UNIVERSE_YAML.read_text(encoding="utf-8")) or {}
+               if UNIVERSE_YAML.exists() else {})
+    _validate_universe_update(market, results, passed, old_doc)
     doc = _save_universe_yaml(market, passed)
-    # 只有正式全市場台股建構或美股母體建構才清理。台股測試清單不可刪正式母體資料。
-    if args.full or market == "us":
-        removed = _prune_data_files(doc)
-        if removed:
-            print(f"母體清理:移除 {len(removed)} 個已退出母體的舊資料檔:{','.join(removed)}")
     _write_report(market, results, stats, cfg, doc)
+    # 不在 manifest 建構階段清檔。fetch_universe 完整抓取且通過品質檢查後才同步清理，
+    # 避免新母體尚未備妥時先刪除上一版可用快照。
 
     print("─" * 56)
     print(f"{mkt_zh}母體:通過 {stats['passed']} / {stats['total']} 檔;"

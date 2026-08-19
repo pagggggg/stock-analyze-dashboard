@@ -40,6 +40,7 @@ from src.data_layer import (
 )
 from src.river import current_trailing_pe, daily_pe_series, supports_tw_filing_fallback
 from src.screener import extract_metrics, load_config
+from src.metrics import is_financial_company
 from src.us_data import (US_DETAIL_SCHEMA_VERSION, US_RIVER_TICKERS,
                          build_us_record, compute_valuation)
 from src.valuation_flag import (historical_peg, pe_history_is_compatible,
@@ -58,6 +59,7 @@ def _bust_cache(stock_id: str, mode: str) -> None:
     price_keys = [f"finmind_price_{stock_id}", f"finmind_pxv_{stock_id}",
                    f"yf_metrics_{stock_id}.TW", f"yf_cov_{stock_id}.TW",
                    f"yf_metrics_{stock_id}", f"yf_cov_{stock_id}",
+                   f"yf_cov_v2_{stock_id}.TW", f"yf_cov_v2_{stock_id}",
                    f"ai_chain_us_record_{stock_id}", f"ai_chain_us_record_v2_{stock_id}"]
     fin_keys = [f"finmind_fs_long_{stock_id}", f"finmind_bs_{stock_id}", f"finmind_cf_{stock_id}"]
     keys = price_keys if mode == "prices" else price_keys + fin_keys
@@ -282,9 +284,12 @@ def build_and_save(stock: dict, cfg: dict) -> dict:
                     if source_error:
                         raise ValueError(source_error)
                     fallback_ok = supports_tw_filing_fallback(stock["name"])
-                    pe_ser = daily_pe_series(px_long, inc[0], fallback_ok)
+                    financial = is_financial_company(sid, stock.get("industry", ""), "twse")
+                    pe_ser = daily_pe_series(
+                        px_long, inc[0], fallback_ok, financial)
                     current_tpe, current_date = current_trailing_pe(
-                        px_long, inc[0], fallback_ok, rec.get("price_last"), rec.get("price_date"))
+                        px_long, inc[0], fallback_ok, rec.get("price_last"),
+                        rec.get("price_date"), financial)
                     reason = None if fallback_ok else "unsupported_foreign_issuer_filing_deadline"
                     rec["pe_hist"] = pe_history_stats(
                         pe_ser, current_tpe, years=cfg["valuation_flag"]["pe_history_years"],
@@ -343,6 +348,14 @@ def _save(rec: dict) -> None:
         except (json.JSONDecodeError, OSError):
             old = None
         if isinstance(old, dict):
+            if old.get("market") != "us":
+                # Only update_tw_prices may advance/remove official-close metadata.
+                # Preserve it across a manual/full FinMind rebuild so the following
+                # exchange reconciliation can reject an unverified newer cache row.
+                for key in ("price_checked_through", "price_stale_reason",
+                            "price_updated_at"):
+                    if old.get(key) is not None:
+                        rec[key] = old[key]
             new_ph = rec.get("pe_hist") or {}
             old_ph = old.get("pe_hist") or {}
             if not rec.get("pe_refresh_error") and pe_source_regressed(old_ph, new_ph):

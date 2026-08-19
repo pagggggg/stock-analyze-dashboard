@@ -10,11 +10,10 @@ from zoneinfo import ZoneInfo
 
 
 SCHEMA_VERSION = 1
-SOURCE = "FinMind TaiwanStockPrice Close"
+SOURCE = "TWSE/TPEx official daily close"
 _MARKET_TZ = ZoneInfo("Asia/Taipei")
 _DAILY_BAR_READY = (14, 0)
 _MAX_AGE_DAYS = 14
-_MAX_SESSION_GAP_DAYS = 21
 
 
 def expected_tw_quote_tickers(cfg: dict) -> set[str]:
@@ -49,12 +48,21 @@ def _validate_quote(ticker: str, quote: dict, market_now: datetime,
         raise ValueError(f"{ticker}:交易日期順序錯誤")
     if previous_date.weekday() >= 5 or close_date.weekday() >= 5:
         raise ValueError(f"{ticker}:收盤日不可為週末")
-    if (close_date - previous_date).days > _MAX_SESSION_GAP_DAYS:
-        raise ValueError(f"{ticker}:前後收盤日間隔過長")
     if (close_date == today
             and (market_now.hour, market_now.minute) < _DAILY_BAR_READY):
         raise ValueError(f"{ticker}:當日交易尚未完成")
-    if (today - close_date).days > max_age_days:
+    checked_through = close_date
+    stale_reason = quote.get("stale_reason")
+    if stale_reason is not None:
+        if stale_reason != "no_official_trade":
+            raise ValueError(f"{ticker}:未知的行情停滯原因")
+        try:
+            checked_through = date.fromisoformat(str(quote["checked_through"]))
+        except (KeyError, TypeError, ValueError) as e:
+            raise ValueError(f"{ticker}:停牌行情缺少查核日期") from e
+        if checked_through < close_date or checked_through > today:
+            raise ValueError(f"{ticker}:停牌行情查核日期錯誤")
+    if (today - checked_through).days > max_age_days:
         raise ValueError(f"{ticker}:行情已逾 {max_age_days} 天")
     expected_change = close - previous
     expected_pct = expected_change / previous * 100
@@ -91,9 +99,7 @@ def validate_tw_quote_snapshot(snapshot: dict, expected: set[str],
     market_now = (now or datetime.now(timezone.utc)).astimezone(_MARKET_TZ)
     for ticker in sorted(expected):
         _validate_quote(ticker, quotes[ticker], market_now, max_age_days)
-    close_dates = {str(quote["close_date"]) for quote in quotes.values()}
-    if len(close_dates) != 1:
-        raise ValueError(f"AI 台股行情收盤日不一致:{sorted(close_dates)}")
+    # 個股可能停牌或當日無成交；各檔保留自己的最近有效交易日。
 
 
 def load_tw_quote_snapshot(path: str | Path, expected: set[str],
@@ -103,24 +109,8 @@ def load_tw_quote_snapshot(path: str | Path, expected: set[str],
     return snapshot
 
 
-def fetch_tw_quote(ticker: str) -> dict:
-    """從 FinMind 日線取最近兩個有效交易日。"""
-    from .cache import _path
-    from .data_layer import fetch_price_daily_finmind
-
-    # 沿用河流圖的長日線 cache，避免短區間資料覆蓋同一 cache key 後又重抓。
-    market_now = datetime.now(_MARKET_TZ)
-    cache_path = _path(f"finmind_price_{ticker}")
-    if cache_path.exists() and (market_now.hour, market_now.minute) >= _DAILY_BAR_READY:
-        try:
-            cached = json.loads(cache_path.read_text(encoding="utf-8"))
-            fetched = datetime.fromtimestamp(float(cached.get("fetched_at", 0)), _MARKET_TZ)
-            market_close = market_now.replace(hour=14, minute=0, second=0, microsecond=0)
-            if fetched < market_close:
-                cache_path.unlink()
-        except (json.JSONDecodeError, OSError, TypeError, ValueError):
-            cache_path.unlink(missing_ok=True)
-    rows, _ = fetch_price_daily_finmind(ticker, start_date="2015-01-01")
+def quote_from_price_rows(ticker: str, rows: list[dict]) -> dict:
+    """由已取得的日價列建立行情，供全市場價格更新共用同一批資料。"""
     by_date = {}
     for row in rows:
         try:
@@ -145,54 +135,3 @@ def fetch_tw_quote(ticker: str) -> dict:
         "change": change,
         "change_pct": change / previous * 100,
     }
-
-
-def update_tw_quote_snapshot(cfg: dict, path: str | Path) -> tuple[dict, list[str]]:
-    """逐檔更新；失敗保留前次有效值，全部失敗時不覆寫原快照。"""
-    output = Path(path)
-    expected = expected_tw_quote_tickers(cfg)
-    market_now = datetime.now(timezone.utc).astimezone(_MARKET_TZ)
-    old_quotes, warnings = {}, []
-    if output.exists():
-        try:
-            old_snapshot = json.loads(output.read_text(encoding="utf-8"))
-            _validate_snapshot_metadata(old_snapshot)
-            candidates = old_snapshot.get("quotes")
-            if not isinstance(candidates, dict):
-                raise ValueError("AI 台股行情 quotes 格式錯誤")
-            for ticker in sorted(expected & set(candidates)):
-                try:
-                    _validate_quote(ticker, candidates[ticker], market_now, _MAX_AGE_DAYS)
-                except ValueError as e:
-                    warnings.append(f"{ticker}:舊行情無法沿用:{e}")
-                else:
-                    old_quotes[ticker] = candidates[ticker]
-        except (json.JSONDecodeError, OSError, ValueError) as e:
-            warnings.append(f"舊台股行情快照無法沿用:{e}")
-
-    quotes, fetched = {}, 0
-    for ticker in sorted(expected):
-        try:
-            quote = fetch_tw_quote(ticker)
-            _validate_quote(ticker, quote, market_now, _MAX_AGE_DAYS)
-            quotes[ticker] = quote
-            fetched += 1
-        except Exception as e:  # noqa: BLE001 - preserve prior quote per ticker
-            if ticker in old_quotes:
-                quotes[ticker] = old_quotes[ticker]
-                warnings.append(f"{ticker}:更新失敗:{e}；沿用前次行情")
-            else:
-                warnings.append(f"{ticker}:更新失敗:{e}")
-    if expected and fetched == 0:
-        raise RuntimeError("AI 台股行情全部更新失敗；保留原快照")
-
-    snapshot = {
-        "schema_version": SCHEMA_VERSION,
-        "source": SOURCE,
-        "updated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "quotes": quotes,
-    }
-    validate_tw_quote_snapshot(snapshot, expected)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(snapshot, ensure_ascii=False, indent=2), encoding="utf-8")
-    return snapshot, warnings

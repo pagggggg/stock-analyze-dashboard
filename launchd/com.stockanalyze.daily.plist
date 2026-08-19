@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<!-- 每日盤後(14:30)更新母體股價 + 重算指標。載入見 launchd/README。 -->
+<!-- 已停用；正式排程由 GitHub Actions 於台灣 15:10 執行。 -->
 <plist version="1.0">
 <dict>
   <key>Label</key>          <string>com.stockanalyze.daily</string>

@@ -1,23 +1,10 @@
-"""更新 AI 產業鏈 17 檔台股最近收盤行情。"""
+"""舊入口：改由單一同步器更新母體與 AI 台股行情。"""
 
-from pathlib import Path
-
-import yaml
-
-from src.tw_quotes import expected_tw_quote_tickers, update_tw_quote_snapshot
-
-ROOT = Path(__file__).resolve().parent
+from update_tw_prices import main as update_all_tw_prices
 
 
 def main() -> None:
-    config_path = ROOT / "config/ai_chain.yaml"
-    output_path = ROOT / "data/ai_chain_tw_quotes.json"
-    cfg = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
-    snapshot, warnings = update_tw_quote_snapshot(cfg, output_path)
-    print(f"AI 台股行情:{len(snapshot['quotes'])}/{len(expected_tw_quote_tickers(cfg))} 檔")
-    for warning in warnings:
-        print(f"! {warning}")
-    print(f"已寫入:{output_path}")
+    update_all_tw_prices()
 
 
 if __name__ == "__main__":

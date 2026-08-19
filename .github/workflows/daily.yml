@@ -6,7 +6,7 @@
 # 雲端 cron 不受你的電腦開關機影響,這是「每天自動更新」唯一可靠的作法。
 #
 # 三種觸發、做的事不同:
-#   schedule(平日 台灣 14:30) 更新台股 + 重算指標 + 記錄訊號 + 部署
+#   schedule(平日 台灣 15:10) 更新台股 + 重算指標 + 記錄訊號 + 部署
 #   schedule(週二~六 06:17)  美股盤後更新 16 檔行情 + 4 檔河流圖 + 部署
 #   push                         只重建 + 部署；手動可選 none/prices/all
 #
@@ -20,7 +20,7 @@ name: daily-update
 
 on:
   schedule:
-    - cron: "30 6 * * 1-5"    # 台灣 14:30(週一~週五,台股盤後)→ 只更新股價
+    - cron: "10 7 * * 1-5"    # 台灣 15:10(週一~週五,交易所收盤檔發布後)
     - cron: "17 22 * * 1-5"   # 台灣 週二~週六 06:17；美股正常收盤後
   push:
     branches: [main]          # 你 push 程式碼時重建部署(資料 commit 帶 [skip ci] 不會觸發)
@@ -123,12 +123,11 @@ jobs:
             echo "scope=tw" >> $GITHUB_OUTPUT
           fi
 
-      - name: Fetch Taiwan market data
+      - name: Synchronize Taiwan prices
         if: steps.mode.outputs.scope == 'tw'
         env:
           FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
-        run: |
-          python fetch_universe.py --from-universe --refresh prices --skip-us
+        run: python update_tw_prices.py
 
       - name: Fetch all market data
         if: steps.mode.outputs.scope == 'all'
@@ -137,23 +136,30 @@ jobs:
         run: |
           python fetch_universe.py --from-universe --refresh ${{ steps.mode.outputs.refresh }}
 
-      - name: Fetch US detail prices
+      - name: Synchronize persisted US records
         if: steps.mode.outputs.scope == 'us'
         run: |
-          python fetch_universe.py --from-universe --stock-ids ASML,AMAT,LRCX,KLAC --refresh prices
+          ids=$(python - <<'PY'
+          import yaml
+          universe = yaml.safe_load(open("config/universe.yaml", encoding="utf-8")) or {}
+          print(",".join(sorted(str(x["stock_id"]) for x in universe.get("us") or [])))
+          PY
+          )
+          test -n "$ids"
+          python fetch_universe.py --from-universe --stock-ids "$ids" --refresh prices
 
       - name: Update AI US quotes
         if: steps.mode.outputs.scope == 'us' || steps.mode.outputs.scope == 'all'
         run: python update_ai_quotes.py
 
       - name: Update AI Taiwan quotes
-        if: steps.mode.outputs.scope == 'tw' || steps.mode.outputs.scope == 'all'
+        if: steps.mode.outputs.scope == 'all'
         env:
           FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
-        run: python update_ai_tw_quotes.py
+        run: python update_tw_prices.py
 
       - name: Screen
-        if: steps.mode.outputs.scope == 'tw' || steps.mode.outputs.scope == 'all'
+        if: steps.mode.outputs.scope != 'none'
         env:
           FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
         run: python screen.py
@@ -179,30 +185,38 @@ jobs:
         id: sanity
         run: |
           python - <<'PY'
-          import glob, json, os, yaml
+          import glob, json, math, os, yaml
           from src.valuation_flag import pe_history_is_compatible
           doc = yaml.safe_load(open("config/universe.yaml", encoding="utf-8")) or {}
           expected = {str(x["stock_id"]) for k in ("twse", "us") for x in (doc.get(k) or [])}
           actual = set()
           years = (yaml.safe_load(open("config/screener.yaml", encoding="utf-8"))
                    ["valuation_flag"]["pe_history_years"])
-          tot = ok = partial = pe_schema_ok = 0
+          tot = ok = partial = pe_schema_ok = pe_current_ok = pe_waiting = 0
           for p in glob.glob("data/universe/*.json"):
               d = json.load(open(p)); tot += 1; actual.add(str(d.get("stock_id")))
               if d.get("annual"): ok += 1
               if d.get("partial_update"): partial += 1
+              ph = d.get("pe_hist") or {}
               if (not d.get("pe_refresh_error")
-                      and pe_history_is_compatible(d.get("pe_hist") or {}, d.get("market", "twse"),
-                                                   d.get("price_date"), years)): pe_schema_ok += 1
+                      and pe_history_is_compatible(ph, d.get("market", "twse"),
+                                                   d.get("price_date"), years)):
+                  pe_schema_ok += 1
+                  if ph.get("status") == "ok" and ph.get("current_trailing_pe") is not None:
+                      pe_current_ok += 1
+                  if ph.get("reason") == "financial_report_not_yet_available":
+                      pe_waiting += 1
           pct = ok / tot * 100 if tot else 0
           same_set = expected == actual
-          print(f"共 {tot} 檔｜有財報 {ok} ({pct:.1f}%)｜PE schema {pe_schema_ok}/{tot}｜本次沿用舊資料 {partial}｜母體集合一致 {same_set}")
+          print(f"共 {tot} 檔｜有財報 {ok} ({pct:.1f}%)｜PE schema {pe_schema_ok}/{tot}｜可用 current PE {pe_current_ok}/{tot}｜待補最新 EPS {pe_waiting}｜本次沿用舊資料 {partial}｜母體集合一致 {same_set}")
           if not same_set:
               print(f"缺少:{sorted(expected-actual)}｜多餘:{sorted(actual-expected)}")
-          healthy = pct >= 90 and same_set and pe_schema_ok == tot
+          pe_floor = max(1, math.ceil(tot * 0.60))
+          healthy = (pct >= 90 and same_set and pe_schema_ok == tot
+                     and pe_current_ok >= pe_floor)
           with open(os.environ["GITHUB_OUTPUT"], "a") as f:
               f.write(f"healthy={'true' if healthy else 'false'}\n")
-              f.write(f"summary={tot} 檔, 完整 {ok}, 沿用舊值 {partial}, 集合一致 {same_set}\n")
+              f.write(f"summary={tot} 檔, 財報 {ok}, current PE {pe_current_ok}, 待補 EPS {pe_waiting}, 沿用舊值 {partial}, 集合一致 {same_set}\n")
           PY
 
       - name: Warn if data unhealthy
@@ -259,7 +273,7 @@ jobs:
           floor = max(1, expected_tw - 20)
           scfg = yaml.safe_load(open("config/screener.yaml", encoding="utf-8")) or {}
           years = scfg["valuation_flag"]["pe_history_years"]
-          pe_schema_ok = 0
+          pe_schema_ok = pe_current_ok = 0
           actual_ids = set()
           for path in universe_paths:
               d = json.load(open(path, encoding="utf-8"))
@@ -268,12 +282,16 @@ jobs:
                       and pe_history_is_compatible(d.get("pe_hist") or {}, d.get("market", "twse"),
                                                    d.get("price_date"), years)):
                   pe_schema_ok += 1
+                  if ((d.get("pe_hist") or {}).get("status") == "ok"
+                          and (d.get("pe_hist") or {}).get("current_trailing_pe") is not None):
+                      pe_current_ok += 1
           data_ok = (os.environ["REFRESH_MODE"] == "none"
                      or os.environ.get("DATA_HEALTHY") == "true")
           if data_ok and not actual_ids == expected_ids:
               data_ok = False
+          pe_current_floor = max(1, math.ceil(n_universe * 0.60))
           ok = (data_ok and actual_ids == expected_ids and linked >= floor
-                and pe_schema_ok == n_universe)
+                and pe_schema_ok == n_universe and pe_current_ok >= pe_current_floor)
           ux_ok = all(os.path.exists(path) for path in ux_pages)
           price_levels_ok = os.path.exists("public/screener.html")
           if ux_ok:
@@ -289,24 +307,44 @@ jobs:
                        and all("N/M" in page and "金融業" in page for page in lenders))
           if price_levels_ok:
               screener = open("public/screener.html", encoding="utf-8").read()
-              rec_2330 = json.load(open("data/universe/2330.json", encoding="utf-8"))
-              ph = rec_2330.get("pe_hist") or {}
-              close = float(rec_2330["price_last"])
-              current_pe = float(ph["current_trailing_pe"])
-              p50_price = close * float(ph["median"]) / current_pe
-              p90_price = close * float(ph["p90"]) / current_pe
-              p50_move = (p50_price / close - 1) * 100
-              p90_move = (p90_price / close - 1) * 100
+              records = [json.load(open(path, encoding="utf-8")) for path in universe_paths]
+              def close_visible(rec):
+                  price = (("US$" if rec.get("market") == "us" else "NT$")
+                           + f" {float(rec['price_last']):,.2f}")
+                  rows = re.findall(
+                      rf"<tr><td>{re.escape(str(rec['stock_id']))}</td>.*?</tr>",
+                      screener, re.S)
+                  return any(price in row and str(rec.get("price_date")) in row for row in rows)
+              all_closes_visible = all(
+                  close_visible(rec) for rec in records
+                  if rec.get("price_last") is not None and rec.get("price_date"))
+              sample = next((rec for rec in records
+                             if rec.get("market") == "twse"
+                             and all((rec.get("pe_hist") or {}).get(k) is not None
+                                     for k in ("current_trailing_pe", "median", "p90"))), None)
+              if sample:
+                  ph = sample["pe_hist"]
+                  close = float(sample["price_last"])
+                  current_pe = float(ph["current_trailing_pe"])
+                  p50_price = close * float(ph["median"]) / current_pe
+                  p90_price = close * float(ph["p90"]) / current_pe
+                  p50_move = (p50_price / close - 1) * 100
+                  p90_move = (p90_price / close - 1) * 100
+              else:
+                  p50_price = p90_price = p50_move = p90_move = None
               def move_text(value, p90=False):
                   if p90 and current_pe <= float(ph["p90"]):
                       return f"未觸發（距 P90 {abs(value):.1f}%）"
                   return f"{'需上漲' if value > 0 else '需回落'} {abs(value):.1f}%"
-              price_levels_ok = (
+              sample_formula_ok = (sample is not None and
                   all(text in screener for text in (
-                      "收盤價", "歷史中樞價", "P50", "解除高估警戒價", "P90*",
-                      "至 P50", "至 P90", f"NT$ {close:,.2f}", rec_2330["price_date"],
+                      f"NT$ {close:,.2f}", sample["price_date"],
                       f"約 NT$ {p50_price:,.2f}", f"約 NT$ {p90_price:,.2f}",
-                      move_text(p50_move), move_text(p90_move, True),
+                      move_text(p50_move), move_text(p90_move, True))))
+              price_levels_ok = (all_closes_visible and sample_formula_ok
+                  and all(text in screener for text in (
+                      "收盤價", "歷史中樞價", "P50", "解除高估警戒價", "P90*",
+                      "至 P50", "至 P90",
                       P90_RELEASE_NOTE.replace(">", "&gt;"), "未觸發（距 P90"))
                   and all(line.replace(">", "&gt;") in screener
                           for line in PRICE_LEVEL_WARNING.splitlines() if line)
@@ -399,6 +437,7 @@ jobs:
                   "data/ai_chain_tw_quotes.json", tw_quote_expected, max_age_days=14)
               quote_dates = {q["close_date"] for q in quote_snapshot["quotes"].values()}
               tw_quote_dates = {q["close_date"] for q in tw_quote_snapshot["quotes"].values()}
+              tw_close_date = max(tw_quote_dates) if tw_quote_dates else None
               all_quote_expected = quote_expected | tw_quote_expected
               quotes_ok = (len(quote_expected) == 16 and len(tw_quote_expected) == 17
                            and f'data-ai-quote-tickers="{len(all_quote_expected)}"' in ai
@@ -414,13 +453,39 @@ jobs:
                            and all(date_value in ai for date_value in tw_quote_dates)
                            and "台股與美股行情均為最近交易日收盤價,不是即時報價" in ai
                            and "台股行情更新" in ai and "美股行情更新" in ai)
-              for sid in required_us:
+              persisted_quote_ids = quote_expected & expected_ids
+              for sid in persisted_quote_ids:
                   rec = json.load(open(f"data/universe/{sid}.json", encoding="utf-8"))
                   quotes_ok = (quotes_ok
                                and rec.get("price_date")
                                == quote_snapshot["quotes"][sid]["close_date"]
                                and abs(float(rec.get("price_last"))
                                        - float(quote_snapshot["quotes"][sid]["close"])) <= 0.0001)
+              tw_records = []
+              for path in universe_paths:
+                  rec = json.load(open(path, encoding="utf-8"))
+                  if rec.get("market") == "twse": tw_records.append(rec)
+              tw_price_dates = [rec.get("price_date") for rec in tw_records]
+              tw_checked_dates = [rec.get("price_checked_through") or rec.get("price_date")
+                                  for rec in tw_records]
+              quotes_ok = (quotes_ok and tw_close_date is not None
+                           and tw_price_dates and max(tw_price_dates) == tw_close_date
+                           and all((date.fromisoformat(tw_close_date)
+                                    - date.fromisoformat(value)).days <= 14
+                                   for value in tw_checked_dates if value)
+                           and all(rec.get("price_date") and rec.get("price_checked_through")
+                                   for rec in tw_records)
+                           and all(rec.get("price_date") == rec.get("price_checked_through")
+                                   or rec.get("price_stale_reason") == "no_official_trade"
+                                   for rec in tw_records))
+              for sid in tw_quote_expected:
+                  record_path = f"data/universe/{sid}.json"
+                  if os.path.exists(record_path):
+                      rec = json.load(open(record_path, encoding="utf-8"))
+                      quotes_ok = (quotes_ok and rec.get("price_date")
+                                   == tw_quote_snapshot["quotes"][sid]["close_date"]
+                                   and abs(float(rec.get("price_last"))
+                                           - float(tw_quote_snapshot["quotes"][sid]["close"])) <= 0.0001)
               output = build_output_side(cfg)
               counts = output["counts"]
               expected_layers = len(cfg.get("layers") or [])
@@ -469,6 +534,7 @@ jobs:
           print(f"母體 {n_universe}/{len(expected_ids)} 檔;首頁實際連得到 {linked} 檔;最低要求 {floor} 檔")
           print(f"資料健康閘門:{data_ok};母體集合一致:{actual_ids == expected_ids}")
           print(f"PE schema/date 完整:{pe_schema_ok}/{n_universe}")
+          print(f"可用 current PE:{pe_current_ok}/{n_universe}（最低 {pe_current_floor}；其餘誠實顯示 N/M）")
           print(f"AI 產業鏈頁完整:{ai_ok}")
           print(f"2330 Thesis 完整:{thesis_ok}")
           print(f"美股河流圖完整:{us_river_ok}")
@@ -543,7 +609,8 @@ jobs:
           fi
           seed_files=(finmind_fs_long_*.json finmind_bs_*.json finmind_cf_*.json
                       finmind_mrev_*.json finmind_price_*.json finmind_pxv_*.json
-                      yf_metrics_*.json ai_chain_tpex_record_v2_*.json
+                      yf_metrics_*.json twse_market_close_*.json tpex_market_close_*.json
+                      ai_chain_tpex_record_v2_*.json
                       ai_chain_us_record_v2_*.json ai_chain_us_quarterly_v2_*.json)
           n=${#seed_files[@]}
           if [ "$n" -lt 800 ]; then

@@ -52,16 +52,17 @@ class RiverSeries:
     currency: str = "TWD"
 
 
-def _filing_available_date(qend: date) -> date:
+def _filing_available_date(qend: date, financial_company: bool = False) -> date:
     """台灣本國、曆年制發行人的保守可用日 fallback。
 
-    FinMind 財報沒有實際公告日欄位，故採法定申報期限：Q1 5/15、Q2 8/14、
-    Q3 11/14、Q4 次年 3/31。KY/外國發行人由呼叫端排除，不套用此假設。
+    FinMind 財報沒有實際公告日欄位，故採法定申報期限：Q1 5/15、一般業 Q2
+    8/14、金融保險業 Q2 8/31、Q3 11/14、Q4 次年 3/31。KY/外國發行人
+    由呼叫端排除，不套用此假設。
     """
     if qend.month == 3:
         deadline = date(qend.year, 5, 15)
     elif qend.month == 6:
-        deadline = date(qend.year, 8, 14)
+        deadline = date(qend.year, 8, 31) if financial_company else date(qend.year, 8, 14)
     elif qend.month == 9:
         deadline = date(qend.year, 11, 14)
     elif qend.month == 12:
@@ -97,8 +98,8 @@ def _next_quarter_end(qend: date) -> date:
     raise ValueError(f"非標準季末:{qend.isoformat()}")
 
 
-def _ttm_series(income_pivot: dict,
-                filing_fallback_supported: bool = True) -> list[tuple[date, date, float]]:
+def _ttm_series(income_pivot: dict, filing_fallback_supported: bool = True,
+                financial_company: bool = False) -> list[tuple[date, date, float]]:
     """由每季 EPS 累計 TTM；生效日使用法定申報期限 fallback。"""
     if not filing_fallback_supported:
         return []
@@ -120,8 +121,9 @@ def _ttm_series(income_pivot: dict,
             continue                                # 缺季不能把跨五季的四筆資料冒充 TTM
         ttm = sum(e for _, e in window)
         qend = date.fromisoformat(items[i][0])
-        out.append((_filing_available_date(qend),
-                    _filing_available_date(_next_quarter_end(qend)), round(ttm, 4)))
+        out.append((_filing_available_date(qend, financial_company),
+                    _filing_available_date(_next_quarter_end(qend), financial_company),
+                    round(ttm, 4)))
     return out
 
 
@@ -180,17 +182,19 @@ def build_pe_river(
     current_date: str | None = None,
     years: int = 5,
     filing_fallback_supported: bool = True,
+    financial_company: bool = False,
 ) -> RiverSeries:
     """組出河流圖月頻序列。缺 EPS 或股價會 raise,由上層決定略過此圖。"""
     if not filing_fallback_supported:
         raise ValueError("河流圖不對 KY/外國發行人套用本國法定申報期限")
-    ttm = _ttm_series(income_pivot)
+    ttm = _ttm_series(income_pivot, financial_company=financial_company)
     if not ttm or not price_rows:
         raise ValueError("河流圖資料不足(缺 EPS 或股價序列)")
 
     # 河道維持月頻，歷史分位仍只在月末重算；黑色股價線另保留日頻。
     monthly = _monthly_price(price_rows, exclude_open_month=True)
-    daily_pe = daily_pe_series(price_rows, income_pivot)
+    daily_pe = daily_pe_series(
+        price_rows, income_pivot, financial_company=financial_company)
     first_pe_date = date.fromisoformat(daily_pe[0][0]) if daily_pe else None
     pts: list[tuple[str, float, float, float, float, float]] = []
     for dstr, close in monthly:
@@ -229,7 +233,7 @@ def build_pe_river(
     pe_lo = _percentile(current_vals, .10)
     pe_mid = _percentile(current_vals, .50)
     pe_hi = _percentile(current_vals, .90)
-    source = (f"FinMind 收盤÷近4季 basic EPS；截至 {cd} rolling {years}年 "
+    source = (f"TWSE/TPEx 近期官方收盤 + FinMind 歷史收盤÷近4季 basic EPS；截至 {cd} rolling {years}年 "
               "P10/P50/P90；本國發行人法定申報期限 fallback；latest-restated")
 
     # 第二遍:用原始歷史分位畫河道三線
@@ -343,9 +347,10 @@ def build_pe_river_us(hist, earnings_dates=None, years: int = 5,
 # 這和單股報告用 TWSE 官方本益比(min/mean/max)略有口徑差異,但可跨股一致比較。
 # ======================================================================
 def daily_pe_series(price_rows: list[dict], income_pivot: dict,
-                    filing_fallback_supported: bool = True) -> list[tuple[str, float]]:
+                    filing_fallback_supported: bool = True,
+                    financial_company: bool = False) -> list[tuple[str, float]]:
     """回傳 [(date, pe)] 每日本益比(收盤 ÷ TTM EPS)；非正值才排除。"""
-    ttm = _ttm_series(income_pivot, filing_fallback_supported)
+    ttm = _ttm_series(income_pivot, filing_fallback_supported, financial_company)
     if not ttm:
         return []
     out: list[tuple[str, float]] = []
@@ -361,15 +366,17 @@ def daily_pe_series(price_rows: list[dict], income_pivot: dict,
 def current_trailing_pe(price_rows: list[dict], income_pivot: dict,
                         filing_fallback_supported: bool = True,
                         current_price: float | None = None,
-                        current_date: str | None = None) -> tuple[float | None, str | None]:
+                        current_date: str | None = None,
+                        financial_company: bool = False) -> tuple[float | None, str | None]:
     """最新價格對當時可得 TTM EPS；不沿用歷史最後一個有效 PE。"""
     if not price_rows:
         return None, None
     latest = max(price_rows, key=lambda x: x["date"])
     dstr = current_date or latest["date"]
     close = current_price if current_price is not None else latest.get("close")
-    eps = _ttm_asof(_ttm_series(income_pivot, filing_fallback_supported),
-                    date.fromisoformat(dstr))
+    eps = _ttm_asof(_ttm_series(
+        income_pivot, filing_fallback_supported, financial_company),
+                     date.fromisoformat(dstr))
     if eps is None or eps <= 0 or close is None or close <= 0:
         return None, dstr
     return close / eps, dstr
@@ -395,11 +402,13 @@ def _shift_years(d: date, years: int) -> date:
 def compute_pe_band_finmind(
     price_rows: list[dict], income_pivot: dict, years: int = 10, fetched_date: str = "",
     filing_fallback_supported: bool = True,
+    financial_company: bool = False,
 ) -> PEBand:
     """由 FinMind 股價 + EPS 自算近 N 年本益比區間(P10/P50/P90)。缺料會 raise。"""
     if not filing_fallback_supported:
         raise ValueError("不對 KY/外國發行人套用本國法定申報期限")
-    series = daily_pe_series(price_rows, income_pivot)
+    series = daily_pe_series(
+        price_rows, income_pivot, filing_fallback_supported, financial_company)
     if not series:
         raise ValueError("無法由 FinMind 計算本益比(缺 EPS 或股價序列)")
     if not price_rows:
@@ -413,7 +422,7 @@ def compute_pe_band_finmind(
         raise ValueError(f"有效 PE 歷史不足完整 rolling {years} 年")
     vals = sorted(pe for _, pe in recent)
     lo, mid, hi = _percentile(vals, 0.10), _percentile(vals, 0.50), _percentile(vals, 0.90)
-    src = (f"FinMind 每日本益比(收盤÷近4季 basic EPS,截至{as_of.isoformat()}"
+    src = (f"TWSE/TPEx 近期官方收盤 + FinMind 歷史收盤與 basic EPS(截至{as_of.isoformat()}"
            f" rolling {years}年 P10/P50/P90；本國發行人法定期限 fallback；latest-restated)")
     if fetched_date:
         src += f" 抓取 {fetched_date}"

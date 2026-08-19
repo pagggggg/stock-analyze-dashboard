@@ -10,8 +10,8 @@
   - 近8季實際 EPS(+ 若有法說指引則加三情境試算)   → data_layer / eps_calc
   - 分析師共識 EPS(當季/今年/明年 + 成長率)        → yfinance
 
-資料一律走 FinMind(財報/資產負債/現金流/日股價)+ yfinance(共識/FCF/EV 元件),
-不依賴 TWSE 逐月抓,所以能一致套用到任意台股代號。每個外部呼叫都各自 try/except,
+資料走 TWSE/TPEx(多股站近期官方收盤)、FinMind(財報/歷史股價)+ yfinance
+(共識/FCF/EV 元件)。每個外部呼叫都各自 try/except,
 局部失敗只記進 errors,不讓整檔掛掉(掃描總表該格顯示 N/A)。
 
 ★ 免責:本工具只用「公開市場數據」做估值研究,不含任何持倉或個人交易紀錄。
@@ -144,10 +144,12 @@ def analyze_stock(
 ) -> StockAnalysis:
     """把一檔股票的所有分析湊齊。任何一步失敗都會記進 errors,不中斷。"""
     a = StockAnalysis(stock_id=stock_id, name=name or stock_id)
+    record = {}
     try:
         import json
-        rec = json.loads((ROOT / f"data/universe/{stock_id}.json").read_text(encoding="utf-8"))
-        a.industry = str(rec.get("industry") or "")
+        record = json.loads(
+            (ROOT / f"data/universe/{stock_id}.json").read_text(encoding="utf-8"))
+        a.industry = str(record.get("industry") or "")
     except (OSError, ValueError):
         pass
     a.is_financial = is_financial_company(stock_id, a.industry, a.market)
@@ -171,12 +173,25 @@ def analyze_stock(
     try:
         price_rows, pdate = fetch_price_daily_finmind(stock_id)
         if price_rows:
-            last = max(price_rows, key=lambda x: x["date"])
-            a.price = last["close"]
-            a.price_date = last["date"]
+            official_date = record.get("price_date")
+            official_price = record.get("price_last")
+            if official_date and official_price is not None:
+                # Committed records are the latest-price contract. Cache seed may lag
+                # during a code-only push, so use it only for history through that date.
+                by_date = {str(row["date"]): dict(row) for row in price_rows
+                           if str(row.get("date") or "") <= str(official_date)}
+                by_date[str(official_date)] = {
+                    "date": str(official_date), "close": float(official_price)}
+                price_rows = [by_date[d] for d in sorted(by_date)]
+                a.price, a.price_date = float(official_price), str(official_date)
+            else:
+                last = max(price_rows, key=lambda x: x["date"])
+                a.price = last["close"]
+                a.price_date = last["date"]
         a.pe_band = compute_pe_band_finmind(price_rows, income_piv, years=pe_years,
-                                             fetched_date=pdate,
-                                             filing_fallback_supported=filing_fallback_supported)
+                                              fetched_date=pdate,
+                                              filing_fallback_supported=filing_fallback_supported,
+                                              financial_company=a.is_financial)
     except Exception as e:  # noqa: BLE001
         a.errors.append(f"股價/本益比計算失敗:{e}")
 
@@ -234,7 +249,8 @@ def analyze_stock(
             a.river = build_pe_river(price_rows, income_piv,
                                      current_price=a.price, current_date=a.price_date,
                                      years=pe_years,
-                                     filing_fallback_supported=filing_fallback_supported)
+                                     filing_fallback_supported=filing_fallback_supported,
+                                     financial_company=a.is_financial)
         except Exception as e:  # noqa: BLE001
             a.errors.append(f"河流圖失敗:{e}")
 

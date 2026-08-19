@@ -23,7 +23,7 @@ import os
 import zlib
 import statistics
 import time
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 from .cache import cache_get, cache_set
@@ -365,21 +365,35 @@ def _twse_fetch_month(stock_id: str, year: int, month: int) -> list[float]:
     r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=20)
     r.raise_for_status()
     j = r.json()
-    if j.get("stat") != "OK":
-        return []
+    stat = str(j.get("stat") or "")
+    if stat != "OK":
+        if "沒有符合條件" in stat or "查無資料" in stat:
+            return []
+        raise RuntimeError(f"TWSE BWIBBU 回傳異常:{stat or '缺 stat'}")
     fields = j.get("fields") or []
-    data = j.get("data") or []
+    if "data" not in j or not isinstance(j.get("data"), list):
+        raise RuntimeError("TWSE BWIBBU 缺少 data 陣列")
+    data = j["data"]
     if "本益比" not in fields:
-        return []
+        raise RuntimeError("TWSE BWIBBU 缺少本益比欄位")
     idx = fields.index("本益比")  # ← 用欄名定位,關鍵!
     out: list[float] = []
+    malformed = 0
     for row in data:
+        if not isinstance(row, (list, tuple)) or len(row) <= idx:
+            malformed += 1
+            continue
+        raw = str(row[idx]).replace(",", "").strip()
+        if raw in ("", "-", "--"):
+            continue
         try:
-            v = float(str(row[idx]).replace(",", "").strip())
+            v = float(raw)
             if v > 0:  # 濾掉 '-'、0、負值(EPS 為負或無資料)
                 out.append(v)
-        except (ValueError, IndexError):
-            continue
+        except ValueError:
+            malformed += 1
+    if malformed:
+        raise RuntimeError(f"TWSE BWIBBU 有 {malformed} 筆格式錯誤")
     return out
 
 
@@ -391,7 +405,7 @@ def fetch_pe_history_twse(
     """抓近 N 年每日本益比,聚合成年度高/低/平均,回傳 (PEBand, 年度明細)。
 
     - 逐月抓(每個 request 回傳一整月的每日值),過去月份永久快取、當月短快取。
-    - 任一月份失敗只跳過該月,不讓整體壞掉;全部抓不到才 raise。
+    - 明確查無資料可快取；傳輸／格式失敗不快取，且拒絕用殘缺月份計算。
     """
     today = date.today()
     cur_year, cur_month = today.year, today.month
@@ -407,14 +421,21 @@ def fetch_pe_history_twse(
             key = f"twse_bwibbu_{stock_id}_{y}{m:02d}"
             # 過去月份不會變 → 永久快取(ttl=None);當月 → 6 小時
             cached = cache_get(key, ttl_seconds=(6 * 3600 if is_current else None))
-            if cached is not None:
+            cached_is_trusted = (cached is not None
+                                 and (cached.get("data") != []
+                                      or cached.get("status") in ("ok", "no_data"))
+                                 and (is_current or cached.get("complete") is True))
+            if cached_is_trusted:
                 month_vals = cached["data"]
             else:
                 try:
                     month_vals = _twse_fetch_month(stock_id, y, m)
-                except Exception:  # noqa: BLE001 — 單月失敗就跳過,不影響其他月
-                    month_vals = []
-                cache_set(key, month_vals)
+                except Exception as e:  # noqa: BLE001 - fail fast; never cache failure as no-data
+                    raise RuntimeError(
+                        f"TWSE 本益比月份抓取失敗:{y}-{m:02d}:{e}") from e
+                cache_set(key, month_vals,
+                          status="ok" if month_vals else "no_data",
+                          complete=not is_current)
                 time.sleep(polite_sleep)  # 對 TWSE 禮貌一點,避免被擋
             if month_vals:
                 per_year.setdefault(y, []).extend(month_vals)
@@ -437,6 +458,12 @@ def fetch_pe_history_twse(
 
     if not all_daily:
         raise RuntimeError("TWSE 未取得任何本益比資料(可能被限流或離線)")
+    elapsed_years = max(1 / 12, (today - date(start_year, 1, 1)).days / 365.2425)
+    expected_sessions = min(years * 252, int(elapsed_years * 252))
+    min_samples = max(60, int(expected_sessions * 0.60))
+    if len(all_daily) < min_samples:
+        raise RuntimeError(
+            f"TWSE 本益比有效交易日不足:{len(all_daily)}<{min_samples}")
 
     pe_low = min(all_daily)
     pe_high = max(all_daily)
@@ -589,7 +616,7 @@ def fetch_yfinance_metrics(ticker: str = "2330.TW") -> tuple[dict, str]:
       - 季度現金流:近4季 營運現金流 / 資本支出 / 自由現金流(FCF)
 
     設計:
-      - 12 小時快取(共識/財報不會分秒變),省流量也快。
+      - 12 小時快取；台股盤後排程每日輪詢全母體，供共識修正訊號使用。
       - 每個區塊各自 try/except,部分失敗不影響其他(缺的欄位給 None)。
       - 完全抓不到才 raise,由 main.py 決定退回 config 手填。
     """
@@ -939,7 +966,7 @@ def fetch_coverage_snapshot(ticker: str = "2330.TW", liq_days: int = 60) -> tupl
       liq_avg(近 liq_days 日均成交額), liq_days。快取 24 小時。
     完全抓不到會 raise,由上層記為資料不足。
     """
-    key = f"yf_cov_{ticker}"
+    key = f"yf_cov_v2_{ticker}"
     cached = cache_get(key, ttl_seconds=24 * 3600)
     if cached is not None:
         return cached["data"], cached["fetched_date"]
@@ -952,6 +979,10 @@ def fetch_coverage_snapshot(ticker: str = "2330.TW", liq_days: int = 60) -> tupl
         info = t.info or {}
         out["market_cap"] = info.get("marketCap")
         out["currency"] = info.get("currency")
+        first_trade = info.get("firstTradeDateEpochUtc")
+        if first_trade is not None:
+            out["listed_date"] = datetime.fromtimestamp(
+                float(first_trade), timezone.utc).date().isoformat()
     except Exception:  # noqa: BLE001
         pass
     try:
@@ -971,6 +1002,8 @@ def fetch_coverage_snapshot(ticker: str = "2330.TW", liq_days: int = 60) -> tupl
             v = (h["Close"] * h["Volume"]).dropna().tail(liq_days)
             out["liq_avg"] = float(v.mean()) if len(v) else None
             out["liq_days"] = int(len(v))
+            out["price_start"] = h.index.min().date().isoformat()
+            out["price_end"] = h.index.max().date().isoformat()
     except Exception:  # noqa: BLE001
         pass
 

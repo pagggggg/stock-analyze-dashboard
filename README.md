@@ -69,7 +69,7 @@ python main.py --data-mode auto --html
 | ⑤ **FCF 品質檢查**(新功能) | 資本支出年增率(領先2年)vs 營收年增率雙線;**存貨天數 / 應收天數 / OCF年增率**三燈號(綠/黃/紅,門檻寫在 `src/fcf_quality.py` 註解) |
 
 - **響應式**:卡片 grid 自動換行、圖表寬度 100% 自適應,手機瀏覽器可讀。
-- **資料需求**:河流圖與 FCF 品質需 `--data-mode auto`(FinMind 長區間財報 + 日股價);手動模式仍會產出其餘圖,缺的以「資料不足」佔位。
+- **資料需求**:河流圖與 FCF 品質需 `--data-mode auto`(FinMind 長區間財報/歷史股價；多股站最新台股收盤由 TWSE/TPEx 同步);手動模式仍會產出其餘圖,缺的以「資料不足」佔位。
 - 安裝提醒:此功能需 `plotly`(見 requirements.txt);若遇 PEP 668 錯誤,加 `--break-system-packages`。
 
 ## 多股個人選股分析儀表板(可遠端存取)
@@ -97,7 +97,7 @@ open public/index.html            # 本機預覽
 
 - **掃描總表**:所有股票四指標一覽、**點欄位可排序**、依判讀著色(便宜綠/合理灰/偏貴橘/貴紅)、**盈餘修正動能欄**(僅標記近期共識被上/下修,**依原則等回測驗證後才加權重,目前不評分**)。
 - **跨日比對**:每次執行把每檔快照寫進 `data/scan_state.json`、事件寫進 `data/signal_log.csv`、共識歷史寫進 `data/consensus/<代號>.csv`;**隔次執行才能比出「上修/下修/燈變色」**。這些狀態檔要進版控。
-- **資料來源**:FinMind(財報/資產負債/現金流/日股價)+ yfinance(共識EPS/FCF/EV 元件),不依賴 TWSE 逐月抓,故可套用任意台股代號。
+- **資料來源**:FinMind(財報/資產負債/現金流/歷史股價)+ TWSE/TPEx(多股站最新收盤/成交額)+ yfinance(共識EPS/FCF/EV 元件)。
 
 ### AI 產業鏈全景圖
 
@@ -117,7 +117,10 @@ open public/index.html            # 本機預覽
 
 ### 每日自動更新 + 部署 GitHub Pages
 
-`.github/workflows/daily.yml` 已設定好：平日台灣 14:30 更新台股、週二至週六約 06:17 更新美股盤後行情與四檔美股河流圖；每次 push / 手動執行也會重建並部署 `public/`。美股早晨建站使用 `--no-record`，不重複寫入台股共識與訊號。
+`.github/workflows/daily.yml` 已設定好：平日台灣 15:10（交易所收盤檔發布後）更新台股、週二至週六約 06:17 更新美股盤後行情與四檔美股河流圖；每次 push / 手動執行也會重建並部署 `public/`。美股早晨建站使用 `--no-record`，不重複寫入台股共識與訊號。
+
+台股盤後由 `update_tw_prices.py` 使用同一批 TWSE／TPEx 全市場日資料，同步更新全母體的收盤日期、trailing PE/P50/P90 推算與 AI 產業鏈行情；品質閘門禁止兩頁價格不同步。
+FinMind 只以每日小批次輪替補最新損益表、資產負債、現金流與月營收，避免撞到逐檔 API 額度；yfinance 共識仍每日輪詢全母體，維持修正訊號時效。
 
 - **選填**:設 GitHub Secret `FINMIND_TOKEN`(至 finmindtrade.com 免費註冊)可提高抓取額度;本機可放 `.env`(已 gitignore)。
 
@@ -219,7 +222,7 @@ Stock_analyze/
 ├── src/
 │   ├── models.py                 # 資料模型(SourcedValue/SourcedRange 帶來源)
 │   ├── guidance.py               # 讀取 assumptions.yaml
-│   ├── data_layer.py             # 資料層(手動 CSV + FinMind 財報/資產負債/現金流/日股價 + TWSE 本益比 + 驗證)
+│   ├── data_layer.py             # 資料層(手動 CSV + FinMind 財報/歷史股價 + TWSE/TPEx 收盤 + TWSE 本益比 + 驗證)
 │   ├── cache.py                  # API 檔案快取(避免重複抓、省 FinMind 額度)
 │   ├── eps_calc.py               # EPS 三情境試算引擎 + 模型回測
 │   ├── valuation.py              # 年化 + 本益比價格矩陣

@@ -27,6 +27,7 @@ from .data_layer import fetch_coverage_snapshot
 from .screener import Cond   # 沿用 pass/fail/na 的小資料類
 
 _MOPS_URL = "https://mopsov.twse.com.tw/mops/web/ajax_t100sb02_1"
+_MOPS_MIN_RAW_ROWS = 50
 
 
 # ======================================================================
@@ -53,6 +54,10 @@ def _fetch_mops_year(roc_year: int) -> dict[str, str]:
         headers={"User-Agent": "Mozilla/5.0"}, timeout=40,
     )
     r.raise_for_status()
+    if "查無資料" in r.text or "沒有符合條件" in r.text:
+        return {}
+    if "公司代號" not in r.text or "法人說明會" not in r.text:
+        raise RuntimeError(f"MOPS {roc_year} 年頁面格式不符預期")
     for row in re.findall(r"<tr[^>]*>(.*?)</tr>", r.text, re.S):
         cells = [re.sub(r"<[^>]+>", "", c).strip()
                  for c in re.findall(r"<td[^>]*>(.*?)</td>", row, re.S)]
@@ -66,21 +71,30 @@ def _fetch_mops_year(roc_year: int) -> dict[str, str]:
 def fetch_meeting_ids_tw(lookback_days: int = 365) -> set[str]:
     """回傳『近 lookback_days 天有開法說會』的上市股票代號集合。MOPS 資料快取 24h。"""
     key = "mops_meetings_sii"
+    cur_roc = date.today().year - 1911
+    years = (cur_roc, cur_roc - 1)
     cached = cache_get(key, ttl_seconds=24 * 3600)
-    if cached is not None:
+    if (cached is not None and tuple(cached.get("years") or ()) == years
+            and (cached.get("year_counts") or {}).get(str(cur_roc - 1), 0)
+            >= _MOPS_MIN_RAW_ROWS):
         meetings = cached["data"]
     else:
-        cur_roc = date.today().year - 1911
         meetings: dict[str, str] = {}
-        for yr in (cur_roc, cur_roc - 1):          # 當年 + 去年 → 涵蓋滾動一年
-            try:
-                for sid, iso in _fetch_mops_year(yr).items():
-                    if sid not in meetings or iso > meetings[sid]:
-                        meetings[sid] = iso
-            except Exception:  # noqa: BLE001 — 單年失敗不影響
-                continue
-        if meetings:
-            cache_set(key, meetings)
+        year_counts = {}
+        for yr in years:                           # 當年 + 去年 → 涵蓋滾動一年
+            rows = _fetch_mops_year(yr)
+            year_counts[str(yr)] = len(rows)
+            for sid, iso in rows.items():
+                if sid not in meetings or iso > meetings[sid]:
+                    meetings[sid] = iso
+        if year_counts[str(cur_roc - 1)] < _MOPS_MIN_RAW_ROWS:
+            raise RuntimeError(
+                f"MOPS 去年法說會原始筆數異常:{year_counts[str(cur_roc - 1)]}")
+        if date.today().month > 1 and year_counts[str(cur_roc)] == 0:
+            raise RuntimeError("MOPS 當年法說會資料異常為空")
+        cache_set(key, meetings, years=list(years), year_counts=year_counts)
+    if not isinstance(meetings, dict) or len(meetings) < _MOPS_MIN_RAW_ROWS:
+        raise RuntimeError("MOPS 法說會快取不完整")
     cut = (date.today() - timedelta(days=lookback_days)).isoformat()
     return {sid for sid, iso in meetings.items() if iso >= cut}
 
@@ -153,6 +167,17 @@ def evaluate(stock: dict, snap: dict | None, meeting_ids: set[str], cfg: dict) -
     n = snap.get("n_y0") or snap.get("n_q0") or snap.get("n_q1")
     liq = snap.get("liq_avg")
     r.market_cap, r.n_analysts, r.liq_avg = mc, n, liq
+    required_liq_days = int(cfg["universe_builder"].get("liquidity_days", 60))
+    liq_days = int(snap.get("liq_days") or 0)
+    new_listing = False
+    try:
+        listed = snap.get("listed_date") or snap["price_start"]
+        listed_age = (date.today() - date.fromisoformat(str(listed))).days
+        new_listing = 0 <= listed_age <= required_liq_days * 2
+    except (KeyError, TypeError, ValueError):
+        pass
+    if mc is None or liq is None or (liq_days < required_liq_days and not new_listing):
+        r.ok = False
 
     # ① 市值
     if mc is None:
@@ -182,6 +207,10 @@ def evaluate(stock: dict, snap: dict | None, meeting_ids: set[str], cfg: dict) -
     # ④ 流動性
     if liq is None:
         r.conds["u4"] = Cond("na", "無成交資料")
+    elif liq_days < required_liq_days:
+        suffix = "（新上市，待累積）" if new_listing else ""
+        r.conds["u4"] = Cond(
+            "na", f"成交資料僅 {liq_days}/{required_liq_days} 日{suffix}")
     else:
         r.conds["u4"] = Cond("pass" if liq > conf["min_avg_value"] else "fail",
                              f"日均額 {_money(liq, market)}(門檻 {_money(conf['min_avg_value'], market)})")

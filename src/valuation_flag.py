@@ -20,10 +20,11 @@ from .river import _percentile
 
 
 PE_SCHEMA_VERSION = 6
+TW_PE_SCHEMA_VERSION = 7
 US_PE_SCHEMA_VERSION = 8
 TW_PE_BASIS = "trailing_pe_rolling"
 US_PE_BASIS = "adjusted_trailing_pe_rolling"
-TW_PE_METHOD = "finmind_basic_eps_statutory_fallback_latest_restated"
+TW_PE_METHOD = "finmind_basic_eps_statutory_fallback_financial_deadline_latest_restated"
 US_PE_METHOD = "yahoo_reported_adjusted_eps_first_market_close_fx_normalized"
 
 
@@ -43,7 +44,7 @@ def _pe_schema(market: str, currency_conversion: bool = False,
             "price_basis": "Yahoo Close (split-adjusted, not dividend-adjusted)",
         }
     return {
-        "schema_version": PE_SCHEMA_VERSION,
+        "schema_version": TW_PE_SCHEMA_VERSION,
         "basis": TW_PE_BASIS,
         "method": TW_PE_METHOD,
         "eps_basis": "FinMind basic EPS (latest-restated values)",
@@ -99,6 +100,12 @@ def pe_history_is_compatible(ph: dict, market: str, price_date: str | None,
         if eps_end < as_of - timedelta(days=370):
             return False
     if ph["status"] == "ok":
+        try:
+            current = float(ph["current_trailing_pe"])
+        except (KeyError, TypeError, ValueError):
+            return False
+        if not math.isfinite(current) or current <= 0:
+            return False
         if market == "us":
             if (not isinstance(coverage.get("eps_max_gap_days"), int)
                     or coverage["eps_max_gap_days"] > 150
@@ -112,7 +119,9 @@ def pe_history_is_compatible(ph: dict, market: str, price_date: str | None,
         return (isinstance(ph.get("n"), int) and ph["n"] >= required
                 and all(ph.get(k) is not None for k in ("p10", "median", "p90")))
     return (reason in {"no_positive_pe_history", "financials_not_fetched",
-                       "unsupported_foreign_issuer_filing_deadline"}
+                       "unsupported_foreign_issuer_filing_deadline",
+                       "financial_report_not_yet_available",
+                       "current_trailing_pe_unavailable"}
             or reason == f"history_span_under_{years}_years"
             or reason.startswith("valid_days_under_"))
 
@@ -321,6 +330,9 @@ def pe_history_stats(pe_series: list, current_trailing_pe: float | None,
     if not points:
         return {**base, "status": "insufficient", "reason": "no_positive_pe_history",
                 "n": 0}
+    if current_raw is None:
+        return {**base, "status": "insufficient",
+                "reason": "current_trailing_pe_unavailable", "n": len(vals)}
     required = max(min_days, int(years * 252 * 0.60))
     if min(d for d, _ in points) > cut + timedelta(days=7):
         return {**base, "status": "insufficient",

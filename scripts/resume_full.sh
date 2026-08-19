@@ -49,7 +49,7 @@ done < /tmp/batches.txt
 have=$(ls data/universe/*.json 2>/dev/null | wc -l | tr -d ' ')
 log "抓取階段結束,本地資料 $have 檔 → 進入篩選/建站"
 retry python3 update_ai_quotes.py || { fail "AI 美股行情更新失敗"; exit 1; }
-retry python3 update_ai_tw_quotes.py || { fail "AI 台股行情更新失敗"; exit 1; }
+retry python3 update_tw_prices.py || { fail "台股價格同步失敗"; exit 1; }
 
 retry python3 screen.py || { fail "screen 失敗"; exit 1; }
 retry python3 build_site.py --from-universe || { fail "build_site 失敗"; exit 1; }

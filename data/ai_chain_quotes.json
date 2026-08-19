@@ -1,151 +1,151 @@
 {
   "schema_version": 1,
   "source": "Yahoo Finance Close (split-adjusted, not dividend-adjusted)",
-  "updated_at": "2026-08-12T02:17:26+00:00",
+  "updated_at": "2026-08-19T03:08:43+00:00",
   "quotes": {
     "AMAT": {
       "currency": "USD",
-      "close": 525.6099853515625,
-      "close_date": "2026-08-11",
-      "previous_close": 522.1199951171875,
-      "previous_date": "2026-08-10",
-      "change": 3.489990234375,
-      "change_pct": 0.6684268495773059
+      "close": 514.3300170898438,
+      "close_date": "2026-08-18",
+      "previous_close": 535.3099975585938,
+      "previous_date": "2026-08-17",
+      "change": -20.97998046875,
+      "change_pct": -3.9192207439491327
     },
     "AMD": {
       "currency": "USD",
-      "close": 474.32000732421875,
-      "close_date": "2026-08-11",
-      "previous_close": 469.55999755859375,
-      "previous_date": "2026-08-10",
-      "change": 4.760009765625,
-      "change_pct": 1.0137170522135512
+      "close": 484.3900146484375,
+      "close_date": "2026-08-18",
+      "previous_close": 506.0,
+      "previous_date": "2026-08-17",
+      "change": -21.6099853515625,
+      "change_pct": -4.27074809319417
     },
     "AMZN": {
       "currency": "USD",
-      "close": 272.2699890136719,
-      "close_date": "2026-08-11",
-      "previous_close": 278.0899963378906,
-      "previous_date": "2026-08-10",
-      "change": -5.82000732421875,
-      "change_pct": -2.092850300572195
+      "close": 259.45001220703125,
+      "close_date": "2026-08-18",
+      "previous_close": 261.30999755859375,
+      "previous_date": "2026-08-17",
+      "change": -1.8599853515625,
+      "change_pct": -0.7117926481727642
     },
     "ASML": {
       "currency": "USD",
-      "close": 1799.3800048828125,
-      "close_date": "2026-08-11",
-      "previous_close": 1733.47998046875,
-      "previous_date": "2026-08-10",
-      "change": 65.9000244140625,
-      "change_pct": 3.8016028541755924
+      "close": 1802.97998046875,
+      "close_date": "2026-08-18",
+      "previous_close": 1883.1199951171875,
+      "previous_date": "2026-08-17",
+      "change": -80.1400146484375,
+      "change_pct": -4.255704089820911
     },
     "AVGO": {
       "currency": "USD",
-      "close": 416.0799865722656,
-      "close_date": "2026-08-11",
-      "previous_close": 422.3999938964844,
-      "previous_date": "2026-08-10",
-      "change": -6.32000732421875,
-      "change_pct": -1.496213876785132
+      "close": 380.0,
+      "close_date": "2026-08-18",
+      "previous_close": 392.42999267578125,
+      "previous_date": "2026-08-17",
+      "change": -12.42999267578125,
+      "change_pct": -3.1674420680813484
     },
     "CRM": {
       "currency": "USD",
-      "close": 197.47000122070312,
-      "close_date": "2026-08-11",
-      "previous_close": 197.50999450683594,
-      "previous_date": "2026-08-10",
-      "change": -0.0399932861328125,
-      "change_pct": -0.020248740441045535
+      "close": 196.13999938964844,
+      "close_date": "2026-08-18",
+      "previous_close": 190.97000122070312,
+      "previous_date": "2026-08-17",
+      "change": 5.1699981689453125,
+      "change_pct": 2.7072305262072915
     },
     "GOOGL": {
       "currency": "USD",
-      "close": 343.79998779296875,
-      "close_date": "2026-08-11",
-      "previous_close": 357.5199890136719,
-      "previous_date": "2026-08-10",
-      "change": -13.720001220703125,
-      "change_pct": -3.837548009148786
+      "close": 344.20001220703125,
+      "close_date": "2026-08-18",
+      "previous_close": 344.0,
+      "previous_date": "2026-08-17",
+      "change": 0.20001220703125,
+      "change_pct": 0.05814308343931686
     },
     "KLAC": {
       "currency": "USD",
-      "close": 200.47000122070312,
-      "close_date": "2026-08-11",
-      "previous_close": 192.74000549316406,
-      "previous_date": "2026-08-10",
-      "change": 7.7299957275390625,
-      "change_pct": 4.010581875703653
+      "close": 194.7899932861328,
+      "close_date": "2026-08-18",
+      "previous_close": 205.75999450683594,
+      "previous_date": "2026-08-17",
+      "change": -10.970001220703125,
+      "change_pct": -5.3314548569054665
     },
     "LRCX": {
       "currency": "USD",
-      "close": 311.4100036621094,
-      "close_date": "2026-08-11",
-      "previous_close": 306.3999938964844,
-      "previous_date": "2026-08-10",
-      "change": 5.010009765625,
-      "change_pct": 1.6351207132587624
+      "close": 327.9200134277344,
+      "close_date": "2026-08-18",
+      "previous_close": 343.8399963378906,
+      "previous_date": "2026-08-17",
+      "change": -15.91998291015625,
+      "change_pct": -4.630055572276044
     },
     "META": {
       "currency": "USD",
-      "close": 599.1199951171875,
-      "close_date": "2026-08-11",
-      "previous_close": 594.9199829101562,
-      "previous_date": "2026-08-10",
-      "change": 4.20001220703125,
-      "change_pct": 0.7059793464133022
+      "close": 543.6699829101562,
+      "close_date": "2026-08-18",
+      "previous_close": 568.969970703125,
+      "previous_date": "2026-08-17",
+      "change": -25.29998779296875,
+      "change_pct": -4.446629716099671
     },
     "MRVL": {
       "currency": "USD",
-      "close": 212.30999755859375,
-      "close_date": "2026-08-11",
-      "previous_close": 208.55999755859375,
-      "previous_date": "2026-08-10",
-      "change": 3.75,
-      "change_pct": 1.7980437494714003
+      "close": 216.0,
+      "close_date": "2026-08-18",
+      "previous_close": 234.3300018310547,
+      "previous_date": "2026-08-17",
+      "change": -18.330001831054688,
+      "change_pct": -7.82230260223789
     },
     "MSFT": {
       "currency": "USD",
-      "close": 503.80999755859375,
-      "close_date": "2026-08-11",
-      "previous_close": 506.05999755859375,
-      "previous_date": "2026-08-10",
-      "change": -2.25,
-      "change_pct": -0.44461131305670637
+      "close": 481.6300048828125,
+      "close_date": "2026-08-18",
+      "previous_close": 480.3500061035156,
+      "previous_date": "2026-08-17",
+      "change": 1.279998779296875,
+      "change_pct": 0.2664721063875733
     },
     "MU": {
       "currency": "USD",
-      "close": 868.52001953125,
-      "close_date": "2026-08-11",
-      "previous_close": 861.0,
-      "previous_date": "2026-08-10",
-      "change": 7.52001953125,
-      "change_pct": 0.8734052881823461
+      "close": 940.760009765625,
+      "close_date": "2026-08-18",
+      "previous_close": 1011.75,
+      "previous_date": "2026-08-17",
+      "change": -70.989990234375,
+      "change_pct": -7.016554507968865
     },
     "NOW": {
       "currency": "USD",
-      "close": 127.54000091552734,
-      "close_date": "2026-08-11",
-      "previous_close": 127.44000244140625,
-      "previous_date": "2026-08-10",
-      "change": 0.09999847412109375,
-      "change_pct": 0.07846709997284454
+      "close": 119.48999786376953,
+      "close_date": "2026-08-18",
+      "previous_close": 117.69999694824219,
+      "previous_date": "2026-08-17",
+      "change": 1.7900009155273438,
+      "change_pct": 1.5208164502455213
     },
     "NVDA": {
       "currency": "USD",
-      "close": 217.5,
-      "close_date": "2026-08-11",
-      "previous_close": 217.5500030517578,
-      "previous_date": "2026-08-10",
-      "change": -0.0500030517578125,
-      "change_pct": -0.02298462470989539
+      "close": 219.74000549316406,
+      "close_date": "2026-08-18",
+      "previous_close": 225.00999450683594,
+      "previous_date": "2026-08-17",
+      "change": -5.269989013671875,
+      "change_pct": -2.3421133026656595
     },
     "PLTR": {
       "currency": "USD",
-      "close": 174.94000244140625,
-      "close_date": "2026-08-11",
-      "previous_close": 175.22999572753906,
-      "previous_date": "2026-08-10",
-      "change": -0.2899932861328125,
-      "change_pct": -0.16549294824141647
+      "close": 171.5399932861328,
+      "close_date": "2026-08-18",
+      "previous_close": 172.5500030517578,
+      "previous_date": "2026-08-17",
+      "change": -1.010009765625,
+      "change_pct": -0.5853432325480974
     }
   }
 }

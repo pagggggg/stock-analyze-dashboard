@@ -239,7 +239,9 @@ def run(args) -> None:
 
     stats = write_site(analyses, status, display_events, first_run, log_rows, out,
                        screener_html=screener_html, screener_info=screener_info,
-                       ai_chain_html=ai_chain_html)
+                       ai_chain_html=ai_chain_html,
+                       momentum_min_pct=float(
+                           scfg.get("layer2", {}).get("momentum", {}).get("min_pct", 0.5)))
 
     # 所有頁面成功產出後才寫共識與狀態，避免品質不足或建站例外先消耗訊號。
     if not args.no_record:

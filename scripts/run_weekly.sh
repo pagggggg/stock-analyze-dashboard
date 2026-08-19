@@ -7,7 +7,7 @@ log "================ 每週更新開始 ================"
 # 1) 連財報一起重抓(--refresh all):財報/資產負債/現金流 + 股價 + yfinance
 retry python3 fetch_universe.py --from-universe --refresh all || { fail "fetch all 失敗"; exit 1; }
 retry python3 update_ai_quotes.py || { fail "AI 美股行情更新失敗"; exit 1; }
-retry python3 update_ai_tw_quotes.py || { fail "AI 台股行情更新失敗"; exit 1; }
+retry python3 update_tw_prices.py || { fail "台股價格同步失敗"; exit 1; }
 # 2) 完整兩層篩選
 retry python3 screen.py || { fail "screen 失敗"; exit 1; }
 # 3) 重建儀表板

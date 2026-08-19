@@ -1,17 +1,13 @@
 import json
-import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
 import yaml
 
 from src.ai_chain_html import _node_row, _quote_html, _quote_update_meta
-from src.tw_quotes import (SOURCE, expected_tw_quote_tickers,
-                           update_tw_quote_snapshot,
-                           validate_tw_quote_snapshot)
+from src.tw_quotes import SOURCE, expected_tw_quote_tickers, validate_tw_quote_snapshot
 
 
 MARKET_TZ = ZoneInfo("Asia/Taipei")
@@ -66,7 +62,7 @@ class TaiwanQuoteTests(unittest.TestCase):
         validate_tw_quote_snapshot(
             snapshot, {"TEST"}, now=datetime(2026, 2, 20, 15, 0, tzinfo=MARKET_TZ))
 
-    def test_validator_rejects_mixed_close_dates(self):
+    def test_validator_accepts_mixed_close_dates_for_suspended_stock(self):
         snapshot = {
             "schema_version": 1,
             "source": SOURCE,
@@ -77,55 +73,25 @@ class TaiwanQuoteTests(unittest.TestCase):
             },
         }
 
-        with self.assertRaisesRegex(ValueError, "收盤日不一致"):
-            validate_tw_quote_snapshot(
-                snapshot, {"CURRENT", "STALE"},
-                now=datetime(2026, 8, 11, 15, 0, tzinfo=MARKET_TZ))
+        validate_tw_quote_snapshot(
+            snapshot, {"CURRENT", "STALE"},
+            now=datetime(2026, 8, 11, 15, 0, tzinfo=MARKET_TZ))
 
-    def test_invalid_fetch_preserves_valid_old_quote(self):
-        close_date, previous_date = recent_dates()
-        old_quote = quote(close_date, previous_date)
+    def test_validator_accepts_long_suspension_when_recently_checked(self):
         snapshot = {
             "schema_version": 1,
             "source": SOURCE,
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-            "quotes": {"OTHER": old_quote, "TEST": old_quote},
+            "updated_at": "2026-08-18T07:00:00+00:00",
+            "quotes": {"TEST": {
+                **quote("2026-07-01", "2026-05-01"),
+                "checked_through": "2026-08-18",
+                "stale_reason": "no_official_trade",
+            }},
         }
-        cfg = {"layers": [{"members": [
-            {"id": "OTHER", "market": "twse"},
-            {"id": "TEST", "market": "tpex"},
-        ]}]}
 
-        with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "tw-quotes.json"
-            path.write_text(json.dumps(snapshot), encoding="utf-8")
-            invalid = {**old_quote, "currency": "USD"}
-            with patch("src.tw_quotes.fetch_tw_quote",
-                       side_effect=lambda ticker: invalid if ticker == "TEST" else old_quote):
-                updated, warnings = update_tw_quote_snapshot(cfg, path)
-
-        self.assertEqual(updated["quotes"]["TEST"], old_quote)
-        self.assertEqual(len(warnings), 1)
-        self.assertIn("沿用前次行情", warnings[0])
-
-    def test_total_fetch_failure_leaves_snapshot_untouched(self):
-        close_date, previous_date = recent_dates()
-        snapshot = {
-            "schema_version": 1,
-            "source": SOURCE,
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-            "quotes": {"TEST": quote(close_date, previous_date)},
-        }
-        cfg = {"layers": [{"members": [{"id": "TEST", "market": "twse"}]}]}
-
-        with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "tw-quotes.json"
-            original = json.dumps(snapshot)
-            path.write_text(original, encoding="utf-8")
-            with patch("src.tw_quotes.fetch_tw_quote", side_effect=RuntimeError("offline")):
-                with self.assertRaisesRegex(RuntimeError, "全部更新失敗"):
-                    update_tw_quote_snapshot(cfg, path)
-            self.assertEqual(path.read_text(encoding="utf-8"), original)
+        validate_tw_quote_snapshot(
+            snapshot, {"TEST"},
+            now=datetime(2026, 8, 18, 15, 0, tzinfo=MARKET_TZ))
 
     def test_taiwan_quote_card_and_tpex_link(self):
         close_date, previous_date = recent_dates()

@@ -23,6 +23,7 @@ from .data_layer import (fetch_balance_pivot, fetch_cashflow_pivot,
                          fetch_daily_price_value, fetch_income_pivot,
                          fetch_month_revenue, fetch_price_daily_finmind,
                          month_revenue_momentum)
+from .metrics import is_financial_company
 from .river import current_trailing_pe, daily_pe_series, supports_tw_filing_fallback
 from .screener import evaluate, extract_metrics
 from .us_data import build_us_record, compute_valuation
@@ -335,7 +336,7 @@ def fetch_us_quarterly(ticker: str, ttl_seconds: int = 12 * 3600) -> dict:
     return data
 
 
-def _build_tpex_record(member: dict, cfg: dict) -> dict:
+def _build_tpex_record(member: dict, cfg: dict, quote: dict | None = None) -> dict:
     sid = member["id"]
     key = f"ai_chain_tpex_record_v2_{sid}"
     cached = cache_get(key, ttl_seconds=12 * 3600)
@@ -343,8 +344,8 @@ def _build_tpex_record(member: dict, cfg: dict) -> dict:
         rec = cached["data"]
         ph = rec.get("pe_hist") or {}
         years = cfg["valuation_flag"]["pe_history_years"]
-        if (ph.get("status") == "ok" and ph.get("current_trailing_pe") is not None
-                and pe_history_is_compatible(ph, "tpex", rec.get("price_date"), years)):
+        if (pe_history_is_compatible(ph, "tpex", rec.get("price_date"), years)
+                and _record_matches_quote(rec, quote)):
             return rec
 
     rec = {"stock_id": sid, "name": member.get("name", sid), "market": "tpex",
@@ -361,12 +362,21 @@ def _build_tpex_record(member: dict, cfg: dict) -> dict:
         rec["price_date"] = recent[-1]["date"]
         rec["liq_avg_value"] = sum(x["value"] for x in recent) / len(recent)
         rec["liq_days"] = len(recent)
+    if quote:
+        rec["price_last"] = float(quote["close"])
+        rec["price_date"] = str(quote["close_date"])
     rec["valuation"] = compute_valuation(f"{sid}.TWO", rec.get("price_last"))
     prices, _ = fetch_price_daily_finmind(sid, start_date=start)
+    if quote:
+        by_date = {str(row["date"]): dict(row) for row in prices}
+        by_date[str(quote["close_date"])] = {
+            "date": str(quote["close_date"]), "close": float(quote["close"])}
+        prices = [by_date[d] for d in sorted(by_date)]
     fallback_ok = supports_tw_filing_fallback(member.get("name", sid))
-    pe_ser = daily_pe_series(prices, inc, fallback_ok)
+    financial = is_financial_company(sid, member.get("industry", ""), "tpex")
+    pe_ser = daily_pe_series(prices, inc, fallback_ok, financial)
     current_pe, current_date = current_trailing_pe(
-        prices, inc, fallback_ok, rec.get("price_last"), rec.get("price_date"))
+        prices, inc, fallback_ok, rec.get("price_last"), rec.get("price_date"), financial)
     rec["pe_hist"] = pe_history_stats(
         pe_ser, current_pe,
         years=cfg["valuation_flag"]["pe_history_years"],
@@ -376,12 +386,11 @@ def _build_tpex_record(member: dict, cfg: dict) -> dict:
         source_coverage=tw_pe_source_coverage(
             prices, inc, cfg["valuation_flag"]["pe_history_years"]),
     )
-    if (rec["pe_hist"].get("status") != "ok"
-            or rec["pe_hist"].get("current_trailing_pe") is None
-            or not pe_history_is_compatible(
+    if (not pe_history_is_compatible(
                 rec["pe_hist"], "tpex", rec.get("price_date"),
-                cfg["valuation_flag"]["pe_history_years"])):
-        raise ValueError("缺股價或可同口徑比較的 trailing PE")
+                cfg["valuation_flag"]["pe_history_years"])
+            or not _record_matches_quote(rec, quote)):
+        raise ValueError("缺股價或行情日期不同步")
     mrows, _ = fetch_month_revenue(sid, start_date=cfg["fetch"].get("month_revenue_start", "2021-01-01"))
     rec["mrev"] = month_revenue_momentum(mrows, recent=cfg["fetch"].get("month_revenue_recent", 3))
     cache_set(key, rec)
@@ -389,7 +398,9 @@ def _build_tpex_record(member: dict, cfg: dict) -> dict:
 
 
 def load_member_records(chain_cfg: dict, screener_cfg: dict,
-                        local_records: list[dict]) -> tuple[dict[str, dict], dict[str, str]]:
+                        local_records: list[dict],
+                        us_quotes: dict[str, dict] | None = None,
+                        tw_quotes: dict[str, dict] | None = None) -> tuple[dict[str, dict], dict[str, str]]:
     """回傳可用 records 與不可用原因。非母體標的只存在 memory/cache，不寫 universe。"""
     records = {str(r["stock_id"]): r for r in local_records}
     unavailable: dict[str, str] = {}
@@ -405,22 +416,28 @@ def load_member_records(chain_cfg: dict, screener_cfg: dict,
                 years = screener_cfg["valuation_flag"]["pe_history_years"]
                 cached_ph = (rec or {}).get("pe_hist") or {}
                 cached_ok = (rec is not None and cached_ph.get("status") == "ok"
-                             and cached_ph.get("current_trailing_pe") is not None
-                             and pe_history_is_compatible(
+                              and cached_ph.get("current_trailing_pe") is not None
+                              and _record_matches_quote(rec, (us_quotes or {}).get(sid))
+                              and pe_history_is_compatible(
                                  cached_ph, "us", rec.get("price_date"), years))
                 if not cached_ok:
                     rec = build_us_record(sid, member.get("name", sid), screener_cfg)
             elif member["market"] == "tpex":
-                rec = _build_tpex_record(member, screener_cfg)
+                rec = _build_tpex_record(
+                    member, screener_cfg, (tw_quotes or {}).get(sid))
             else:
                 unavailable[sid] = "不在目前母體，未另行抓取上市股"
                 continue
             ph = rec.get("pe_hist") or {}
             years = screener_cfg["valuation_flag"]["pe_history_years"]
-            if (not rec.get("price_last") or ph.get("status") != "ok"
+            if (not rec.get("price_last")
                     or not pe_history_is_compatible(
                         ph, rec.get("market", "twse"), rec.get("price_date"), years)
-                    or ph.get("current_trailing_pe") is None):
+                    or (member["market"] == "us" and (
+                        ph.get("status") != "ok" or ph.get("current_trailing_pe") is None
+                        or not _record_matches_quote(rec, (us_quotes or {}).get(sid))))
+                    or (member["market"] == "tpex"
+                        and not _record_matches_quote(rec, (tw_quotes or {}).get(sid)))):
                 raise ValueError("缺股價或可同口徑比較的 trailing PE")
             if member["market"] == "us" and not cached_ok:
                 cache_set(key, rec)                # 只快取通過 current schema 的完整快照
@@ -428,6 +445,15 @@ def load_member_records(chain_cfg: dict, screener_cfg: dict,
         except Exception as e:  # noqa: BLE001 - 單一額外標的失敗不影響整頁
             unavailable[sid] = f"資料抓取失敗:{type(e).__name__}: {e}"
     return records, unavailable
+
+
+def _record_matches_quote(record: dict, quote: dict | None) -> bool:
+    if not quote or record.get("price_date") != quote.get("close_date"):
+        return False
+    try:
+        return abs(float(record["price_last"]) - float(quote["close"])) <= 0.0001
+    except (KeyError, TypeError, ValueError):
+        return False
 
 
 def _quarter_rows_from_pivot(piv: dict) -> list[dict]:
@@ -638,7 +664,18 @@ def build_ai_chain_data(chain_cfg: dict, screener_cfg: dict,
         tw_quote_path, expected_tw_quote_tickers(chain_cfg))
     us_quotes, tw_quotes = us_snapshot["quotes"], tw_snapshot["quotes"]
     quotes = {**us_quotes, **tw_quotes}
-    record_map, unavailable = load_member_records(chain_cfg, screener_cfg, records)
+    local_map = {str(record["stock_id"]): record for record in records}
+    local_us_ids = {
+        sid for sid, record in local_map.items()
+        if record.get("market") == "us" and sid in us_quotes
+    }
+    mismatched = sorted(
+        sid for sid in local_us_ids
+        if not _record_matches_quote(local_map[sid], us_quotes.get(sid)))
+    if mismatched:
+        raise ValueError(f"AI 美股母體紀錄與行情不同步:{mismatched}")
+    record_map, unavailable = load_member_records(
+        chain_cfg, screener_cfg, records, us_quotes, tw_quotes)
     screen_map = {r.stock_id: r for r in screen_results}
     # 額外標的也走同一個 evaluate()，不重寫任何估值或動能公式。
     for sid, rec in record_map.items():

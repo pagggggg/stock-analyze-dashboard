@@ -78,6 +78,8 @@ def _quote_html(ticker: str, quote: dict | None, compact: bool = False,
     compact_class = " compact" if compact else ""
     close = float(quote["close"])
     close_date = escape(str(quote["close_date"]))
+    stale = quote.get("stale_reason") == "no_official_trade"
+    date_text = f"{close_date}・暫無新成交" if stale else close_date
     currency = "NT$" if quote.get("currency") == "TWD" else "US$"
     if detail_url:
         link = f'href="{escape(detail_url)}" title="{escape(ticker)} 個股詳情"'
@@ -89,10 +91,10 @@ def _quote_html(ticker: str, quote: dict | None, compact: bool = False,
     body = (f'<a class="quote-box {cls}{compact_class}" data-quote-ticker="{escape(ticker)}" '
             f'data-quote-market="{escape(market)}" data-quote-date="{close_date}" {link} '
             f'aria-label="{escape(ticker)} 最近收盤 {currency} {close:,.2f}，單日漲跌 {pct_text}，'
-            f'{close_date}，前往 {destination}">'
+            f'{date_text}，前往 {destination}">'
             f'<b>{currency} {close:,.2f}</b>'
             f'<span>{arrow} {pct_text}</span>'
-            f'<small>{close_date}</small></a>')
+            f'<small>{date_text}</small></a>')
     return body
 
 
@@ -416,6 +418,6 @@ def build_ai_chain_page(data: dict, generated: str, detail_ids: set[str]) -> str
 
   <div class="chain-flow">{''.join(layer_html)}</div>
   {_output_side(data, logos, quotes)}
-  <footer>資料:FinMind、yfinance；估值與動能沿用主篩選器。缺資料標示不納入,不以替代值硬湊。公司名稱與商標權利屬各公司所有,Logo 僅作識別用途。</footer>
+  <footer>資料:TWSE/TPEx 台股收盤、FinMind 台股財報/歷史資料、yfinance 美股與共識；估值與動能沿用主篩選器。缺資料標示不納入,不以替代值硬湊。公司名稱與商標權利屬各公司所有,Logo 僅作識別用途。</footer>
 </div>"""
     return _page("AI 產業鏈全景圖", body, plotly=True)

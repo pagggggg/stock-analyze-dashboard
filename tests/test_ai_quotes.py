@@ -11,6 +11,7 @@ import pandas as pd
 
 from src.ai_quotes import (SOURCE, fetch_quote, load_quote_snapshot,
                            update_quote_snapshot, validate_quote_snapshot)
+from src.ai_chain import _record_matches_quote
 from src.ai_chain_html import _node_row, _quote_html
 
 
@@ -55,6 +56,16 @@ class FakeTicker:
 
 
 class AIQuoteTests(unittest.TestCase):
+    def test_record_must_match_quote_date_and_close(self):
+        quote = {"close_date": "2026-08-17", "close": 100.0}
+
+        self.assertTrue(_record_matches_quote(
+            {"price_date": "2026-08-17", "price_last": 100.0}, quote))
+        self.assertFalse(_record_matches_quote(
+            {"price_date": "2026-08-14", "price_last": 100.0}, quote))
+        self.assertFalse(_record_matches_quote(
+            {"price_date": "2026-08-17", "price_last": 99.0}, quote))
+
     def test_fetch_ignores_in_progress_daily_bar(self):
         index = pd.DatetimeIndex([
             "2026-08-06 00:00", "2026-08-07 00:00", "2026-08-10 00:00"

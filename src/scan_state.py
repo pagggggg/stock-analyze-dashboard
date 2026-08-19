@@ -92,7 +92,8 @@ def load_signal_log(path: str | Path, limit: int = 40) -> list[dict]:
 
 
 # ---- 修正動能(給掃描總表的欄位)------------------------------------
-def revision_momentum(consensus_history: list[dict]) -> tuple[str, float | None]:
+def revision_momentum(consensus_history: list[dict],
+                      min_pct: float = _MOMENTUM_MIN_PCT) -> tuple[str, float | None]:
     """由每檔共識歷史,算『今年FY共識EPS』相對上一個不同值的變化。
 
     回傳 (方向, 變化%):方向 = up / down / flat / na。
@@ -113,13 +114,13 @@ def revision_momentum(consensus_history: list[dict]) -> tuple[str, float | None]
     # 往回找第一個和現值「明顯不同」的舊值
     prev = None
     for v in reversed(vals[:-1]):
-        if cur == 0:
-            break
-        if abs(cur - v) / abs(cur) * 100.0 >= _MOMENTUM_MIN_PCT:
+        if v == 0:
+            continue
+        if abs(cur - v) / abs(v) * 100.0 >= min_pct:
             prev = v
             break
     if prev is None:
-        return "flat", 0.0
+        return ("na", None) if vals[:-1] and all(v == 0 for v in vals[:-1]) else ("flat", 0.0)
     pct = (cur - prev) / abs(prev) * 100.0
     return ("up" if pct > 0 else "down"), round(pct, 1)
 

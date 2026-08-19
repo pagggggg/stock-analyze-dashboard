@@ -390,7 +390,7 @@ def build_index_html(
 <div class="wrap">
   <header>
     <h1>個人選股分析儀表板</h1>
-    <div class="meta">更新時間 {generated}　|　觀察清單 {len(rows)} 檔　|　資料:FinMind + yfinance(公開市場數據)</div>
+    <div class="meta">更新時間 {generated}　|　觀察清單 {len(rows)} 檔　|　資料:TWSE/TPEx + FinMind + yfinance(公開市場數據)</div>
     <details class="site-disclosure"><summary>資料時間與使用說明</summary>
       <div class="notice"><b>本站不是即時報價。</b>收盤價截至 <b>{_esc(price_days)}</b>；所有估值都以該收盤價計算。</div>
       <div class="warn">全站僅為公開數據研究，無持倉或交易紀錄，不構成投資建議。</div>
@@ -433,7 +433,7 @@ def build_index_html(
   </section>
 
   <footer>
-    <div>資料來源:財報/資產負債/現金流/日股價 FinMind、分析師共識EPS/FCF/EV 元件 yfinance。</div>
+    <div>資料來源:台股最新收盤/成交額 TWSE/TPEx、台股財報與歷史資料 FinMind、分析師共識EPS/FCF/EV 元件與美股 yfinance。</div>
     <div>本工具僅為個人估值研究,數字可能過時或有誤,請務必回原始出處核對,不構成投資建議。</div>
   </footer>
 </div>
@@ -632,7 +632,7 @@ def _thesis_html(a) -> str:
   </section>'''
 
 
-def build_detail_html(a, generated: str) -> str:
+def build_detail_html(a, generated: str, momentum_min_pct: float = 0.5) -> str:
     # 頂部小摘要
     parts = []
     is_us = getattr(a, "market", "twse") == "us"
@@ -696,7 +696,7 @@ def build_detail_html(a, generated: str) -> str:
         '</div>'
     )
     momentum_dir, momentum_pct = __import__("src.scan_state", fromlist=["revision_momentum"]).revision_momentum(
-        a.consensus_history or [])
+        a.consensus_history or [], min_pct=momentum_min_pct)
     momentum_txt = {"up": "共識上修", "down": "共識下修", "flat": "共識持平", "na": "共識資料不足"}.get(
         momentum_dir, "共識資料不足")
     if momentum_pct is not None and momentum_dir in ("up", "down"):
@@ -706,7 +706,12 @@ def build_detail_html(a, generated: str) -> str:
         lights = [s.light for s in a.fcf.signals]
         quality_txt = ("FCF 有紅燈" if "red" in lights else "FCF 有黃燈" if "yellow" in lights
                        else "FCF 品質正常" if lights else quality_txt)
-    confidence = "主要估值資料完整" if not a.errors and a.dashboard and a.river else "部分資料不足"
+    if not a.errors and a.dashboard and a.river and a.trailing_pe is not None:
+        confidence = "主要估值資料完整"
+    elif a.price is not None and a.price_date:
+        confidence = "收盤價完整，部分估值資料不足"
+    else:
+        confidence = "部分資料不足"
     quick = f'''
   <section class="quick-summary">
     <div class="quick-title"><h2>快速摘要</h2><small>先看結論，再往下看方法</small></div>
@@ -726,7 +731,8 @@ def build_detail_html(a, generated: str) -> str:
     else:
         river_note = (
             '河道 =「當時可得的近四季實際EPS」×<b>截至當月為止</b> rolling 5年 trailing PE P10/P50/P90。'
-            'FinMind 無實際公告日欄位,本國發行人財報生效日採法定申報期限 fallback；'
+            'FinMind 無實際公告日欄位,本國發行人財報生效日採法定申報期限 fallback'
+            '（一般業 Q2 8/14、金融保險業 Q2 8/31）；'
             'KY/外國發行人不套用此假設；黑線為每日收盤。')
 
     err = ""
@@ -782,7 +788,7 @@ def build_detail_html(a, generated: str) -> str:
 
 {consensus_section}
 {_whatif_block(a)}
-  <footer><div><a class="back" href="index.html">← 回總表</a>　|　資料:{'Yahoo Finance' if is_us else 'FinMind + yfinance'},不構成投資建議。</div></footer>
+  <footer><div><a class="back" href="index.html">← 回總表</a>　|　資料:{'Yahoo Finance' if is_us else 'TWSE/TPEx + FinMind + yfinance'},不構成投資建議。</div></footer>
 </div>
 """
     return _page(f"{a.name} {a.stock_id} 詳情", body, plotly=True)
@@ -794,7 +800,8 @@ def build_detail_html(a, generated: str) -> str:
 def write_site(analyses: list, status: str, events: list, first_run: bool,
                log_rows: list[dict], out_dir: str | Path,
                screener_html: str | None = None, screener_info: dict | None = None,
-               ai_chain_html: str | None = None) -> dict:
+               ai_chain_html: str | None = None,
+               momentum_min_pct: float = 0.5) -> dict:
     """把 index / 各詳情頁 / plotly.min.js / style.css 全部寫到 out_dir。回傳統計。"""
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -813,7 +820,8 @@ def write_site(analyses: list, status: str, events: list, first_run: bool,
     from .scan_state import revision_momentum
     rows = []
     for a in analyses:
-        mdir, mpct = revision_momentum(a.consensus_history)
+        mdir, mpct = revision_momentum(
+            a.consensus_history, min_pct=momentum_min_pct)
         rows.append((a, mdir, mpct))
 
     # 共用資源:plotly.min.js(本地一份)、style.css
@@ -841,7 +849,7 @@ def write_site(analyses: list, status: str, events: list, first_run: bool,
     for a in analyses:
         if a.ok:
             (out / f"stock_{a.stock_id}.html").write_text(
-                build_detail_html(a, generated), encoding="utf-8")
+                build_detail_html(a, generated, momentum_min_pct), encoding="utf-8")
             n_detail += 1
 
     return {"stocks": len(analyses), "details": n_detail, "out": str(out),

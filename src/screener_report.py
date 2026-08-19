@@ -165,6 +165,14 @@ def build_screener_report(results, funnel, cfg, generated: str, universe_desc: s
     w("")
     w("> ★ PE 百分位一律用**個股自己的歷史**,不用全市場平均(不同產業 PE 水準天生不同)。")
     w("> ★ 台股採 FinMind basic EPS；美股採 Yahoo Reported EPS(調整後口徑)。兩者只做各股自身歷史比較,不跨口徑混算。")
+    pending = sum(r.metrics.get("pe_reason") == "financial_report_not_yet_available"
+                  for r in results)
+    non_positive = sum(r.metrics.get("pe_reason") == "current_trailing_pe_unavailable"
+                       for r in results)
+    if pending:
+        w(f"> ★ **{pending} 檔**最新季度 EPS 尚未進入快取；收盤價仍更新，trailing PE/P50/P90 誠實顯示 N/M，等待每日輪替補抓。")
+    if non_positive:
+        w(f"> ★ **{non_positive} 檔**已取得最新 EPS，但 TTM EPS 非正或無法形成正值 trailing PE；N/M 不是抓取缺漏。")
     w("")
 
     # 二、漏斗統計
@@ -204,7 +212,7 @@ def build_screener_report(results, funnel, cfg, generated: str, universe_desc: s
             w(f"| {r.stock_id} | {r.name} | {r.industry} | {ib:.1f}%{star} | <{thr:.0f}% | {mk} | {tot_s} | {diff_s} |")
         w("")
         w("> 有息負債比 =(短期借款+長期借款+應付公司債)÷ 總資產(FinMind 未單列「一年內到期長期負債」,"
-          "多已含在短期借款);`＊`=該公司查無借款科目,視為 0。"
+          "多已含在短期借款)。三項借款欄位全缺時標資料不足，不視為 0。"
           "對照可見:**代工/fabless 因『應付帳款』被舊口徑(總負債比)灌水**,新口徑才反映真實財務槓桿。")
     else:
         w("_(尚無可計算負債比的資料。)_")

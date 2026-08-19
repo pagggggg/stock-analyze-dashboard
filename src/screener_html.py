@@ -253,6 +253,7 @@ def build_screener_page(results, funnel, cfg, generated: str) -> str:
               f"<td>{mk}</td><td class='num'>{tot_s}</td><td class='num'>{diff}</td></tr>")
         w("</tbody></table></div>")
         w(_note("有息負債比 =(短期借款+長期借款+應付公司債)÷ 總資產。"
+                "三項借款欄位全缺時標資料不足，不視為 0。"
                 "<b>代工/fabless 因『應付帳款』被舊口徑灌水</b>,新口徑才反映真實財務槓桿。"))
     w("</section>")
 
@@ -269,15 +270,22 @@ def build_screener_page(results, funnel, cfg, generated: str) -> str:
         w('<div class="stream-empty">目前沒有股票通過第一層。</div>')
     w("</section>")
 
-    # 估值旗標明細(通過第一層者 + 美股)
-    passers2 = [r for r in results if r.layer1_pass]
-    us_extra = [r for r in results if r.market == "us" and not r.layer1_pass
-                and r.metrics.get("forward_pe") is not None]
-    show = passers2 + us_extra
+    # 全母體估值／價格明細。未通過第一層仍保留，避免有效收盤被篩選條件隱藏。
+    show = list(results)
     show.sort(key=lambda r: (r.metrics.get("flag") != "red", r.market != "us", r.stock_id))
     w("<section>")
-    w("<h2>估值旗標明細(只加旗標、不淘汰)</h2>")
+    w(f"<h2>全母體估值與價格明細({len(show)} 檔；旗標不淘汰)</h2>")
     if show:
+        pending = sum(r.metrics.get("pe_reason") == "financial_report_not_yet_available"
+                      for r in show)
+        non_positive = sum(r.metrics.get("pe_reason") == "current_trailing_pe_unavailable"
+                           for r in show)
+        if pending:
+            w(_note(f"<b>{pending} 檔</b>因最新法定申報期限已到、但快取尚未取得該季 EPS，"
+                    "收盤價照常顯示，trailing PE／P50／P90 誠實標為 N/M；每日補抓後恢復。"))
+        if non_positive:
+            w(_note(f"另有 <b>{non_positive} 檔</b>已取得最新 EPS，但近四季 EPS 合計非正或無法形成正值 trailing PE，"
+                    "因此 trailing PE／P50／P90 顯示 N/M；這不是抓取缺漏。"))
         w(_val_tbl(show))
         reds = [r for r in show if r.metrics.get("flag") == "red"]
         if reds:
@@ -349,6 +357,6 @@ def build_screener_page(results, funnel, cfg, generated: str) -> str:
         w("</section>")
 
     w('<footer><div><a class="back" href="index.html">← 回總表</a>　|　'
-      "資料:FinMind(台股)+ yfinance(美股/估值);門檻見 config/screener.yaml,不構成投資建議。</div></footer>")
+      "資料:TWSE/TPEx 台股收盤、FinMind 台股財報、yfinance 美股/估值;門檻見 config/screener.yaml,不構成投資建議。</div></footer>")
     w("</div>")
     return _page("兩層選股篩選器", "\n".join(A), plotly=False)

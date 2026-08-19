@@ -236,6 +236,8 @@ def c4_debt_ratio(rec: dict, cfg: dict, stock_id: str) -> Cond:
         return Cond("na", "無最新資產負債資料")
     sb, lb, bp = bs.get("short_borrow"), bs.get("long_borrow"), bs.get("bonds")
     has_ib = any(x is not None for x in (sb, lb, bp))
+    if not has_ib:
+        return Cond("na", "短借、長借與公司債欄位全缺，不能視為零負債")
     ib = (sb or 0) + (lb or 0) + (bp or 0)
     ta = bs.get("total_assets")
     thr = _industry_threshold(rec.get("industry", ""), conf)
@@ -244,9 +246,8 @@ def c4_debt_ratio(rec: dict, cfg: dict, stock_id: str) -> Cond:
 
     if ta:  # 主口徑:有息負債比 / 總資產
         ratio = ib / ta * 100
-        note = "" if has_ib else "(無借款科目,視為0)"
         return Cond("pass" if ratio < thr else "fail",
-                    f"有息負債比 {ratio:.1f}%{note}(門檻<{thr:.0f}%{old_txt})")
+                    f"有息負債比 {ratio:.1f}%(門檻<{thr:.0f}%{old_txt})")
 
     eq = bs.get("equity")     # 退回口徑:淨負債/權益
     if eq:
@@ -342,7 +343,7 @@ def q10_momentum(rec: dict, cfg: dict, stock_id: str) -> Cond:
     from .data_layer import load_consensus_history
     from .scan_state import revision_momentum
     hist = load_consensus_history(ROOT / f"data/consensus/{stock_id}.csv")
-    d, pct = revision_momentum(hist)
+    d, pct = revision_momentum(hist, min_pct=float(conf.get("min_pct", 0.5)))
     if d == "na":
         return Cond("na", "無足夠共識歷史")
     if d == "up":
@@ -404,20 +405,25 @@ def derive_trailing_price_levels(close, close_date, current_pe, pe_p50, pe_p90) 
     """以同一 TTM EPS 將 trailing PE P50/P90 轉回價格；無效輸入一律不推算。"""
     import math
 
-    values = (close, current_pe, pe_p50, pe_p90)
+    empty = {"close_price": None, "close_date": None, "price_p50": None,
+             "move_to_p50_pct": None, "price_p90": None, "move_to_p90_pct": None}
     try:
-        close_f, current_f, p50_f, p90_f = (float(x) for x in values)
+        close_f = float(close)
     except (TypeError, ValueError):
-        return {"close_price": None, "close_date": None, "price_p50": None,
-                "move_to_p50_pct": None, "price_p90": None, "move_to_p90_pct": None}
-    if (not close_date or not all(math.isfinite(x) and x > 0
-                                  for x in (close_f, current_f, p50_f, p90_f))):
-        return {"close_price": None, "close_date": None, "price_p50": None,
-                "move_to_p50_pct": None, "price_p90": None, "move_to_p90_pct": None}
+        return empty
+    if not close_date or not math.isfinite(close_f) or close_f <= 0:
+        return empty
+    base = {**empty, "close_price": close_f, "close_date": str(close_date)}
+    try:
+        current_f, p50_f, p90_f = (float(x) for x in (current_pe, pe_p50, pe_p90))
+    except (TypeError, ValueError):
+        return base
+    if not all(math.isfinite(x) and x > 0 for x in (current_f, p50_f, p90_f)):
+        return base
     price_p50 = close_f * p50_f / current_f
     price_p90 = close_f * p90_f / current_f
     return {
-        "close_price": close_f, "close_date": str(close_date),
+        **base,
         "price_p50": price_p50,
         "move_to_p50_pct": (price_p50 / close_f - 1) * 100,
         "price_p90": price_p90,
@@ -461,11 +467,14 @@ def evaluate(rec: dict, cfg: dict) -> ScreenResult:
     bs = rec.get("latest_bs") or {}
     ta = bs.get("total_assets")
     if ta:
-        ib = (bs.get("short_borrow") or 0) + (bs.get("long_borrow") or 0) + (bs.get("bonds") or 0)
-        r.metrics["ib_ratio"] = ib / ta * 100
         r.metrics["total_ratio"] = (bs["liabilities"] / ta * 100) if bs.get("liabilities") else None
-        r.metrics["has_ib_items"] = any(
+        has_ib_items = any(
             bs.get(k) is not None for k in ("short_borrow", "long_borrow", "bonds"))
+        r.metrics["has_ib_items"] = has_ib_items
+        if has_ib_items:
+            ib = ((bs.get("short_borrow") or 0) + (bs.get("long_borrow") or 0)
+                  + (bs.get("bonds") or 0))
+            r.metrics["ib_ratio"] = ib / ta * 100
     r.metrics["debt_thr"] = _industry_threshold(rec.get("industry", ""), cfg["layer1"]["debt_ratio"])
 
     # 估值檢查(僅供參考,不用於淘汰):前瞻PE / PEG / FCF Yield
@@ -479,9 +488,9 @@ def evaluate(rec: dict, cfg: dict) -> ScreenResult:
     ph = rec.get("pe_hist") or {}
     from .valuation_flag import pe_history_is_compatible
     years = cfg.get("valuation_flag", {}).get("pe_history_years", 5)
-    current_ok = (ph.get("status") == "ok"
-                  and pe_history_is_compatible(ph, rec.get("market", "twse"),
-                                               rec.get("price_date"), years))
+    ph_compatible = pe_history_is_compatible(
+        ph, rec.get("market", "twse"), rec.get("price_date"), years)
+    current_ok = ph.get("status") == "ok" and ph_compatible
     r.metrics["pe_median"] = ph.get("median") if current_ok else None
     r.metrics["pe_p90"] = ph.get("p90") if current_ok else None
     # 舊 schema 的 percentile 是 forward PE 對 trailing 歷史分布；不可沿用。
@@ -489,6 +498,8 @@ def evaluate(rec: dict, cfg: dict) -> ScreenResult:
     r.metrics["trailing_pe"] = ph.get("current_trailing_pe") if current_ok else None
     r.metrics["pe_basis_label"] = (
         "Yahoo 調整後EPS" if rec.get("market") == "us" else "FinMind basic EPS")
+    r.metrics["pe_reason"] = (ph.get("reason") if ph_compatible and not current_ok
+                              else None if current_ok else "incompatible_schema")
     r.metrics["currency"] = rec.get("currency") or ("USD" if r.market == "us" else "TWD")
     r.metrics.update(derive_trailing_price_levels(
         rec.get("price_last"), rec.get("price_date"), r.metrics["trailing_pe"],
