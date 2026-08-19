@@ -11,8 +11,9 @@
 
 from __future__ import annotations
 
-from .screener import (L1_LABELS, L2_LABELS, P90_RELEASE_NOTE,
-                       PRICE_LEVEL_WARNING, ScreenResult)
+from .screener import (L1_LABELS, L2_LABELS, P90_THRESHOLD_NOTE,
+                       PRICE_LEVEL_WARNING, ScreenResult,
+                       p90_threshold_move_text)
 from .valuation_flag import FLAG, RED_WARNING
 
 _SYM = {"pass": "✅", "fail": "❌", "na": "⚠️"}
@@ -38,7 +39,7 @@ def _val_rows(results: list[ScreenResult], with_market: bool = True) -> str:
         out.append(
             f"| {r.stock_id} | {r.name} |{mcell} {_flag(r)} | "
             f"{_price_cell(r)} | {_price(m.get('price_p50'), m.get('currency'), r.market, True)} | {_move(m.get('move_to_p50_pct'))} | "
-            f"{_price(m.get('price_p90'), m.get('currency'), r.market, True)} | {_move(m.get('move_to_p90_pct'), True, bool(m.get('p90_warning_active')))} | "
+            f"{_price(m.get('price_p90'), m.get('currency'), r.market, True)} | {p90_threshold_move_text(m.get('move_to_p90_pct'), m.get('p90_state', 'unavailable'))} | "
             f"{_fv(m.get('forward_pe'), 'x')} | {_fv(m.get('trailing_pe'), 'x')} | {_fv(m.get('pe_median'), 'x')} | "
             f"{_fv(m.get('pe_p90'), 'x')} | {(str(int(pct)) + '%') if pct is not None else '—'} | "
             f"{peg_s} | {cov_s} |"
@@ -46,7 +47,7 @@ def _val_rows(results: list[ScreenResult], with_market: bool = True) -> str:
     return "\n".join(out)
 
 
-_VAL_HEAD = ("| 代號 | 名稱 | 市場 | 🚩旗標 | 收盤價(日期) | 歷史中樞價P50 | 至P50需變動 | 解除高估警戒價P90* | 至P90需變動 | 前瞻PE | 目前trailing PE | 近5年trailing中位 | 近5年trailing P90 | trailing百分位 | 前瞻PEG | 共識覆蓋 |\n"
+_VAL_HEAD = ("| 代號 | 名稱 | 市場 | 🚩旗標 | 收盤價(日期) | 歷史中樞價P50 | 至P50需變動 | P90警戒門檻價* | 距P90門檻狀態／需變動 | 前瞻PE | 目前trailing PE | 近5年trailing中位 | 近5年trailing P90 | trailing百分位 | 前瞻PEG | 共識覆蓋 |\n"
              "| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
 
 
@@ -76,13 +77,11 @@ def _price(v, currency: str, market: str, approximate: bool = False) -> str:
     return f"{'約 ' if approximate else ''}{unit} {v:,.2f}"
 
 
-def _move(v, p90: bool = False, warning_active: bool = False) -> str:
+def _move(v) -> str:
     if v is None:
         return "N/M"
     if abs(v) < 0.05:
         return "已在該價位"
-    if p90 and not warning_active:
-        return f"未觸發（距 P90 {abs(v):.1f}%）"
     return f"{'需上漲' if v > 0 else '需回落'} {abs(v):.1f}%"
 
 
@@ -97,7 +96,7 @@ def _price_warning_md() -> str:
     lines = PRICE_LEVEL_WARNING.splitlines()
     return ("> **價格推算警語**\n" +
             "\n".join(f"> {line}" if line else ">" for line in lines) +
-            f"\n>\n> {P90_RELEASE_NOTE}")
+            f"\n>\n> {P90_THRESHOLD_NOTE}")
 
 
 def _rows(results: list[ScreenResult]) -> str:
@@ -110,7 +109,7 @@ def _rows(results: list[ScreenResult]) -> str:
             f"| {r.stock_id} | {r.name} | {r.industry} | {_flag(r)} | "
             f"{_price_cell(r)} | {_price(r.metrics.get('price_p50'), r.metrics.get('currency'), r.market, True)} | "
             f"{_move(r.metrics.get('move_to_p50_pct'))} | {_price(r.metrics.get('price_p90'), r.metrics.get('currency'), r.market, True)} | "
-            f"{_move(r.metrics.get('move_to_p90_pct'), True, bool(r.metrics.get('p90_warning_active')))} | "
+            f"{p90_threshold_move_text(r.metrics.get('move_to_p90_pct'), r.metrics.get('p90_state', 'unavailable'))} | "
             f"{_cell(r.layer2['q7'])} | {_cell(r.layer2['q8'])} | "
             f"{_cell(r.layer2['q9'])} | {mom} |"
         )
@@ -228,7 +227,7 @@ def build_screener_report(results, funnel, cfg, generated: str, universe_desc: s
     else:
         w(_price_warning_md())
         w("")
-        w("| 代號 | 名稱 | 產業 | 🚩旗標 | 收盤價(日期) | 歷史中樞價P50 | 至P50需變動 | 解除高估警戒價P90* | 至P90需變動 | ⑦營收CAGR | ⑧毛利率趨勢 | ⑨ROE | ⑩修正動能 |")
+        w("| 代號 | 名稱 | 產業 | 🚩旗標 | 收盤價(日期) | 歷史中樞價P50 | 至P50需變動 | P90警戒門檻價* | 距P90門檻狀態／需變動 | ⑦營收CAGR | ⑧毛利率趨勢 | ⑨ROE | ⑩修正動能 |")
         w("| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- | --- | --- | --- |")
         w(_rows(passers))
         w("")

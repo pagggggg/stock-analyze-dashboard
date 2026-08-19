@@ -12,7 +12,7 @@ from src.data_layer import fetch_pe_history_twse
 from src.data_layer import _twse_fetch_month
 from src.scan_state import revision_momentum
 from src.screener import (c4_debt_ratio, derive_trailing_price_levels,
-                          q10_momentum)
+                           p90_threshold_move_text, q10_momentum)
 from src.river import _filing_available_date, current_trailing_pe
 from src.universe_builder import (_fetch_mops_year, evaluate as evaluate_universe,
                                   fetch_meeting_ids_tw)
@@ -245,6 +245,43 @@ class DataSafetyTests(unittest.TestCase):
         self.assertEqual(result["close_price"], 2395.0)
         self.assertEqual(result["close_date"], "2026-08-11")
         self.assertIsNone(result["price_p50"])
+        self.assertEqual(result["p90_state"], "unavailable")
+        self.assertEqual(
+            p90_threshold_move_text(result["move_to_p90_pct"], result["p90_state"]),
+            "N/M")
+
+    def test_untriggered_p90_shows_rise_to_threshold(self):
+        result = derive_trailing_price_levels(
+            718, "2026-08-19", 47.0, 39.2, 65.2)
+
+        self.assertEqual(result["p90_state"], "not_triggered")
+        self.assertAlmostEqual(result["price_p90"], 996.03, places=2)
+        self.assertEqual(
+            p90_threshold_move_text(result["move_to_p90_pct"], result["p90_state"]),
+            "未觸發；需上漲 38.7% 才達 P90")
+
+    def test_triggered_p90_shows_fall_to_release(self):
+        result = derive_trailing_price_levels(
+            100, "2026-08-19", 25.0, 12.0, 20.0)
+
+        self.assertEqual(result["p90_state"], "triggered")
+        self.assertEqual(result["price_p90"], 80.0)
+        self.assertEqual(
+            p90_threshold_move_text(result["move_to_p90_pct"], result["p90_state"]),
+            "已觸發；需回落 20.0% 才解除")
+
+    def test_equal_p90_is_boundary_not_triggered(self):
+        result = derive_trailing_price_levels(
+            100, "2026-08-19", 20.0, 12.0, 20.0)
+
+        self.assertEqual(result["p90_state"], "at_threshold")
+        self.assertFalse(result["p90_warning_active"])
+        self.assertEqual(
+            p90_threshold_move_text(result["move_to_p90_pct"], result["p90_state"]),
+            "位於 P90 門檻；尚未觸發")
+
+    def test_unknown_p90_state_fails_closed(self):
+        self.assertEqual(p90_threshold_move_text(10.0, "unknown"), "N/M")
 
     def test_analysis_uses_committed_close_when_price_cache_lags(self):
         from src import analysis

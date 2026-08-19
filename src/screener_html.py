@@ -8,8 +8,9 @@
 from __future__ import annotations
 
 from .dashboard_html import C_CHEAP, C_EXP, C_FAIR, C_NA, _esc, _note
-from .screener import (L1_LABELS, L2_LABELS, P90_RELEASE_NOTE,
-                       PRICE_LEVEL_WARNING, ScreenResult)
+from .screener import (L1_LABELS, L2_LABELS, P90_THRESHOLD_NOTE,
+                       PRICE_LEVEL_WARNING, ScreenResult,
+                       p90_threshold_move_text)
 from .site_html import _page
 from .valuation_flag import FLAG, RED_WARNING
 
@@ -27,13 +28,11 @@ def _price(v, currency: str, market: str, approximate: bool = False) -> str:
     return f"{'約 ' if approximate else ''}{unit} {v:,.2f}"
 
 
-def _move(v, p90: bool = False, warning_active: bool = False) -> str:
+def _move(v) -> str:
     if v is None:
         return "N/M"
     if abs(v) < 0.05:
         return "已在該價位"
-    if p90 and not warning_active:
-        return f"未觸發（距 P90 {abs(v):.1f}%）"
     word = "需上漲" if v > 0 else "需回落"
     return f"{word} {abs(v):.1f}%"
 
@@ -46,13 +45,13 @@ def _price_level_cells(r: ScreenResult) -> str:
             f"<td class='num'>{_price(m.get('price_p50'), m.get('currency', 'TWD'), r.market, True)}</td>"
             f"<td class='num'>{_move(m.get('move_to_p50_pct'))}</td>"
             f"<td class='num'>{_price(m.get('price_p90'), m.get('currency', 'TWD'), r.market, True)}</td>"
-            f"<td class='num'>{_move(m.get('move_to_p90_pct'), True, bool(m.get('p90_warning_active')))}</td>")
+            f"<td class='num'>{p90_threshold_move_text(m.get('move_to_p90_pct'), m.get('p90_state', 'unavailable'))}</td>")
 
 
 def _price_warning() -> str:
     warning = _esc(PRICE_LEVEL_WARNING).replace("\n", "<br>")
     return (f'<div class="warn price-level-warning"><b>價格推算警語</b><br>{warning}'
-            f'<br><br><small>{_esc(P90_RELEASE_NOTE)}</small></div>')
+            f'<br><br><small>{_esc(P90_THRESHOLD_NOTE)}</small></div>')
 
 
 def _flag_html(r) -> str:
@@ -125,7 +124,7 @@ def _l2_table(rows: list[ScreenResult]) -> str:
         '<div class="table-scroll"><table class="tbl price-level-table"><thead><tr>'
         "<th>代號</th><th>名稱</th><th>產業</th><th>🚩旗標</th>"
         "<th>收盤價<br><small>日期</small></th><th>歷史中樞價<br><small>P50</small></th><th>至 P50<br><small>需變動</small></th>"
-        "<th>解除高估警戒價<br><small>P90*</small></th><th>至 P90<br><small>需變動</small></th>"
+        "<th>P90 警戒門檻價<br><small>P90*</small></th><th>距 P90 門檻<br><small>狀態／需變動</small></th>"
         "<th>⑦營收CAGR</th><th>⑧毛利率趨勢</th>"
         "<th>⑨ROE</th><th>⑩修正動能</th></tr></thead><tbody>"
         + "".join(body) + "</tbody></table></div>"
@@ -163,7 +162,7 @@ def _val_tbl(rows: list[ScreenResult]) -> str:
         '<div class="table-scroll"><table class="tbl price-level-table"><thead><tr>'
         "<th>代號</th><th>名稱</th><th>市場</th><th>🚩旗標</th>"
         "<th>收盤價<br><small>日期</small></th><th>歷史中樞價<br><small>P50</small></th><th>至 P50<br><small>需變動</small></th>"
-        "<th>解除高估警戒價<br><small>P90*</small></th><th>至 P90<br><small>需變動</small></th>"
+        "<th>P90 警戒門檻價<br><small>P90*</small></th><th>距 P90 門檻<br><small>狀態／需變動</small></th>"
         "<th>前瞻PE</th><th>目前trailing PE</th>"
         "<th>近5年trailing中位</th><th>近5年trailing P90</th><th>trailing百分位</th><th>前瞻PEG</th><th>共識覆蓋</th>"
         "<th>歷史PEG<br><span style='font-weight:400;font-size:.8em'>(不需共識)</span></th>"

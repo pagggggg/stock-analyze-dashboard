@@ -397,8 +397,23 @@ PRICE_LEVEL_WARNING = """「歷史中樞價是以目前 TTM EPS 乘上該股自�
 台積電曾連續逾5年未觸及歷史中位估值區,期間股價持續上漲。
 以『等待回到中樞』作為進場條件,經回測驗證績效劣於不擇時分批進場。」"""
 
-P90_RELEASE_NOTE = ("P90 價只代表解除『目前 trailing PE > 歷史 P90』這一項警戒；"
-                    "若前瞻 PE 或 PEG 仍超過門檻,整體紅旗仍可能保留。")
+P90_THRESHOLD_NOTE = (
+    "P90 警戒門檻價 = 目前 TTM EPS × 歷史 P90。只有目前 trailing PE > 歷史 P90 時，"
+    "該價格才同時代表『回落至此可解除本項警戒』；若紅旗來自前瞻 PE 或 PEG，"
+    "即使未觸發 P90，整體紅旗仍可能存在。")
+
+
+def p90_threshold_move_text(move_pct, state: str) -> str:
+    """依 P90 是否已觸發，顯示到達門檻或解除警戒所需的正確方向。"""
+    if move_pct is None or state == "unavailable":
+        return "N/M"
+    if state == "at_threshold":
+        return "位於 P90 門檻；尚未觸發"
+    if state == "triggered":
+        return f"已觸發；需回落 {abs(float(move_pct)):.1f}% 才解除"
+    if state == "not_triggered":
+        return f"未觸發；需上漲 {abs(float(move_pct)):.1f}% 才達 P90"
+    return "N/M"
 
 
 def derive_trailing_price_levels(close, close_date, current_pe, pe_p50, pe_p90) -> dict:
@@ -406,7 +421,8 @@ def derive_trailing_price_levels(close, close_date, current_pe, pe_p50, pe_p90) 
     import math
 
     empty = {"close_price": None, "close_date": None, "price_p50": None,
-             "move_to_p50_pct": None, "price_p90": None, "move_to_p90_pct": None}
+             "move_to_p50_pct": None, "price_p90": None, "move_to_p90_pct": None,
+             "p90_state": "unavailable", "p90_warning_active": False}
     try:
         close_f = float(close)
     except (TypeError, ValueError):
@@ -422,13 +438,20 @@ def derive_trailing_price_levels(close, close_date, current_pe, pe_p50, pe_p90) 
         return base
     price_p50 = close_f * p50_f / current_f
     price_p90 = close_f * p90_f / current_f
+    if current_f > p90_f:
+        p90_state = "triggered"
+    elif math.isclose(current_f, p90_f, rel_tol=0, abs_tol=1e-9):
+        p90_state = "at_threshold"
+    else:
+        p90_state = "not_triggered"
     return {
         **base,
         "price_p50": price_p50,
         "move_to_p50_pct": (price_p50 / close_f - 1) * 100,
         "price_p90": price_p90,
         "move_to_p90_pct": (price_p90 / close_f - 1) * 100,
-        "p90_warning_active": current_f > p90_f,
+        "p90_state": p90_state,
+        "p90_warning_active": p90_state == "triggered",
     }
 
 

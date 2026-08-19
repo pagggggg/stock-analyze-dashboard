@@ -250,7 +250,8 @@ jobs:
           from datetime import date
           from src.ai_chain import build_output_side, load_ai_chain_config
           from src.ai_quotes import expected_quote_tickers, load_quote_snapshot
-          from src.screener import P90_RELEASE_NOTE, PRICE_LEVEL_WARNING
+          from src.screener import (P90_THRESHOLD_NOTE, PRICE_LEVEL_WARNING,
+                                    p90_threshold_move_text)
           from src.us_data import US_DETAIL_SCHEMA_VERSION
           from src.valuation_flag import pe_history_is_compatible
           from src.tw_quotes import expected_tw_quote_tickers, load_tw_quote_snapshot
@@ -332,20 +333,26 @@ jobs:
                   p90_move = (p90_price / close - 1) * 100
               else:
                   p50_price = p90_price = p50_move = p90_move = None
-              def move_text(value, p90=False):
-                  if p90 and current_pe <= float(ph["p90"]):
-                      return f"未觸發（距 P90 {abs(value):.1f}%）"
+              def move_text(value):
                   return f"{'需上漲' if value > 0 else '需回落'} {abs(value):.1f}%"
+              sample_p90_state = ("triggered" if current_pe > float(ph["p90"])
+                                  else "at_threshold" if math.isclose(
+                                      current_pe, float(ph["p90"]), rel_tol=0, abs_tol=1e-9)
+                                  else "not_triggered") if sample else "unavailable"
               sample_formula_ok = (sample is not None and
                   all(text in screener for text in (
                       f"NT$ {close:,.2f}", sample["price_date"],
                       f"約 NT$ {p50_price:,.2f}", f"約 NT$ {p90_price:,.2f}",
-                      move_text(p50_move), move_text(p90_move, True))))
+                      move_text(p50_move),
+                      p90_threshold_move_text(p90_move, sample_p90_state))))
               price_levels_ok = (all_closes_visible and sample_formula_ok
                   and all(text in screener for text in (
-                      "收盤價", "歷史中樞價", "P50", "解除高估警戒價", "P90*",
-                      "至 P50", "至 P90",
-                      P90_RELEASE_NOTE.replace(">", "&gt;"), "未觸發（距 P90"))
+                      "收盤價", "歷史中樞價", "P50", "P90 警戒門檻價", "P90*",
+                      "至 P50", "距 P90 門檻",
+                      P90_THRESHOLD_NOTE.replace(">", "&gt;"),
+                      "未觸發；需上漲", "才達 P90",
+                      "已觸發；需回落", "才解除"))
+                  and "解除高估警戒價" not in screener
                   and all(line.replace(">", "&gt;") in screener
                           for line in PRICE_LEVEL_WARNING.splitlines() if line)
                   and screener.count("價格推算警語") == screener.count('class="tbl price-level-table"')
