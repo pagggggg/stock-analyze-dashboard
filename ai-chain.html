@@ -1,0 +1,354 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>AI 產業鏈全景圖</title><link rel="stylesheet" href="style.css"><script src="plotly.min.js"></script></head><body>
+<div class="wrap ai-wrap" data-ai-capex-companies="4" data-ai-layers="12" data-ai-unavailable="0" data-ai-quote-tickers="33" data-ai-us-quote-tickers="16" data-ai-tw-quote-tickers="17">
+  <header>
+    <div><a class="back" href="index.html">← 回總表</a></div>
+    <h1>AI 產業鏈全景圖</h1>
+    <div class="meta">頁面建置 2026-08-22 06:44 (台北時間)<br>
+      台股行情更新 2026-08-21 15:55（收盤日 2026-08-21）<br>
+      美股行情更新 2026-08-22 06:44（收盤日 2026-08-21）　|　由資金源頭往上游排列</div>
+    <div class="warn">⚠️ 本圖為研究工具。層級關係描述供應鏈位置,<b>不代表營收、獲利或股價必然連動</b>；
+      公司也可能跨越多個層級。估值歷史位階一律使用 trailing PE 對 trailing PE。<br>
+      台股採 FinMind basic EPS 與本國發行人法定期限 fallback；美股採 Yahoo Reported EPS(調整後)與實際 earnings date。
+      兩者只做各股自身歷史比較,不跨口徑混算。<br>
+      <b>台股與美股行情均為最近交易日收盤價,不是即時報價；單日漲跌只供資訊,不納入基本面訊號或評分。</b></div>
+  </header>
+
+  <section class="capex-hero">
+    <h2>01 需求源頭:四大雲端業者季度 Capex</h2>
+    <div style="height:370px; width:100%;">                            <div id="b0b2a902-7c70-4173-8c87-85dff479b522" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("b0b2a902-7c70-4173-8c87-85dff479b522")) {                    Plotly.newPlot(                        "b0b2a902-7c70-4173-8c87-85dff479b522",                        [{"customdata":["1\u002f4 \u516c\u53f8","4\u002f4 \u516c\u53f8","4\u002f4 \u516c\u53f8","4\u002f4 \u516c\u53f8","4\u002f4 \u516c\u53f8","3\u002f4 \u516c\u53f8"],"hovertemplate":"%{x}\u003cbr\u003eCapex %{y:.1f} B\u003cbr\u003e%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"color":["#f59e0b","#2563eb","#2563eb","#2563eb","#2563eb","#f59e0b"]},"name":"\u53ef\u5f97\u8cc7\u6599\u5408\u8a08 Capex(\u5341\u5104\u7f8e\u5143)","text":["1\u002f4","","","","","3\u002f4"],"textposition":"outside","x":["2025-Q1","2025-Q2","2025-Q3","2025-Q4","2026-Q1","2026-Q2"],"y":[25.019,88.246,97.271,118.632,129.75,110.842],"type":"bar"},{"hovertemplate":"%{x}\u003cbr\u003eYoY %{y:.1f}%\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#dc2626","width":3},"mode":"lines+markers","name":"YoY(%)","x":["2025-Q1","2025-Q2","2025-Q3","2025-Q4","2026-Q1","2026-Q2"],"y":[null,null,null,null,null,null],"yaxis":"y2","type":"scatter"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"white","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#2a3f5f"},"error_y":{"color":"#2a3f5f"},"marker":{"line":{"color":"white","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#2a3f5f","gridcolor":"#C8D4E3","linecolor":"#C8D4E3","minorgridcolor":"#C8D4E3","startlinecolor":"#2a3f5f"},"baxis":{"endlinecolor":"#2a3f5f","gridcolor":"#C8D4E3","linecolor":"#C8D4E3","minorgridcolor":"#C8D4E3","startlinecolor":"#2a3f5f"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergl"}],"scattermapbox":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermapbox"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"fillpattern":{"fillmode":"overlay","size":10,"solidity":0.2},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#EBF0F8"},"line":{"color":"white"}},"header":{"fill":{"color":"#C8D4E3"},"line":{"color":"white"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#2a3f5f","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#2a3f5f"},"geo":{"bgcolor":"white","lakecolor":"white","landcolor":"white","showlakes":true,"showland":true,"subunitcolor":"#C8D4E3"},"hoverlabel":{"align":"left"},"hovermode":"closest","mapbox":{"style":"light"},"paper_bgcolor":"white","plot_bgcolor":"white","polar":{"angularaxis":{"gridcolor":"#EBF0F8","linecolor":"#EBF0F8","ticks":""},"bgcolor":"white","radialaxis":{"gridcolor":"#EBF0F8","linecolor":"#EBF0F8","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"white","gridcolor":"#DFE8F3","gridwidth":2,"linecolor":"#EBF0F8","showbackground":true,"ticks":"","zerolinecolor":"#EBF0F8"},"yaxis":{"backgroundcolor":"white","gridcolor":"#DFE8F3","gridwidth":2,"linecolor":"#EBF0F8","showbackground":true,"ticks":"","zerolinecolor":"#EBF0F8"},"zaxis":{"backgroundcolor":"white","gridcolor":"#DFE8F3","gridwidth":2,"linecolor":"#EBF0F8","showbackground":true,"ticks":"","zerolinecolor":"#EBF0F8"}},"shapedefaults":{"line":{"color":"#2a3f5f"}},"ternary":{"aaxis":{"gridcolor":"#DFE8F3","linecolor":"#A2B1C6","ticks":""},"baxis":{"gridcolor":"#DFE8F3","linecolor":"#A2B1C6","ticks":""},"bgcolor":"white","caxis":{"gridcolor":"#DFE8F3","linecolor":"#A2B1C6","ticks":""}},"title":{"x":0.05},"xaxis":{"automargin":true,"gridcolor":"#EBF0F8","linecolor":"#EBF0F8","ticks":"","title":{"standoff":15},"zerolinecolor":"#EBF0F8","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#EBF0F8","linecolor":"#EBF0F8","ticks":"","title":{"standoff":15},"zerolinecolor":"#EBF0F8","zerolinewidth":2}}},"annotations":[{"bgcolor":"#fff7ed","bordercolor":"#fdba74","font":{"color":"#9a3412","size":12},"showarrow":false,"text":"YoY\u6a23\u672c\u4e0d\u8db3:\u9700\u524d\u5f8c\u5169\u671f\u7686\u542b\u56db\u5bb6\u516c\u53f8","x":0.99,"xanchor":"right","xref":"paper","y":0.98,"yanchor":"top","yref":"paper"}],"yaxis2":{"title":{"text":"YoY (%)"},"overlaying":"y","side":"right","showgrid":false},"legend":{"orientation":"h","y":1.02,"yanchor":"bottom","xanchor":"left","x":0},"yaxis":{"title":{"text":"Capex (USD bn)"}},"margin":{"l":48,"r":18,"t":48,"b":40},"font":{"family":"-apple-system, 'Noto Sans TC', 'Microsoft JhengHei', sans-serif","size":13},"height":370,"hovermode":"x unified","autosize":true},                        {"responsive": true, "displayModeBar": false}                    )                };            </script>        </div>
+    <div class="warn"><b>目前無可比較的四家公司合計 YoY:</b>前後同季尚未同時涵蓋 MSFT、GOOGL、AMZN、META 四家。只顯示各季合計與覆蓋家數,不硬算 YoY。</div>
+    <div class="note">資料源:yfinance quarterly_cashflow: Capital Expenditure。yfinance 免費端目前通常只提供約 5 季;
+      各季柱狀圖 hover 會顯示涵蓋幾家公司,只有前後兩期都四家齊全才計算合計 YoY。
+      Capex YoY 與落後期相關性若樣本不足會直接標示,不外推。抓取狀態:四家公司皆取得資料</div>
+    <h3>2026 Capex 指引重點</h3>
+    <div class="note"><b>跨公司只並列日曆年數字，但會計/租賃口徑仍可能不同。</b>會計年度、單季與未揭露金額的定性指引只作補充。</div>
+    <div class="guidance-grid">
+    <article class="guidance-card">
+      <div class="guidance-head"><div class="logo-name"><span class="company-logo"><img src="assets/logos/MSFT.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>MS</span></span><b>MSFT</b></div><span class="direction flat">維持不變</span></div>
+      <a class="quote-box up" data-quote-ticker="MSFT" data-quote-market="us" data-quote-date="2026-08-21" href="https://finance.yahoo.com/quote/MSFT/" target="_blank" rel="noopener" title="最近交易日收盤；不是即時報價" aria-label="MSFT 最近收盤 US$ 483.24，單日漲跌 +0.4%，2026-08-21，前往 Yahoo（另開視窗）"><b>US$ 483.24</b><span>▲ +0.4%</span><small>2026-08-21</small></a>
+      <div class="guidance-amount">約 175.0 USD bn</div>
+      <div class="guidance-period">日曆年 2026</div>
+      <div class="guidance-compare yes">可並列（日曆年；口徑仍不同）</div>
+      <p class="guidance-point">維持原指引；數字含租賃分類變更影響</p>
+      <ul class="guidance-extra"><li><b>FY27 Q1（2026年7–9月）</b>　超過 50.0 USD bn<span>維持不變</span></li><li><b>FY27 全年</b>　預期年增，未揭露具體金額<span>預期年增（非指引上調）</span></li></ul>
+      
+      <div class="guidance-date">資料日期 2026-07-29</div>
+      <details class="guidance-source"><summary>查看來源與口徑</summary><ul><li><b>日曆年 2026</b>｜Microsoft FY27 Q1 Outlook 簡報；2026-07-29 法說會｜2026-07-29<br><span>約 1,750 億美元；含使用年限變更對租賃分類的影響。</span></li><li><b>FY27 Q1（2026年7–9月）</b>｜Microsoft FY27 Q1 Outlook 簡報；2026-07-29 法說會｜2026-07-29<br><span>超過 500 億美元；Microsoft 會計年度單季，不可直接和其他公司的日曆年數字比較。含使用年限變更對租賃分類的影響。</span></li><li><b>FY27 全年</b>｜Microsoft FY27 Q1 Outlook 簡報；2026-07-29 法說會｜2026-07-29<br><span>僅有方向、無金額；Microsoft 會計年度，不可直接跨公司比較。含使用年限變更對租賃分類的影響。</span></li></ul></details>
+    </article>
+    <article class="guidance-card">
+      <div class="guidance-head"><div class="logo-name"><span class="company-logo"><img src="assets/logos/GOOGL.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>GO</span></span><b>GOOGL</b></div><span class="direction up">上調</span></div>
+      <a class="quote-box up" data-quote-ticker="GOOGL" data-quote-market="us" data-quote-date="2026-08-21" href="https://finance.yahoo.com/quote/GOOGL/" target="_blank" rel="noopener" title="最近交易日收盤；不是即時報價" aria-label="GOOGL 最近收盤 US$ 344.82，單日漲跌 +1.2%，2026-08-21，前往 Yahoo（另開視窗）"><b>US$ 344.82</b><span>▲ +1.2%</span><small>2026-08-21</small></a>
+      <div class="guidance-amount">195.0–205.0 USD bn</div>
+      <div class="guidance-period">日曆年 2026</div>
+      <div class="guidance-compare yes">可並列（日曆年；口徑仍不同）</div>
+      <p class="guidance-point">前次 180–190；加速產能交付</p>
+      <ul class="guidance-extra"><li><b>日曆年 2027</b>　預期顯著增加，未揭露具體金額<span>預期年增（非指引上調）</span></li></ul>
+      
+      <div class="guidance-date">資料日期 2026-07</div>
+      <details class="guidance-source"><summary>查看來源與口徑</summary><ul><li><b>日曆年 2026</b>｜Alphabet Q2 2026 法說會；CFO Anat Ashkenazi｜2026-07<br><span>上調自前次 180–190 USD bn；原因為加速產能交付以滿足需求成長。Q2 單季 Capex 44.9 USD bn、自由現金流 -5.9 USD bn、Cloud backlog 514.0 USD bn。</span></li><li><b>日曆年 2027</b>｜Alphabet Q2 2026 法說會；CFO Anat Ashkenazi｜2026-07<br><span>只有方向、沒有具體金額；因此不能和其他公司的日曆年金額做數值比較。</span></li></ul></details>
+    </article>
+    <article class="guidance-card">
+      <div class="guidance-head"><div class="logo-name"><span class="company-logo"><img src="assets/logos/AMZN.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>AM</span></span><b>AMZN</b></div><span class="direction na">未說明／無指引</span></div>
+      <a class="quote-box down" data-quote-ticker="AMZN" data-quote-market="us" data-quote-date="2026-08-21" href="https://finance.yahoo.com/quote/AMZN/" target="_blank" rel="noopener" title="最近交易日收盤；不是即時報價" aria-label="AMZN 最近收盤 US$ 258.63，單日漲跌 -0.6%，2026-08-21，前往 Yahoo（另開視窗）"><b>US$ 258.63</b><span>▼ -0.6%</span><small>2026-08-21</small></a>
+      <div class="guidance-amount">未提供明確 Capex 指引</div>
+      <div class="guidance-period">日曆年 2026</div>
+      <div class="guidance-compare no">不可直接比較</div>
+      <p class="guidance-point">公司只提供下一季營收與營業利益指引</p>
+      
+      <div class="guidance-actual"><b>TTM 實際</b> 169.0 USD bn　<span>YoY 64.0%</span><br><small>yfinance 自動值 173.0 USD bn（2026-06-30）</small></div>
+      <div class="guidance-date">資料日期 2026-07-30</div>
+      <details class="guidance-source"><summary>查看來源與口徑</summary><ul><li><b>日曆年 2026</b>｜Amazon Q2 2026 財報 Financial Guidance｜2026-07-30<br><span>Financial Guidance 僅提供下一季營收與營業利益,不提供 Capex 指引。</span></li><li><b>截至 2026 Q2 的近12個月</b>｜Amazon Q2 2026 財報｜2026-07-30<br><span>公司揭露口徑為資本支出淨額；與 yfinance 的 Capital Expenditure/Purchase of PPE 口徑不完全相同。</span></li></ul></details>
+    </article>
+    <article class="guidance-card">
+      <div class="guidance-head"><div class="logo-name"><span class="company-logo"><img src="assets/logos/META.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>ME</span></span><b>META</b></div><span class="direction up">上調</span></div>
+      <a class="quote-box up" data-quote-ticker="META" data-quote-market="us" data-quote-date="2026-08-21" href="https://finance.yahoo.com/quote/META/" target="_blank" rel="noopener" title="最近交易日收盤；不是即時報價" aria-label="META 最近收盤 US$ 549.90，單日漲跌 +0.7%，2026-08-21，前往 Yahoo（另開視窗）"><b>US$ 549.90</b><span>▲ +0.7%</span><small>2026-08-21</small></a>
+      <div class="guidance-amount">130.0–145.0 USD bn</div>
+      <div class="guidance-period">日曆年 2026</div>
+      <div class="guidance-compare yes">可並列（日曆年；口徑仍不同）</div>
+      <p class="guidance-point">下緣 125→130，上緣維持 145</p>
+      
+      
+      <div class="guidance-date">資料日期 2026-07-29</div>
+      <details class="guidance-source"><summary>查看來源與口徑</summary><ul><li><b>日曆年 2026</b>｜Meta Q2 2026 財報 CFO Outlook｜2026-07-29<br><span>含融資租賃本金。區間收窄,下緣由 125.0 USD bn 上調至 130.0 USD bn,上緣維持 145.0 USD bn,屬實質微幅上調。Q2 單季 Capex 31.08 USD bn；單季自由現金流僅 0.784 USD bn（去年同期 8.55 USD bn）。</span></li></ul></details>
+    </article></div>
+  </section>
+
+  <div class="chain-flow">
+        <div class="chain-arrow">↓</div>
+        <details class="chain-layer" open>
+          <summary><span class="layer-no">01</span><span>需求源頭</span>
+            <span class="layer-summary">平均月營收YoY <b>—</b>(n=0)　|　平均 trailing PE 百分位 <b>11%</b>(n=4)</span></summary>
+          <div class="layer-body">
+            <p>四大雲端業者資本支出，是本圖的資金起點。</p>
+            <div class="swipe-hint">← 手機可左右滑動看更多欄位 →</div>
+            <div class="table-scroll"><table class="tbl ai-table"><thead><tr>
+              <th>代號</th><th>名稱</th><th>市場</th><th>最近收盤</th><th>trailing PE</th><th>PE百分位</th>
+              <th>估值旗標</th><th>月營收動能</th><th>共識覆蓋</th><th>循環標記</th>
+            </tr></thead><tbody><tr><td><span class="ticker-logo"><span class="company-logo"><img src="assets/logos/MSFT.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>MS</span></span><b>MSFT</b></span></td><td class="name"><a href="https://finance.yahoo.com/quote/MSFT/" target="_blank" rel="noopener">Microsoft</a></td><td title="Yahoo 調整後EPS">us</td><td class="quote-cell"><a class="quote-box up compact" data-quote-ticker="MSFT" data-quote-market="us" data-quote-date="2026-08-21" href="https://finance.yahoo.com/quote/MSFT/" target="_blank" rel="noopener" title="最近交易日收盤；不是即時報價" aria-label="MSFT 最近收盤 US$ 483.24，單日漲跌 +0.4%，2026-08-21，前往 Yahoo（另開視窗）"><b>US$ 483.24</b><span>▲ +0.4%</span><small>2026-08-21</small></a></td><td class="num">28.0x</td><td class="num">20%</td><td><span style="color:#a16207;font-weight:700;white-space:nowrap">🟡一般</span></td><td class="num">— —</td><td class="num">35</td><td><span class="cycle-tag" style="color:#94a3b8;border-color:#94a3b8" title="季度樣本 5&lt;8">未知</span></td></tr><tr><td><span class="ticker-logo"><span class="company-logo"><img src="assets/logos/GOOGL.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>GO</span></span><b>GOOGL</b></span></td><td class="name"><a href="https://finance.yahoo.com/quote/GOOGL/" target="_blank" rel="noopener">Alphabet</a></td><td title="Yahoo 調整後EPS">us</td><td class="quote-cell"><a class="quote-box up compact" data-quote-ticker="GOOGL" data-quote-market="us" data-quote-date="2026-08-21" href="https://finance.yahoo.com/quote/GOOGL/" target="_blank" rel="noopener" title="最近交易日收盤；不是即時報價" aria-label="GOOGL 最近收盤 US$ 344.82，單日漲跌 +1.2%，2026-08-21，前往 Yahoo（另開視窗）"><b>US$ 344.82</b><span>▲ +1.2%</span><small>2026-08-21</small></a></td><td class="num">17.3x</td><td class="num">2%</td><td><span style="color:#a16207;font-weight:700;white-space:nowrap">🟡一般</span></td><td class="num">— —</td><td class="num">52</td><td><span class="cycle-tag" style="color:#94a3b8;border-color:#94a3b8" title="季度樣本 5&lt;8">未知</span></td></tr><tr><td><span class="ticker-logo"><span class="company-logo"><img src="assets/logos/AMZN.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>AM</span></span><b>AMZN</b></span></td><td class="name"><a href="https://finance.yahoo.com/quote/AMZN/" target="_blank" rel="noopener">Amazon</a></td><td title="Yahoo 調整後EPS">us</td><td class="quote-cell"><a class="quote-box down compact" data-quote-ticker="AMZN" data-quote-market="us" data-quote-date="2026-08-21" href="https://finance.yahoo.com/quote/AMZN/" target="_blank" rel="noopener" title="最近交易日收盤；不是即時報價" aria-label="AMZN 最近收盤 US$ 258.63，單日漲跌 -0.6%，2026-08-21，前往 Yahoo（另開視窗）"><b>US$ 258.63</b><span>▼ -0.6%</span><small>2026-08-21</small></a></td><td class="num">20.8x</td><td class="num">0%</td><td><span style="color:#a16207;font-weight:700;white-space:nowrap">🟡一般</span></td><td class="num">— —</td><td class="num">51</td><td><span class="cycle-tag" style="color:#94a3b8;border-color:#94a3b8" title="季度樣本 6&lt;8">未知</span></td></tr><tr><td><span class="ticker-logo"><span class="company-logo"><img src="assets/logos/META.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>ME</span></span><b>META</b></span></td><td class="name"><a href="https://finance.yahoo.com/quote/META/" target="_blank" rel="noopener">Meta</a></td><td title="Yahoo 調整後EPS">us</td><td class="quote-cell"><a class="quote-box up compact" data-quote-ticker="META" data-quote-market="us" data-quote-date="2026-08-21" href="https://finance.yahoo.com/quote/META/" target="_blank" rel="noopener" title="最近交易日收盤；不是即時報價" aria-label="META 最近收盤 US$ 549.90，單日漲跌 +0.7%，2026-08-21，前往 Yahoo（另開視窗）"><b>US$ 549.90</b><span>▲ +0.7%</span><small>2026-08-21</small></a></td><td class="num">20.7x</td><td class="num">22%</td><td><span style="color:#dc2626;font-weight:700;white-space:nowrap">🔴高估值警戒</span></td><td class="num">— —</td><td class="num">54</td><td><span class="cycle-tag" style="color:#94a3b8;border-color:#94a3b8" title="季度樣本 5&lt;8">未知</span></td></tr></tbody></table></div>
+            <div class="transmission"><b>Capex 傳導檢查:</b>樣本不足或相關性未達顯著。最大可配對季數 0;不據此宣稱 Capex 會在幾季後傳導。</div>
+          </div>
+        </details>
+        <div class="chain-arrow">↓</div>
+        <details class="chain-layer" open>
+          <summary><span class="layer-no">02</span><span>晶片設計</span>
+            <span class="layer-summary">平均月營收YoY <b>—</b>(n=0)　|　平均 trailing PE 百分位 <b>69%</b>(n=4)</span></summary>
+          <div class="layer-body">
+            
+            <div class="swipe-hint">← 手機可左右滑動看更多欄位 →</div>
+            <div class="table-scroll"><table class="tbl ai-table"><thead><tr>
+              <th>代號</th><th>名稱</th><th>市場</th><th>最近收盤</th><th>trailing PE</th><th>PE百分位</th>
+              <th>估值旗標</th><th>月營收動能</th><th>共識覆蓋</th><th>循環標記</th>
+            </tr></thead><tbody><tr><td><span class="ticker-logo"><span class="company-logo"><img src="assets/logos/NVDA.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>NV</span></span><b>NVDA</b></span></td><td class="name"><a href="https://finance.yahoo.com/quote/NVDA/" target="_blank" rel="noopener">NVIDIA</a></td><td title="Yahoo 調整後EPS">us</td><td class="quote-cell"><a class="quote-box down compact" data-quote-ticker="NVDA" data-quote-market="us" data-quote-date="2026-08-21" href="https://finance.yahoo.com/quote/NVDA/" target="_blank" rel="noopener" title="最近交易日收盤；不是即時報價" aria-label="NVDA 最近收盤 US$ 214.72，單日漲跌 -1.0%，2026-08-21，前往 Yahoo（另開視窗）"><b>US$ 214.72</b><span>▼ -1.0%</span><small>2026-08-21</small></a></td><td class="num">36.8x</td><td class="num">13%</td><td><span style="color:#16a34a;font-weight:700;white-space:nowrap">🟢合理偏低</span></td><td class="num">— —</td><td class="num">48</td><td><span class="cycle-tag" style="color:#94a3b8;border-color:#94a3b8" title="季度樣本 5&lt;8">未知</span></td></tr><tr><td><span class="ticker-logo"><span class="company-logo"><img src="assets/logos/AMD.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>AM</span></span><b>AMD</b></span></td><td class="name"><a href="https://finance.yahoo.com/quote/AMD/" target="_blank" rel="noopener">AMD</a></td><td title="Yahoo 調整後EPS">us</td><td class="quote-cell"><a class="quote-box up compact" data-quote-ticker="AMD" data-quote-market="us" data-quote-date="2026-08-21" href="https://finance.yahoo.com/quote/AMD/" target="_blank" rel="noopener" title="最近交易日收盤；不是即時報價" aria-label="AMD 最近收盤 US$ 473.25，單日漲跌 +0.8%，2026-08-21，前往 Yahoo（另開視窗）"><b>US$ 473.25</b><span>▲ +0.8%</span><small>2026-08-21</small></a></td><td class="num">82.2x</td><td class="num">94%</td><td><span style="color:#dc2626;font-weight:700;white-space:nowrap">🔴高估值警戒</span></td><td class="num">— —</td><td class="num">45</td><td><span class="cycle-tag" style="color:#94a3b8;border-color:#94a3b8" title="季度樣本 5&lt;8">未知</span></td></tr><tr><td><span class="ticker-logo"><span class="company-logo"><img src="assets/logos/AVGO.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>AV</span></span><b>AVGO</b></span></td><td class="name"><a href="https://finance.yahoo.com/quote/AVGO/" target="_blank" rel="noopener">Broadcom</a></td><td title="Yahoo 調整後EPS">us</td><td class="quote-cell"><a class="quote-box up compact" data-quote-ticker="AVGO" data-quote-market="us" data-quote-date="2026-08-21" href="https://finance.yahoo.com/quote/AVGO/" target="_blank" rel="noopener" title="最近交易日收盤；不是即時報價" aria-label="AVGO 最近收盤 US$ 368.45，單日漲跌 +1.2%，2026-08-21，前往 Yahoo（另開視窗）"><b>US$ 368.45</b><span>▲ +1.2%</span><small>2026-08-21</small></a></td><td class="num">45.3x</td><td class="num">75%</td><td><span style="color:#a16207;font-weight:700;white-space:nowrap">🟡一般</span></td><td class="num">— —</td><td class="num">44</td><td><span class="cycle-tag" style="color:#94a3b8;border-color:#94a3b8" title="季度樣本 5&lt;8">未知</span></td></tr><tr><td><span class="ticker-logo"><span class="company-logo"><img src="assets/logos/MRVL.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>MR</span></span><b>MRVL</b></span></td><td class="name"><a href="https://finance.yahoo.com/quote/MRVL/" target="_blank" rel="noopener">Marvell</a></td><td title="Yahoo 調整後EPS">us</td><td class="quote-cell"><a class="quote-box down compact" data-quote-ticker="MRVL" data-quote-market="us" data-quote-date="2026-08-21" href="https://finance.yahoo.com/quote/MRVL/" target="_blank" rel="noopener" title="最近交易日收盤；不是即時報價" aria-label="MRVL 最近收盤 US$ 237.04，單日漲跌 -5.6%，2026-08-21，前往 Yahoo（另開視窗）"><b>US$ 237.04</b><span>▼ -5.6%</span><small>2026-08-21</small></a></td><td class="num">78.2x</td><td class="num">95%</td><td><span style="color:#dc2626;font-weight:700;white-space:nowrap">🔴高估值警戒</span></td><td class="num">— —</td><td class="num">38</td><td><span class="cycle-tag" style="color:#94a3b8;border-color:#94a3b8" title="季度樣本 5&lt;8">未知</span></td></tr></tbody></table></div>
+            <div class="transmission"><b>Capex 傳導檢查:</b>樣本不足或相關性未達顯著。最大可配對季數 0;不據此宣稱 Capex 會在幾季後傳導。</div>
+          </div>
+        </details>
+        <div class="chain-arrow">↓</div>
+        <details class="chain-layer">
+          <summary><span class="layer-no">03</span><span>ASIC 設計服務</span>
+            <span class="layer-summary">平均月營收YoY <b>57.3%</b>(n=2)　|　平均 trailing PE 百分位 <b>—</b>(n=0)</span></summary>
+          <div class="layer-body">
+            
+            <div class="swipe-hint">← 手機可左右滑動看更多欄位 →</div>
+            <div class="table-scroll"><table class="tbl ai-table"><thead><tr>
+              <th>代號</th><th>名稱</th><th>市場</th><th>最近收盤</th><th>trailing PE</th><th>PE百分位</th>
+              <th>估值旗標</th><th>月營收動能</th><th>共識覆蓋</th><th>循環標記</th>
+            </tr></thead><tbody><tr><td><span class="ticker-logo"><span class="company-logo"><img src="assets/logos/3661.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>世</span></span><b>3661</b></span></td><td class="name"><a href="stock_3661.html">世芯-KY</a></td><td title="FinMind basic EPS">twse</td><td class="quote-cell"><a class="quote-box down compact" data-quote-ticker="3661" data-quote-market="twse" data-quote-date="2026-08-21" href="stock_3661.html" title="3661 個股詳情" aria-label="3661 最近收盤 NT$ 3,700.00，單日漲跌 -1.3%，2026-08-21，前往 站內個股詳情"><b>NT$ 3,700.00</b><span>▼ -1.3%</span><small>2026-08-21</small></a></td><td class="num">—</td><td class="num">—</td><td><span style="color:#9ca3af;font-weight:700;white-space:nowrap">⚪資料不足</span></td><td class="num">-16.8% ▲加速</td><td class="num">16</td><td><span class="cycle-tag" style="color:#b45309;border-color:#b45309" title="三取二命中 2；毛利率std=9.3pp、EPS最大年減=-34.9%、營收YoY振幅=230.4pp">循環</span></td></tr><tr><td><span class="ticker-logo"><span class="company-logo"><img src="assets/logos/3443.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>創</span></span><b>3443</b></span></td><td class="name"><a href="stock_3443.html">創意</a></td><td title="FinMind basic EPS">twse</td><td class="quote-cell"><a class="quote-box down compact" data-quote-ticker="3443" data-quote-market="twse" data-quote-date="2026-08-21" href="stock_3443.html" title="3443 個股詳情" aria-label="3443 最近收盤 NT$ 5,600.00，單日漲跌 -0.5%，2026-08-21，前往 站內個股詳情"><b>NT$ 5,600.00</b><span>▼ -0.5%</span><small>2026-08-21</small></a></td><td class="num">143.6x</td><td class="num">—</td><td><span style="color:#dc2626;font-weight:700;white-space:nowrap">🔴高估值警戒</span></td><td class="num">131.4% ▲加速</td><td class="num">16</td><td><span class="cycle-tag" style="color:#b45309;border-color:#b45309" title="三取二命中 2；毛利率std=4.6pp、EPS最大年減=-64.9%、營收YoY振幅=143.9pp">循環</span></td></tr></tbody></table></div>
+            <div class="transmission"><b>Capex 傳導檢查:</b>樣本不足或相關性未達顯著。最大可配對季數 0;不據此宣稱 Capex 會在幾季後傳導。</div>
+          </div>
+        </details>
+        <div class="chain-arrow">↓</div>
+        <details class="chain-layer">
+          <summary><span class="layer-no">04</span><span>晶圓代工</span>
+            <span class="layer-summary">平均月營收YoY <b>47.5%</b>(n=1)　|　平均 trailing PE 百分位 <b>77%</b>(n=1)</span></summary>
+          <div class="layer-body">
+            
+            <div class="swipe-hint">← 手機可左右滑動看更多欄位 →</div>
+            <div class="table-scroll"><table class="tbl ai-table"><thead><tr>
+              <th>代號</th><th>名稱</th><th>市場</th><th>最近收盤</th><th>trailing PE</th><th>PE百分位</th>
+              <th>估值旗標</th><th>月營收動能</th><th>共識覆蓋</th><th>循環標記</th>
+            </tr></thead><tbody><tr><td><span class="ticker-logo"><span class="company-logo"><img src="assets/logos/2330.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>台</span></span><b>2330</b></span></td><td class="name"><a href="stock_2330.html">台積電</a></td><td title="FinMind basic EPS">twse</td><td class="quote-cell"><a class="quote-box up compact" data-quote-ticker="2330" data-quote-market="twse" data-quote-date="2026-08-21" href="stock_2330.html" title="2330 個股詳情" aria-label="2330 最近收盤 NT$ 2,410.00，單日漲跌 +1.5%，2026-08-21，前往 站內個股詳情"><b>NT$ 2,410.00</b><span>▲ +1.5%</span><small>2026-08-21</small></a></td><td class="num">27.9x</td><td class="num">77%</td><td><span style="color:#a16207;font-weight:700;white-space:nowrap">🟡一般</span></td><td class="num">47.5% ▲加速</td><td class="num">34</td><td><span class="cycle-tag" style="color:#475569;border-color:#475569" title="三取二命中 1；毛利率std=5.9pp、EPS最大年減=-31.5%、營收YoY振幅=59.7pp">非循環</span></td></tr></tbody></table></div>
+            <div class="transmission"><b>Capex 傳導檢查:</b>樣本不足或相關性未達顯著。最大可配對季數 0;不據此宣稱 Capex 會在幾季後傳導。</div>
+          </div>
+        </details>
+        <div class="chain-arrow">↓</div>
+        <details class="chain-layer">
+          <summary><span class="layer-no">05</span><span>封測／先進封裝</span>
+            <span class="layer-summary">平均月營收YoY <b>26.9%</b>(n=1)　|　平均 trailing PE 百分位 <b>—</b>(n=0)</span></summary>
+          <div class="layer-body">
+            
+            <div class="swipe-hint">← 手機可左右滑動看更多欄位 →</div>
+            <div class="table-scroll"><table class="tbl ai-table"><thead><tr>
+              <th>代號</th><th>名稱</th><th>市場</th><th>最近收盤</th><th>trailing PE</th><th>PE百分位</th>
+              <th>估值旗標</th><th>月營收動能</th><th>共識覆蓋</th><th>循環標記</th>
+            </tr></thead><tbody><tr><td><span class="ticker-logo"><span class="company-logo"><img src="assets/logos/3711.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>日</span></span><b>3711</b></span></td><td class="name"><a href="stock_3711.html">日月光投控</a></td><td title="FinMind basic EPS">twse</td><td class="quote-cell"><a class="quote-box down compact" data-quote-ticker="3711" data-quote-market="twse" data-quote-date="2026-08-21" href="stock_3711.html" title="3711 個股詳情" aria-label="3711 最近收盤 NT$ 587.00，單日漲跌 -0.5%，2026-08-21，前往 站內個股詳情"><b>NT$ 587.00</b><span>▼ -0.5%</span><small>2026-08-21</small></a></td><td class="num">42.2x</td><td class="num">—</td><td><span style="color:#dc2626;font-weight:700;white-space:nowrap">🔴高估值警戒</span></td><td class="num">26.9% ▲加速</td><td class="num">17</td><td><span class="cycle-tag" style="color:#b45309;border-color:#b45309" title="三取二命中 2；毛利率std=1.9pp、EPS最大年減=-76.7%、營收YoY振幅=67.6pp">循環</span></td></tr></tbody></table></div>
+            <div class="transmission"><b>Capex 傳導檢查:</b>樣本不足或相關性未達顯著。最大可配對季數 0;不據此宣稱 Capex 會在幾季後傳導。</div>
+          </div>
+        </details>
+        <div class="chain-arrow">↓</div>
+        <details class="chain-layer">
+          <summary><span class="layer-no">06</span><span>記憶體／HBM</span>
+            <span class="layer-summary">平均月營收YoY <b>455.8%</b>(n=2)　|　平均 trailing PE 百分位 <b>56%</b>(n=2)</span></summary>
+          <div class="layer-body">
+            
+            <div class="swipe-hint">← 手機可左右滑動看更多欄位 →</div>
+            <div class="table-scroll"><table class="tbl ai-table"><thead><tr>
+              <th>代號</th><th>名稱</th><th>市場</th><th>最近收盤</th><th>trailing PE</th><th>PE百分位</th>
+              <th>估值旗標</th><th>月營收動能</th><th>共識覆蓋</th><th>循環標記</th>
+            </tr></thead><tbody><tr><td><span class="ticker-logo"><span class="company-logo"><img src="assets/logos/MU.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>MU</span></span><b>MU</b></span></td><td class="name"><a href="https://finance.yahoo.com/quote/MU/" target="_blank" rel="noopener">Micron</a></td><td title="Yahoo 調整後EPS">us</td><td class="quote-cell"><a class="quote-box down compact" data-quote-ticker="MU" data-quote-market="us" data-quote-date="2026-08-21" href="https://finance.yahoo.com/quote/MU/" target="_blank" rel="noopener" title="最近交易日收盤；不是即時報價" aria-label="MU 最近收盤 US$ 966.78，單日漲跌 -0.8%，2026-08-21，前往 Yahoo（另開視窗）"><b>US$ 966.78</b><span>▼ -0.8%</span><small>2026-08-21</small></a></td><td class="num">21.4x</td><td class="num">60%</td><td><span style="color:#a16207;font-weight:700;white-space:nowrap">🟡一般</span></td><td class="num">— —</td><td class="num">37</td><td><span class="cycle-tag" style="color:#94a3b8;border-color:#94a3b8" title="季度樣本 5&lt;8">未知</span></td></tr><tr><td><span class="ticker-logo"><span class="company-logo"><img src="assets/logos/2408.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>南</span></span><b>2408</b></span></td><td class="name"><a href="stock_2408.html">南亞科</a></td><td title="FinMind basic EPS">twse</td><td class="quote-cell"><a class="quote-box up compact" data-quote-ticker="2408" data-quote-market="twse" data-quote-date="2026-08-21" href="stock_2408.html" title="2408 個股詳情" aria-label="2408 最近收盤 NT$ 528.00，單日漲跌 +2.1%，2026-08-21，前往 站內個股詳情"><b>NT$ 528.00</b><span>▲ +2.1%</span><small>2026-08-21</small></a></td><td class="num">—</td><td class="num">—</td><td><span style="color:#9ca3af;font-weight:700;white-space:nowrap">⚪資料不足</span></td><td class="num">690.4% ▲加速</td><td class="num">8</td><td><span class="cycle-tag" style="color:#b45309;border-color:#b45309" title="三取二命中 3；毛利率std=25.6pp、EPS最大年減=-195.3%、營收YoY振幅=752.0pp">循環</span></td></tr><tr><td><span class="ticker-logo"><span class="company-logo"><img src="assets/logos/2344.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>華</span></span><b>2344</b></span></td><td class="name"><a href="stock_2344.html">華邦電</a></td><td title="FinMind basic EPS">twse</td><td class="quote-cell"><a class="quote-box up compact" data-quote-ticker="2344" data-quote-market="twse" data-quote-date="2026-08-21" href="stock_2344.html" title="2344 個股詳情" aria-label="2344 最近收盤 NT$ 181.00，單日漲跌 +2.5%，2026-08-21，前往 站內個股詳情"><b>NT$ 181.00</b><span>▲ +2.5%</span><small>2026-08-21</small></a></td><td class="num">20.0x</td><td class="num">52%</td><td><span style="color:#a16207;font-weight:700;white-space:nowrap">🟡一般</span></td><td class="num">221.1% ▲加速</td><td class="num">4</td><td><span class="cycle-tag" style="color:#b45309;border-color:#b45309" title="三取二命中 3；毛利率std=9.9pp、EPS最大年減=-171.4%、營收YoY振幅=218.7pp">循環</span></td></tr></tbody></table></div>
+            <div class="transmission"><b>Capex 傳導檢查:</b>樣本不足或相關性未達顯著。最大可配對季數 0;不據此宣稱 Capex 會在幾季後傳導。</div>
+          </div>
+        </details>
+        <div class="chain-arrow">↓</div>
+        <details class="chain-layer">
+          <summary><span class="layer-no">07</span><span>設備</span>
+            <span class="layer-summary">平均月營收YoY <b>—</b>(n=0)　|　平均 trailing PE 百分位 <b>94%</b>(n=4)</span></summary>
+          <div class="layer-body">
+            
+            <div class="swipe-hint">← 手機可左右滑動看更多欄位 →</div>
+            <div class="table-scroll"><table class="tbl ai-table"><thead><tr>
+              <th>代號</th><th>名稱</th><th>市場</th><th>最近收盤</th><th>trailing PE</th><th>PE百分位</th>
+              <th>估值旗標</th><th>月營收動能</th><th>共識覆蓋</th><th>循環標記</th>
+            </tr></thead><tbody><tr><td><span class="ticker-logo"><span class="company-logo"><img src="assets/logos/ASML.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>AS</span></span><b>ASML</b></span></td><td class="name"><a href="stock_ASML.html">ASML</a></td><td title="Yahoo 調整後EPS">us</td><td class="quote-cell"><a class="quote-box up compact" data-quote-ticker="ASML" data-quote-market="us" data-quote-date="2026-08-21" href="stock_ASML.html" title="ASML 個股詳情" aria-label="ASML 最近收盤 US$ 1,763.76，單日漲跌 +0.8%，2026-08-21，前往 站內個股詳情"><b>US$ 1,763.76</b><span>▲ +0.8%</span><small>2026-08-21</small></a></td><td class="num">54.8x</td><td class="num">92%</td><td><span style="color:#dc2626;font-weight:700;white-space:nowrap">🔴高估值警戒</span></td><td class="num">— —</td><td class="num">33</td><td><span class="cycle-tag" style="color:#94a3b8;border-color:#94a3b8" title="季度樣本 5&lt;8">未知</span></td></tr><tr><td><span class="ticker-logo"><span class="company-logo"><img src="assets/logos/AMAT.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>AM</span></span><b>AMAT</b></span></td><td class="name"><a href="stock_AMAT.html">Applied Materials</a></td><td title="Yahoo 調整後EPS">us</td><td class="quote-cell"><a class="quote-box down compact" data-quote-ticker="AMAT" data-quote-market="us" data-quote-date="2026-08-21" href="stock_AMAT.html" title="AMAT 個股詳情" aria-label="AMAT 最近收盤 US$ 492.32，單日漲跌 -0.8%，2026-08-21，前往 站內個股詳情"><b>US$ 492.32</b><span>▼ -0.8%</span><small>2026-08-21</small></a></td><td class="num">45.1x</td><td class="num">95%</td><td><span style="color:#dc2626;font-weight:700;white-space:nowrap">🔴高估值警戒</span></td><td class="num">— —</td><td class="num">28</td><td><span class="cycle-tag" style="color:#94a3b8;border-color:#94a3b8" title="季度樣本 5&lt;8">未知</span></td></tr><tr><td><span class="ticker-logo"><span class="company-logo"><img src="assets/logos/LRCX.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>LR</span></span><b>LRCX</b></span></td><td class="name"><a href="stock_LRCX.html">Lam Research</a></td><td title="Yahoo 調整後EPS">us</td><td class="quote-cell"><a class="quote-box up compact" data-quote-ticker="LRCX" data-quote-market="us" data-quote-date="2026-08-21" href="stock_LRCX.html" title="LRCX 個股詳情" aria-label="LRCX 最近收盤 US$ 314.00，單日漲跌 +1.1%，2026-08-21，前往 站內個股詳情"><b>US$ 314.00</b><span>▲ +1.1%</span><small>2026-08-21</small></a></td><td class="num">54.0x</td><td class="num">95%</td><td><span style="color:#dc2626;font-weight:700;white-space:nowrap">🔴高估值警戒</span></td><td class="num">— —</td><td class="num">29</td><td><span class="cycle-tag" style="color:#94a3b8;border-color:#94a3b8" title="季度樣本 5&lt;8">未知</span></td></tr><tr><td><span class="ticker-logo"><span class="company-logo"><img src="assets/logos/KLAC.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>KL</span></span><b>KLAC</b></span></td><td class="name"><a href="stock_KLAC.html">KLA</a></td><td title="Yahoo 調整後EPS">us</td><td class="quote-cell"><a class="quote-box down compact" data-quote-ticker="KLAC" data-quote-market="us" data-quote-date="2026-08-21" href="stock_KLAC.html" title="KLAC 個股詳情" aria-label="KLAC 最近收盤 US$ 183.99，單日漲跌 -1.0%，2026-08-21，前往 站內個股詳情"><b>US$ 183.99</b><span>▼ -1.0%</span><small>2026-08-21</small></a></td><td class="num">48.9x</td><td class="num">94%</td><td><span style="color:#dc2626;font-weight:700;white-space:nowrap">🔴高估值警戒</span></td><td class="num">— —</td><td class="num">24</td><td><span class="cycle-tag" style="color:#94a3b8;border-color:#94a3b8" title="季度樣本 5&lt;8">未知</span></td></tr></tbody></table></div>
+            <div class="transmission"><b>Capex 傳導檢查:</b>樣本不足或相關性未達顯著。最大可配對季數 0;不據此宣稱 Capex 會在幾季後傳導。</div>
+          </div>
+        </details>
+        <div class="chain-arrow">↓</div>
+        <details class="chain-layer">
+          <summary><span class="layer-no">08</span><span>材料／耗材</span>
+            <span class="layer-summary">平均月營收YoY <b>58.3%</b>(n=2)　|　平均 trailing PE 百分位 <b>94%</b>(n=2)</span></summary>
+          <div class="layer-body">
+            
+            <div class="swipe-hint">← 手機可左右滑動看更多欄位 →</div>
+            <div class="table-scroll"><table class="tbl ai-table"><thead><tr>
+              <th>代號</th><th>名稱</th><th>市場</th><th>最近收盤</th><th>trailing PE</th><th>PE百分位</th>
+              <th>估值旗標</th><th>月營收動能</th><th>共識覆蓋</th><th>循環標記</th>
+            </tr></thead><tbody><tr><td><span class="ticker-logo"><span class="company-logo"><img src="assets/logos/6488.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>環</span></span><b>6488</b></span></td><td class="name"><a href="https://tw.stock.yahoo.com/quote/6488.TWO" target="_blank" rel="noopener">環球晶</a></td><td title="FinMind basic EPS">tpex</td><td class="quote-cell"><a class="quote-box down compact" data-quote-ticker="6488" data-quote-market="tpex" data-quote-date="2026-08-21" href="https://tw.stock.yahoo.com/quote/6488.TWO" target="_blank" rel="noopener" title="最近交易日收盤；不是即時報價" aria-label="6488 最近收盤 NT$ 941.00，單日漲跌 -5.2%，2026-08-21，前往 Yahoo（另開視窗）"><b>NT$ 941.00</b><span>▼ -5.2%</span><small>2026-08-21</small></a></td><td class="num">45.7x</td><td class="num">94%</td><td><span style="color:#dc2626;font-weight:700;white-space:nowrap">🔴高估值警戒</span></td><td class="num">-5.0% ▲加速</td><td class="num">14</td><td><span class="cycle-tag" style="color:#b45309;border-color:#b45309" title="三取二命中 2；毛利率std=6.6pp、EPS最大年減=-91.5%、營收YoY振幅=36.5pp">循環</span></td></tr><tr><td><span class="ticker-logo"><span class="company-logo"><img src="assets/logos/2383.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>台</span></span><b>2383</b></span></td><td class="name"><a href="stock_2383.html">台光電</a></td><td title="FinMind basic EPS">twse</td><td class="quote-cell"><a class="quote-box down compact" data-quote-ticker="2383" data-quote-market="twse" data-quote-date="2026-08-21" href="stock_2383.html" title="2383 個股詳情" aria-label="2383 最近收盤 NT$ 5,680.00，單日漲跌 -5.1%，2026-08-21，前往 站內個股詳情"><b>NT$ 5,680.00</b><span>▼ -5.1%</span><small>2026-08-21</small></a></td><td class="num">88.6x</td><td class="num">93%</td><td><span style="color:#dc2626;font-weight:700;white-space:nowrap">🔴高估值警戒</span></td><td class="num">121.6% ▲加速</td><td class="num">16</td><td><span class="cycle-tag" style="color:#b45309;border-color:#b45309" title="三取二命中 2；毛利率std=3.3pp、EPS最大年減=-63.8%、營收YoY振幅=135.8pp">循環</span></td></tr></tbody></table></div>
+            <div class="transmission"><b>Capex 傳導檢查:</b>樣本不足或相關性未達顯著。最大可配對季數 0;不據此宣稱 Capex 會在幾季後傳導。</div>
+          </div>
+        </details>
+        <div class="chain-arrow">↓</div>
+        <details class="chain-layer">
+          <summary><span class="layer-no">09</span><span>電源</span>
+            <span class="layer-summary">平均月營收YoY <b>17.2%</b>(n=2)　|　平均 trailing PE 百分位 <b>75%</b>(n=2)</span></summary>
+          <div class="layer-body">
+            
+            <div class="swipe-hint">← 手機可左右滑動看更多欄位 →</div>
+            <div class="table-scroll"><table class="tbl ai-table"><thead><tr>
+              <th>代號</th><th>名稱</th><th>市場</th><th>最近收盤</th><th>trailing PE</th><th>PE百分位</th>
+              <th>估值旗標</th><th>月營收動能</th><th>共識覆蓋</th><th>循環標記</th>
+            </tr></thead><tbody><tr><td><span class="ticker-logo"><span class="company-logo"><img src="assets/logos/2308.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>台</span></span><b>2308</b></span></td><td class="name"><a href="stock_2308.html">台達電</a></td><td title="FinMind basic EPS">twse</td><td class="quote-cell"><a class="quote-box up compact" data-quote-ticker="2308" data-quote-market="twse" data-quote-date="2026-08-21" href="stock_2308.html" title="2308 個股詳情" aria-label="2308 最近收盤 NT$ 1,750.00，單日漲跌 +0.3%，2026-08-21，前往 站內個股詳情"><b>NT$ 1,750.00</b><span>▲ +0.3%</span><small>2026-08-21</small></a></td><td class="num">55.7x</td><td class="num">86%</td><td><span style="color:#a16207;font-weight:700;white-space:nowrap">🟡一般</span></td><td class="num">48.9% ▲加速</td><td class="num">22</td><td><span class="cycle-tag" style="color:#475569;border-color:#475569" title="三取二命中 0；毛利率std=3.1pp、EPS最大年減=-38.5%、營收YoY振幅=53.1pp">非循環</span></td></tr><tr><td><span class="ticker-logo"><span class="company-logo"><img src="assets/logos/1519.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>華</span></span><b>1519</b></span></td><td class="name"><a href="stock_1519.html">華城</a></td><td title="FinMind basic EPS">twse</td><td class="quote-cell"><a class="quote-box down compact" data-quote-ticker="1519" data-quote-market="twse" data-quote-date="2026-08-21" href="stock_1519.html" title="1519 個股詳情" aria-label="1519 最近收盤 NT$ 723.00，單日漲跌 -0.6%，2026-08-21，前往 站內個股詳情"><b>NT$ 723.00</b><span>▼ -0.6%</span><small>2026-08-21</small></a></td><td class="num">47.3x</td><td class="num">64%</td><td><span style="color:#a16207;font-weight:700;white-space:nowrap">🟡一般</span></td><td class="num">-14.5% ▼減速</td><td class="num">7</td><td><span class="cycle-tag" style="color:#b45309;border-color:#b45309" title="三取二命中 3；毛利率std=11.4pp、EPS最大年減=-285.7%、營收YoY振幅=140.7pp">循環</span></td></tr></tbody></table></div>
+            <div class="transmission"><b>Capex 傳導檢查:</b>樣本不足或相關性未達顯著。最大可配對季數 0;不據此宣稱 Capex 會在幾季後傳導。</div>
+          </div>
+        </details>
+        <div class="chain-arrow">↓</div>
+        <details class="chain-layer">
+          <summary><span class="layer-no">10</span><span>散熱</span>
+            <span class="layer-summary">平均月營收YoY <b>76.2%</b>(n=2)　|　平均 trailing PE 百分位 <b>59%</b>(n=2)</span></summary>
+          <div class="layer-body">
+            
+            <div class="swipe-hint">← 手機可左右滑動看更多欄位 →</div>
+            <div class="table-scroll"><table class="tbl ai-table"><thead><tr>
+              <th>代號</th><th>名稱</th><th>市場</th><th>最近收盤</th><th>trailing PE</th><th>PE百分位</th>
+              <th>估值旗標</th><th>月營收動能</th><th>共識覆蓋</th><th>循環標記</th>
+            </tr></thead><tbody><tr><td><span class="ticker-logo"><span class="company-logo"><img src="assets/logos/3017.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>奇</span></span><b>3017</b></span></td><td class="name"><a href="stock_3017.html">奇鋐</a></td><td title="FinMind basic EPS">twse</td><td class="quote-cell"><a class="quote-box down compact" data-quote-ticker="3017" data-quote-market="twse" data-quote-date="2026-08-21" href="stock_3017.html" title="3017 個股詳情" aria-label="3017 最近收盤 NT$ 2,865.00，單日漲跌 -4.0%，2026-08-21，前往 站內個股詳情"><b>NT$ 2,865.00</b><span>▼ -4.0%</span><small>2026-08-21</small></a></td><td class="num">38.1x</td><td class="num">77%</td><td><span style="color:#a16207;font-weight:700;white-space:nowrap">🟡一般</span></td><td class="num">61.4% ▼減速</td><td class="num">7</td><td><span class="cycle-tag" style="color:#b45309;border-color:#b45309" title="三取二命中 2；毛利率std=5.7pp、EPS最大年減=2.6%、營收YoY振幅=134.6pp">循環</span></td></tr><tr><td><span class="ticker-logo"><span class="company-logo"><img src="assets/logos/3324.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>雙</span></span><b>3324</b></span></td><td class="name"><a href="https://tw.stock.yahoo.com/quote/3324.TWO" target="_blank" rel="noopener">雙鴻</a></td><td title="FinMind basic EPS">tpex</td><td class="quote-cell"><a class="quote-box down compact" data-quote-ticker="3324" data-quote-market="tpex" data-quote-date="2026-08-21" href="https://tw.stock.yahoo.com/quote/3324.TWO" target="_blank" rel="noopener" title="最近交易日收盤；不是即時報價" aria-label="3324 最近收盤 NT$ 969.00，單日漲跌 -2.4%，2026-08-21，前往 Yahoo（另開視窗）"><b>NT$ 969.00</b><span>▼ -2.4%</span><small>2026-08-21</small></a></td><td class="num">22.1x</td><td class="num">41%</td><td><span style="color:#16a34a;font-weight:700;white-space:nowrap">🟢合理偏低</span></td><td class="num">90.9% ▲加速</td><td class="num">7</td><td><span class="cycle-tag" style="color:#b45309;border-color:#b45309" title="三取二命中 2；毛利率std=4.9pp、EPS最大年減=-75.8%、營收YoY振幅=115.2pp">循環</span></td></tr></tbody></table></div>
+            <div class="transmission"><b>Capex 傳導檢查:</b>樣本不足或相關性未達顯著。最大可配對季數 0;不據此宣稱 Capex 會在幾季後傳導。</div>
+          </div>
+        </details>
+        <div class="chain-arrow">↓</div>
+        <details class="chain-layer">
+          <summary><span class="layer-no">11</span><span>PCB／載板</span>
+            <span class="layer-summary">平均月營收YoY <b>59.2%</b>(n=2)　|　平均 trailing PE 百分位 <b>80%</b>(n=2)</span></summary>
+          <div class="layer-body">
+            
+            <div class="swipe-hint">← 手機可左右滑動看更多欄位 →</div>
+            <div class="table-scroll"><table class="tbl ai-table"><thead><tr>
+              <th>代號</th><th>名稱</th><th>市場</th><th>最近收盤</th><th>trailing PE</th><th>PE百分位</th>
+              <th>估值旗標</th><th>月營收動能</th><th>共識覆蓋</th><th>循環標記</th>
+            </tr></thead><tbody><tr><td><span class="ticker-logo"><span class="company-logo"><img src="assets/logos/2368.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>金</span></span><b>2368</b></span></td><td class="name"><a href="stock_2368.html">金像電</a></td><td title="FinMind basic EPS">twse</td><td class="quote-cell"><a class="quote-box down compact" data-quote-ticker="2368" data-quote-market="twse" data-quote-date="2026-08-21" href="stock_2368.html" title="2368 個股詳情" aria-label="2368 最近收盤 NT$ 965.00，單日漲跌 -5.9%，2026-08-21，前往 站內個股詳情"><b>NT$ 965.00</b><span>▼ -5.9%</span><small>2026-08-21</small></a></td><td class="num">33.9x</td><td class="num">79%</td><td><span style="color:#a16207;font-weight:700;white-space:nowrap">🟡一般</span></td><td class="num">81.0% ▲加速</td><td class="num">8</td><td><span class="cycle-tag" style="color:#b45309;border-color:#b45309" title="三取二命中 3；毛利率std=7.4pp、EPS最大年減=-183.3%、營收YoY振幅=93.3pp">循環</span></td></tr><tr><td><span class="ticker-logo"><span class="company-logo"><img src="assets/logos/3037.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>欣</span></span><b>3037</b></span></td><td class="name"><a href="stock_3037.html">欣興</a></td><td title="FinMind basic EPS">twse</td><td class="quote-cell"><a class="quote-box down compact" data-quote-ticker="3037" data-quote-market="twse" data-quote-date="2026-08-21" href="stock_3037.html" title="3037 個股詳情" aria-label="3037 最近收盤 NT$ 1,085.00，單日漲跌 -4.8%，2026-08-21，前往 站內個股詳情"><b>NT$ 1,085.00</b><span>▼ -4.8%</span><small>2026-08-21</small></a></td><td class="num">70.0x</td><td class="num">80%</td><td><span style="color:#a16207;font-weight:700;white-space:nowrap">🟡一般</span></td><td class="num">37.5% ▲加速</td><td class="num">14</td><td><span class="cycle-tag" style="color:#b45309;border-color:#b45309" title="三取二命中 3；毛利率std=7.7pp、EPS最大年減=-98.1%、營收YoY振幅=78.3pp">循環</span></td></tr></tbody></table></div>
+            <div class="transmission"><b>Capex 傳導檢查:</b>樣本不足或相關性未達顯著。最大可配對季數 0;不據此宣稱 Capex 會在幾季後傳導。</div>
+          </div>
+        </details>
+        <div class="chain-arrow">↓</div>
+        <details class="chain-layer">
+          <summary><span class="layer-no">12</span><span>廠務工程</span>
+            <span class="layer-summary">平均月營收YoY <b>72.8%</b>(n=3)　|　平均 trailing PE 百分位 <b>70%</b>(n=1)</span></summary>
+          <div class="layer-body">
+            <p>帆宣正確代號為 6196；原需求中的 3416 已更正。</p>
+            <div class="swipe-hint">← 手機可左右滑動看更多欄位 →</div>
+            <div class="table-scroll"><table class="tbl ai-table"><thead><tr>
+              <th>代號</th><th>名稱</th><th>市場</th><th>最近收盤</th><th>trailing PE</th><th>PE百分位</th>
+              <th>估值旗標</th><th>月營收動能</th><th>共識覆蓋</th><th>循環標記</th>
+            </tr></thead><tbody><tr><td><span class="ticker-logo"><span class="company-logo"><img src="assets/logos/6196.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>帆</span></span><b>6196</b></span></td><td class="name"><a href="stock_6196.html">帆宣</a></td><td title="FinMind basic EPS">twse</td><td class="quote-cell"><a class="quote-box down compact" data-quote-ticker="6196" data-quote-market="twse" data-quote-date="2026-08-21" href="stock_6196.html" title="6196 個股詳情" aria-label="6196 最近收盤 NT$ 490.50，單日漲跌 -1.1%，2026-08-21，前往 站內個股詳情"><b>NT$ 490.50</b><span>▼ -1.1%</span><small>2026-08-21</small></a></td><td class="num">22.0x</td><td class="num">—</td><td><span style="color:#a16207;font-weight:700;white-space:nowrap">🟡一般</span></td><td class="num">77.4% ▲加速</td><td class="num">3</td><td><span class="cycle-tag" style="color:#b45309;border-color:#b45309" title="三取二命中 2；毛利率std=1.5pp、EPS最大年減=-56.0%、營收YoY振幅=96.7pp">循環</span></td></tr><tr><td><span class="ticker-logo"><span class="company-logo"><img src="assets/logos/6139.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>亞</span></span><b>6139</b></span></td><td class="name"><a href="stock_6139.html">亞翔</a></td><td title="FinMind basic EPS">twse</td><td class="quote-cell"><a class="quote-box down compact" data-quote-ticker="6139" data-quote-market="twse" data-quote-date="2026-08-21" href="stock_6139.html" title="6139 個股詳情" aria-label="6139 最近收盤 NT$ 762.00，單日漲跌 -0.5%，2026-08-21，前往 站內個股詳情"><b>NT$ 762.00</b><span>▼ -0.5%</span><small>2026-08-21</small></a></td><td class="num">15.3x</td><td class="num">—</td><td><span style="color:#a16207;font-weight:700;white-space:nowrap">🟡一般</span></td><td class="num">74.5% —持平</td><td class="num">1</td><td><span class="cycle-tag" style="color:#b45309;border-color:#b45309" title="三取二命中 2；毛利率std=4.0pp、EPS最大年減=-177.3%、營收YoY振幅=196.8pp">循環</span></td></tr><tr><td><span class="ticker-logo"><span class="company-logo"><img src="assets/logos/2404.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>漢</span></span><b>2404</b></span></td><td class="name"><a href="stock_2404.html">漢唐</a></td><td title="FinMind basic EPS">twse</td><td class="quote-cell"><a class="quote-box down compact" data-quote-ticker="2404" data-quote-market="twse" data-quote-date="2026-08-21" href="stock_2404.html" title="2404 個股詳情" aria-label="2404 最近收盤 NT$ 1,060.00，單日漲跌 -1.4%，2026-08-21，前往 站內個股詳情"><b>NT$ 1,060.00</b><span>▼ -1.4%</span><small>2026-08-21</small></a></td><td class="num">16.0x</td><td class="num">70%</td><td><span style="color:#a16207;font-weight:700;white-space:nowrap">🟡一般</span></td><td class="num">66.6% ▼減速</td><td class="num">1</td><td><span class="cycle-tag" style="color:#475569;border-color:#475569" title="三取二命中 1；毛利率std=3.7pp、EPS最大年減=-50.0%、營收YoY振幅=245.2pp">非循環</span></td></tr></tbody></table></div>
+            <div class="transmission"><b>Capex 傳導檢查:</b>樣本不足或相關性未達顯著。最大可配對季數 0;不據此宣稱 Capex 會在幾季後傳導。</div>
+          </div>
+        </details></div>
+  
+    <section class="output-side" data-output-metrics="7" data-output-accel="1" data-output-decel="0" data-output-flat="0" data-output-not-disclosed="1" data-output-insufficient="5" data-output-pending="0">
+      <div class="output-title"><div><span>OUTPUT · 截至 2026Q2</span><h2>產出側：AI 是否產生經濟價值</h2></div>
+        <div class="output-summary"><b class="up">▲ 1 加速</b><b class="down">▼ 0 減速</b>
+          <b>— 0 持平</b><b class="missing">1 未揭露</b><b>5 前期／口徑不足</b>
+          <b>0 待輸入</b></div></div>
+      <p class="output-thesis"><b>上游 Capex 是投入，產出側是回收。</b>兩側都健康代表循環可持續；
+        投入持續增加而產出側整體減速，是需求論述出現裂縫的早期訊號。
+        單一公司減速多為競爭問題，需整組同時轉向才具意義。<br>
+        <small>這是待驗證的研究假說；目前彙總是指標數，不是公司層級或產業整體判定。</small></p>
+      <div class="output-grid">
+        <article class="output-card" data-output-direction="accel">
+          <div class="guidance-head"><div class="logo-name"><span class="company-logo"><img src="assets/logos/PLTR.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>PL</span></span>
+            <div><b>Palantir</b><small>PLTR</small></div></div>
+            <span class="direction up">▲ 加速</span></div>
+          <a class="quote-box up" data-quote-ticker="PLTR" data-quote-market="us" data-quote-date="2026-08-21" href="https://finance.yahoo.com/quote/PLTR/" target="_blank" rel="noopener" title="最近交易日收盤；不是即時報價" aria-label="PLTR 最近收盤 US$ 179.94，單日漲跌 +3.4%，2026-08-21，前往 Yahoo（另開視窗）"><b>US$ 179.94</b><span>▲ +3.4%</span><small>2026-08-21</small></a>
+          <h4>美國商用營收 YoY</h4>
+          <div class="output-values">
+            <div><span>最新</span><b>149.0 %</b><small>2026Q2</small></div>
+            <div><span>前期</span><b>133.0 %</b><small>2026Q1</small></div>
+          </div>
+          
+          <details class="guidance-source"><summary>查看來源與判定</summary><p>季度軸使用日曆季；會計季揭露須先映射到對應日曆季。</p><p>下限值（超過 X）只顯示方向，不當成精確值計算加速或減速。</p><ul><li><b>2026Q2</b>｜Palantir Q2 2026 財報｜2026-08-03｜149.0 %</li><li><b>2026Q1</b>｜Palantir Q2 2026 財報｜2026-08-03｜133.0 %</li><li><b>2025Q4</b>｜Palantir Q2 2026 財報｜2026-08-03｜137.0 %</li><li><b>2025Q3</b>｜Palantir Q3 2025 股東信｜2025-11-03｜121.0 %</li><li><b>2025Q2</b>｜Palantir Q2 2025 股東信｜2025-08-04｜93.0 %</li><li><b>2025Q1</b>｜Palantir Q1 2025 股東信｜2025-05-05｜71.0 %</li><li><b>2024Q4</b>｜Palantir Q4 2024 股東信｜2025-02-03｜64.0 %</li></ul><p>需逐季人工填入；不是整體 AI 產出的產業代理。</p></details>
+        </article>
+        <article class="output-card" data-output-direction="insufficient">
+          <div class="guidance-head"><div class="logo-name"><span class="company-logo"><img src="assets/logos/MSFT.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>MS</span></span>
+            <div><b>Microsoft</b><small>MSFT</small></div></div>
+            <span class="direction na">下限／衍生值・不精算</span></div>
+          <a class="quote-box up" data-quote-ticker="MSFT" data-quote-market="us" data-quote-date="2026-08-21" href="https://finance.yahoo.com/quote/MSFT/" target="_blank" rel="noopener" title="最近交易日收盤；不是即時報價" aria-label="MSFT 最近收盤 US$ 483.24，單日漲跌 +0.4%，2026-08-21，前往 Yahoo（另開視窗）"><b>US$ 483.24</b><span>▲ +0.4%</span><small>2026-08-21</small></a>
+          <h4>Microsoft 365 Copilot 付費席次</h4>
+          <div class="output-values">
+            <div><span>最新</span><b>超過 3,000 萬席</b><small>2026Q2</small></div>
+            <div><span>前期</span><b>超過 2,000 萬席</b><small>2026Q1</small></div>
+          </div>
+          <p class="output-change">超過 3,000 萬付費席；另揭露 Azure 年營收首次突破 1,000 億美元</p>
+          <details class="guidance-source"><summary>查看來源與判定</summary><p>level 型的加速/減速使用連續三季，比較本季成長率與前季成長率。</p><p>季度軸使用日曆季；會計季揭露須先映射到對應日曆季。</p><p>下限值（超過 X）只顯示方向，不當成精確值計算加速或減速。</p><ul><li><b>2026Q2</b>｜Microsoft FY26 Q4 財報新聞稿；Nadella 發言｜2026-07｜超過 3,000 萬席</li><li><b>2026Q1</b>｜Microsoft FY26 Q3 法說會｜2026-04-29｜超過 2,000 萬席</li><li><b>2025Q4</b>｜Microsoft FY26 Q2 法說會｜2026-01-28｜1,500 萬席</li></ul><p>席次是使用量指標,不等同營收；下限值不計算精確加速度。</p></details>
+        </article>
+        <article class="output-card" data-output-direction="not_disclosed">
+          <div class="guidance-head"><div class="logo-name"><span class="company-logo"><img src="assets/logos/MSFT.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>MS</span></span>
+            <div><b>Microsoft</b><small>MSFT</small></div></div>
+            <span class="direction missing">本季未揭露（連續 1 季）</span></div>
+          <a class="quote-box up" data-quote-ticker="MSFT" data-quote-market="us" data-quote-date="2026-08-21" href="https://finance.yahoo.com/quote/MSFT/" target="_blank" rel="noopener" title="最近交易日收盤；不是即時報價" aria-label="MSFT 最近收盤 US$ 483.24，單日漲跌 +0.4%，2026-08-21，前往 Yahoo（另開視窗）"><b>US$ 483.24</b><span>▲ +0.4%</span><small>2026-08-21</small></a>
+          <h4>Microsoft AI 業務年化營收 run rate</h4>
+          <div class="output-values">
+            <div><span>最新</span><b>本季未揭露</b><small>2026Q2</small></div>
+            <div><span>前期</span><b>超過 37.0 USD bn</b><small>2026Q1</small></div>
+          </div>
+          
+          <details class="guidance-source"><summary>查看來源與判定</summary><p>level 型的加速/減速使用連續三季，比較本季成長率與前季成長率。</p><p>季度軸使用日曆季；會計季揭露須先映射到對應日曆季。</p><p>下限值（超過 X）只顯示方向，不當成精確值計算加速或減速。</p><ul><li><b>2026Q2</b>｜Microsoft FY26 Q4 財報與法說會｜2026-07-29｜本季未揭露</li><li><b>2026Q1</b>｜Microsoft FY26 Q3 財報與法說會｜2026-04-29｜超過 37.0 USD bn</li><li><b>2025Q4</b>｜Microsoft FY26 Q2 財報與法說會｜2026-01-28｜本季未揭露</li><li><b>2025Q3</b>｜Microsoft FY26 Q1 財報與法說會｜2025-10-29｜本季未揭露</li><li><b>2025Q2</b>｜Microsoft FY25 Q4 財報與法說會｜2025-07-30｜本季未揭露</li><li><b>2025Q1</b>｜Microsoft FY25 Q3 財報與法說會｜2025-04-30｜本季未揭露</li><li><b>2024Q4</b>｜Microsoft FY25 Q2 財報與法說會｜2025-01-29｜超過 13.0 USD bn</li></ul><p>公司整體 AI 業務年化營收 run rate；Microsoft 未提供正式範圍拆解或逐季連續值。</p></details>
+        </article>
+        <article class="output-card" data-output-direction="insufficient">
+          <div class="guidance-head"><div class="logo-name"><span class="company-logo"><img src="assets/logos/GOOGL.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>GO</span></span>
+            <div><b>Alphabet</b><small>GOOGL</small></div></div>
+            <span class="direction na">口徑斷點</span></div>
+          <a class="quote-box up" data-quote-ticker="GOOGL" data-quote-market="us" data-quote-date="2026-08-21" href="https://finance.yahoo.com/quote/GOOGL/" target="_blank" rel="noopener" title="最近交易日收盤；不是即時報價" aria-label="GOOGL 最近收盤 US$ 344.82，單日漲跌 +1.2%，2026-08-21，前往 Yahoo（另開視窗）"><b>US$ 344.82</b><span>▲ +1.2%</span><small>2026-08-21</small></a>
+          <h4>Google Cloud backlog</h4>
+          <div class="output-values">
+            <div><span>最新</span><b>514.0 USD bn</b><small>2026Q2</small></div>
+            <div><span>前期</span><b>462.0 USD bn</b><small>2026Q1</small></div>
+          </div>
+          <p class="output-change">單季增加超過 50 USD bn；超過 50% 預期於未來 24 個月認列</p>
+          <details class="guidance-source"><summary>查看來源與判定</summary><p>level 型的加速/減速使用連續三季，比較本季成長率與前季成長率。</p><p>季度軸使用日曆季；會計季揭露須先映射到對應日曆季。</p><p>下限值（超過 X）只顯示方向，不當成精確值計算加速或減速。</p><ul><li><b>2026Q2</b>｜Alphabet Q2 2026 法說會；CFO 發言｜2026-07-22｜514.0 USD bn</li><li><b>2026Q1</b>｜Alphabet 2026 Q1 法說會｜2026-04-29｜462.0 USD bn</li><li><b>2025Q4</b>｜Alphabet 2025 Q4 法說會｜2026-02-04｜240.0 USD bn</li><li><b>2025Q3</b>｜Alphabet 2025 Q3 法說會｜2025-10-29｜155.0 USD bn</li><li><b>2025Q2</b>｜Alphabet 2025 Q3 法說會（由 155bn 與單季增加 49bn 推回）｜2025-10-29｜推算 106.0 USD bn</li></ul><p>Cloud 整體 backlog,不是純 AI backlog；Q1/Q2 均含 TPU 硬體銷售，Q4→Q1 不可比。</p></details>
+        </article>
+        <article class="output-card" data-output-direction="insufficient">
+          <div class="guidance-head"><div class="logo-name"><span class="company-logo"><img src="assets/logos/AMZN.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>AM</span></span>
+            <div><b>Amazon</b><small>AMZN</small></div></div>
+            <span class="direction na">下限／衍生值・不精算</span></div>
+          <a class="quote-box down" data-quote-ticker="AMZN" data-quote-market="us" data-quote-date="2026-08-21" href="https://finance.yahoo.com/quote/AMZN/" target="_blank" rel="noopener" title="最近交易日收盤；不是即時報價" aria-label="AMZN 最近收盤 US$ 258.63，單日漲跌 -0.6%，2026-08-21，前往 Yahoo（另開視窗）"><b>US$ 258.63</b><span>▼ -0.6%</span><small>2026-08-21</small></a>
+          <h4>AWS AI 業務年化營收 run rate</h4>
+          <div class="output-values">
+            <div><span>最新</span><b>超過 25.0 USD bn</b><small>2026Q2</small></div>
+            <div><span>前期</span><b>超過 15.0 USD bn</b><small>2026Q1</small></div>
+          </div>
+          <p class="output-change">三位數成長；另揭露晶片業務年化營收亦超過 25 USD bn</p>
+          <details class="guidance-source"><summary>查看來源與判定</summary><p>level 型的加速/減速使用連續三季，比較本季成長率與前季成長率。</p><p>季度軸使用日曆季；會計季揭露須先映射到對應日曆季。</p><p>下限值（超過 X）只顯示方向，不當成精確值計算加速或減速。</p><ul><li><b>2026Q2</b>｜Amazon Q2 2026 財報新聞稿｜2026-07-30｜超過 25.0 USD bn</li><li><b>2026Q1</b>｜Amazon 2025 股東信｜2026-04-09｜超過 15.0 USD bn</li></ul><p>公司選擇性揭露的 AWS AI run rate,不含另行揭露的晶片業務；Q1 精確 as-of 未說明；下限值不計算精確增幅。</p></details>
+        </article>
+        <article class="output-card" data-output-direction="insufficient">
+          <div class="guidance-head"><div class="logo-name"><span class="company-logo"><img src="assets/logos/CRM.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>CR</span></span>
+            <div><b>Salesforce</b><small>CRM</small></div></div>
+            <span class="direction na">前三期非精確值</span></div>
+          <a class="quote-box up" data-quote-ticker="CRM" data-quote-market="us" data-quote-date="2026-08-21" href="https://finance.yahoo.com/quote/CRM/" target="_blank" rel="noopener" title="最近交易日收盤；不是即時報價" aria-label="CRM 最近收盤 US$ 209.17，單日漲跌 +1.8%，2026-08-21，前往 Yahoo（另開視窗）"><b>US$ 209.17</b><span>▲ +1.8%</span><small>2026-08-21</small></a>
+          <h4>Agentforce ARR</h4>
+          <div class="output-values">
+            <div><span>最新</span><b>1.2 USD bn</b><small>FY27Q1（截至 2026-04-30）</small></div>
+            <div><span>前期</span><b>0.8 USD bn</b><small>FY26Q4（截至 2026-01-31）</small></div>
+          </div>
+          
+          <details class="guidance-source"><summary>查看來源與判定</summary><p>level 型的加速/減速使用連續三季，比較本季成長率與前季成長率。</p><p>保留公司原生財季與截止日；calendar_period 只供排序，不冒充日曆季。</p><p>下限值（超過 X）只顯示方向，不當成精確值計算加速或減速。</p><ul><li><b>FY27Q1（截至 2026-04-30）</b>｜Salesforce FY27 Q1 財報｜2026-05-27｜1.2 USD bn</li><li><b>FY26Q4（截至 2026-01-31）</b>｜Salesforce FY26 Q4 財報｜2026-02-25｜0.8 USD bn</li><li><b>FY26Q3（截至 2025-10-31）</b>｜Salesforce FY26 Q3 財報｜2025-12-03｜超過 0.5 USD bn</li></ul><p>Agentforce 單獨 ARR；保留 Salesforce 原生財季與截止日，不與 Data 360/Informatica 合併值混用。</p></details>
+        </article>
+        <article class="output-card" data-output-direction="insufficient">
+          <div class="guidance-head"><div class="logo-name"><span class="company-logo"><img src="assets/logos/NOW.png" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-fallback" hidden>NO</span></span>
+            <div><b>ServiceNow</b><small>NOW</small></div></div>
+            <span class="direction na">下限／衍生值・不精算</span></div>
+          <a class="quote-box down" data-quote-ticker="NOW" data-quote-market="us" data-quote-date="2026-08-21" href="https://finance.yahoo.com/quote/NOW/" target="_blank" rel="noopener" title="最近交易日收盤；不是即時報價" aria-label="NOW 最近收盤 US$ 128.48，單日漲跌 -1.0%，2026-08-21，前往 Yahoo（另開視窗）"><b>US$ 128.48</b><span>▼ -1.0%</span><small>2026-08-21</small></a>
+          <h4>ServiceNow AI ACV</h4>
+          <div class="output-values">
+            <div><span>最新</span><b>超過 1.0 USD bn</b><small>2026Q2</small></div>
+            <div><span>前期</span><b>本季未揭露</b><small>2026Q1</small></div>
+          </div>
+          
+          <details class="guidance-source"><summary>查看來源與判定</summary><p>level 型的加速/減速使用連續三季，比較本季成長率與前季成長率。</p><p>季度軸使用日曆季；會計季揭露須先映射到對應日曆季。</p><p>下限值（超過 X）只顯示方向，不當成精確值計算加速或減速。</p><ul><li><b>2026Q2</b>｜ServiceNow 2026 Q2 財報｜2026-07-22｜超過 1.0 USD bn</li><li><b>2026Q1</b>｜ServiceNow 2026 Q1 財報｜2026-04-22｜本季未揭露</li><li><b>2025Q4</b>｜ServiceNow 2025 Q4 財報｜2026-01-28｜本季未揭露</li></ul><p>公司整體 ServiceNow AI ACV,不是營收；較早季度未揭露可比總額。</p></details>
+        </article></div>
+      <div class="warn output-warning"><b>限制:</b>這些指標為公司自選揭露，口徑不一致、可比性有限；
+        PLTR 全年美國商用營收約 3.4bn；相對四大 Capex 約 500bn 不到 1%。兩者期間與口徑不同,只作規模警語。不可單獨代表產業；多數為同步指標而非領先指標。
+        規模警語來源狀態:使用者提供的規模警語；未指定原始來源與同一比較期間。
+        上方彙總計算的是<b>指標數</b>,不是公司數或可加總的產業指數；同一公司多項指標會分別計數。
+        「待輸入」不等於公司未揭露；只有已填入 <code>not_disclosed</code> 的季度才計入連續未揭露。</div>
+    </section>
+  <footer>資料:TWSE/TPEx 台股收盤、FinMind 台股財報/歷史資料、yfinance 美股與共識；估值與動能沿用主篩選器。缺資料標示不納入,不以替代值硬湊。公司名稱與商標權利屬各公司所有,Logo 僅作識別用途。</footer>
+</div></body></html>
