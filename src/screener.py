@@ -523,6 +523,7 @@ def evaluate(rec: dict, cfg: dict) -> ScreenResult:
         "Yahoo 調整後EPS" if rec.get("market") == "us" else "FinMind basic EPS")
     r.metrics["pe_reason"] = (ph.get("reason") if ph_compatible and not current_ok
                               else None if current_ok else "incompatible_schema")
+    r.metrics["source_cache_regressed"] = bool(ph.get("source_cache_regressed"))
     r.metrics["currency"] = rec.get("currency") or ("USD" if r.market == "us" else "TWD")
     r.metrics.update(derive_trailing_price_levels(
         rec.get("price_last"), rec.get("price_date"), r.metrics["trailing_pe"],
@@ -539,6 +540,8 @@ def evaluate(rec: dict, cfg: dict) -> ScreenResult:
     # 共識覆蓋家數 + 是否「低覆蓋」(下游 PEG/修正動能 標記僅供參考,不刪資料)
     r.metrics["coverage"] = cov
     r.metrics["low_coverage"] = low_coverage
+    r.metrics["partial_update"] = bool(rec.get("partial_update"))
+    r.metrics["record_errors"] = [str(error) for error in (rec.get("errors") or [])]
 
     # ---- 不依賴分析師共識的兩個補充欄位(口徑不同,獨立顯示,絕不覆蓋前瞻欄) ----
     hp = rec.get("hist_peg") or {}

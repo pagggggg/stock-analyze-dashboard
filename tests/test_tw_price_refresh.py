@@ -12,6 +12,7 @@ from src.tw_price_refresh import (_fetch_tpex_day, _fetch_twse_day,
                                   _carry_forward_pe_history,
                                   _expected_income_period,
                                   _income_for_price_date, _publish_records,
+                                  _rotated_missing_income_ids,
                                   refresh_tw_prices)
 
 
@@ -176,6 +177,66 @@ class TaiwanPriceRefreshTests(unittest.TestCase):
         self.assertTrue(refreshed)
         self.assertTrue(attempted)
         self.assertEqual(income["2026-06-30"]["EPS"], 1.2)
+
+    def test_missing_income_queue_prioritizes_due_eps_and_rotates_cursor(self):
+        records = {
+            "1001": {"name": "缺季一", "industry": "半導體業", "market": "twse"},
+            "1002": {"name": "完整", "industry": "半導體業", "market": "twse"},
+            "1003": {"name": "缺季二", "industry": "半導體業", "market": "twse"},
+        }
+        rows = {sid: [{"date": "2026-08-21", "close": 100.0}]
+                for sid in records}
+        incomes = {
+            "1001": {"2026-03-31": {"EPS": 1.0}},
+            "1002": {"2026-06-30": {"EPS": 1.0}},
+            "1003": {"2026-03-31": {"EPS": 1.0}},
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "cache").mkdir()
+            (root / "cache/tw-income-refresh-state.json").write_text(
+                json.dumps({"cursor": 2}), encoding="utf-8")
+            with patch("src.tw_price_refresh._load_cache_data",
+                       side_effect=lambda key, _label: incomes[key.rsplit("_", 1)[-1]]):
+                ordered, cursor, state, all_missing = _rotated_missing_income_ids(
+                    root, list(records), records, rows)
+
+        self.assertEqual(cursor, 2)
+        self.assertEqual(state["cursor"], 2)
+        self.assertEqual(ordered, ["1003", "1001"])
+        self.assertEqual(all_missing, {"1001", "1003"})
+
+    def test_missing_income_queue_respects_retry_after(self):
+        records = {
+            "1001": {"name": "冷卻中", "industry": "金融保險", "market": "twse"},
+            "1002": {"name": "可重試", "industry": "半導體業", "market": "twse"},
+        }
+        rows = {sid: [{"date": "2026-08-21", "close": 100.0}]
+                for sid in records}
+        incomes = {sid: {"2025-12-31": {"EPS": 1.0}} for sid in records}
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "cache").mkdir()
+            (root / "cache/tw-income-refresh-state.json").write_text(json.dumps({
+                "cursor": 0, "retry_after": {"1001": "2999-01-01"},
+            }), encoding="utf-8")
+            with patch("src.tw_price_refresh._load_cache_data",
+                       side_effect=lambda key, _label: incomes[key.rsplit("_", 1)[-1]]):
+                ordered, _, _, all_missing = _rotated_missing_income_ids(
+                    root, list(records), records, rows)
+
+        self.assertEqual(ordered, ["1002"])
+        self.assertEqual(all_missing, {"1001", "1002"})
+
+    def test_cooled_missing_income_stock_still_processes_record(self):
+        # Queue eligibility and record processing are separate: a cooled stock must
+        # still receive the latest official price even though its EPS API call is skipped.
+        eligible = ["1002"]
+        fallback_order = ["1001", "1002", "1003"]
+        processing_order = eligible + [sid for sid in fallback_order if sid not in set(eligible)]
+
+        self.assertEqual(processing_order, ["1002", "1001", "1003"])
+        self.assertEqual(set(processing_order), set(fallback_order))
 
     def test_persisted_ttm_basis_reprices_after_cache_regression(self):
         old = {

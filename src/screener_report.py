@@ -24,6 +24,10 @@ def _flag(r) -> str:
     return f"{em}{lab}"
 
 
+def _name(r) -> str:
+    return f"{r.name} ⚠部分沿用" if r.metrics.get("partial_update") else r.name
+
+
 def _val_rows(results: list[ScreenResult], with_market: bool = True) -> str:
     """估值明細列:歷史位階一律 trailing 對 trailing；前瞻欄獨立。"""
     out = []
@@ -37,7 +41,7 @@ def _val_rows(results: list[ScreenResult], with_market: bool = True) -> str:
         peg_s = _fv(m.get("peg"), "", 2) + (" ⚠" if (low and m.get("peg") is not None) else "")
         cov_s = "—" if cov is None else (f"{cov} ⚠低覆蓋" if low else str(cov))
         out.append(
-            f"| {r.stock_id} | {r.name} |{mcell} {_flag(r)} | "
+            f"| {r.stock_id} | {_name(r)} |{mcell} {_flag(r)} | "
             f"{_price_cell(r)} | {_price(m.get('price_p50'), m.get('currency'), r.market, True)} | {_move(m.get('move_to_p50_pct'))} | "
             f"{_price(m.get('price_p90'), m.get('currency'), r.market, True)} | {p90_threshold_move_text(m.get('move_to_p90_pct'), m.get('p90_state', 'unavailable'))} | "
             f"{_fv(m.get('forward_pe'), 'x')} | {_fv(m.get('trailing_pe'), 'x')} | {_fv(m.get('pe_median'), 'x')} | "
@@ -106,7 +110,7 @@ def _rows(results: list[ScreenResult]) -> str:
         if r.metrics.get("low_coverage"):
             mom += " ⚠低覆蓋"
         out.append(
-            f"| {r.stock_id} | {r.name} | {r.industry} | {_flag(r)} | "
+            f"| {r.stock_id} | {_name(r)} | {r.industry} | {_flag(r)} | "
             f"{_price_cell(r)} | {_price(r.metrics.get('price_p50'), r.metrics.get('currency'), r.market, True)} | "
             f"{_move(r.metrics.get('move_to_p50_pct'))} | {_price(r.metrics.get('price_p90'), r.metrics.get('currency'), r.market, True)} | "
             f"{p90_threshold_move_text(r.metrics.get('move_to_p90_pct'), r.metrics.get('p90_state', 'unavailable'))} | "
@@ -166,10 +170,14 @@ def build_screener_report(results, funnel, cfg, generated: str, universe_desc: s
     w("> ★ 台股採 FinMind basic EPS；美股採 Yahoo Reported EPS(調整後口徑)。兩者只做各股自身歷史比較,不跨口徑混算。")
     pending = sum(r.metrics.get("pe_reason") == "financial_report_not_yet_available"
                   for r in results)
+    financial_source_missing = sum(
+        r.metrics.get("pe_reason") == "financial_eps_source_unavailable" for r in results)
     non_positive = sum(r.metrics.get("pe_reason") == "current_trailing_pe_unavailable"
                        for r in results)
     if pending:
         w(f"> ★ **{pending} 檔**最新季度 EPS 尚未進入快取；收盤價仍更新，trailing PE/P50/P90 誠實顯示 N/M，等待每日輪替補抓。")
+    if financial_source_missing:
+        w(f"> ★ **{financial_source_missing} 檔金融股**的 FinMind 季資料未提供應有 EPS；trailing PE/P50/P90 顯示 N/M，系統每 7 天重試，不自行推估 EPS。")
     if non_positive:
         w(f"> ★ **{non_positive} 檔**已取得最新 EPS，但 TTM EPS 非正或無法形成正值 trailing PE；N/M 不是抓取缺漏。")
     w("")

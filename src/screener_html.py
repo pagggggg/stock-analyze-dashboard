@@ -71,6 +71,14 @@ def _mom(cond) -> str:
     return "⚠️資料不足" if cond.status == "na" else _esc(cond.detail)
 
 
+def _name_with_data_status(r) -> str:
+    name = _esc(r.name)
+    if r.metrics.get("partial_update"):
+        detail = "；".join(r.metrics.get("record_errors") or ["部分區塊沿用前次有效資料"])
+        return f'{name}<br><small title="{_esc(detail)}">⚠ 部分沿用</small>'
+    return name
+
+
 _MREV_STYLE = {
     "accel": (C_CHEAP, "▲ 加速"),
     "decel": (C_EXP, "▼ 減速"),
@@ -112,7 +120,7 @@ def _l2_table(rows: list[ScreenResult]) -> str:
         mom = _mom(r.layer2["q10"]) + (" ⚠低覆蓋" if r.metrics.get("low_coverage") else "")
         body.append(
             "<tr>"
-            f"<td>{_esc(r.stock_id)}</td><td>{_esc(r.name)}</td><td>{_esc(r.industry)}</td>"
+            f"<td>{_esc(r.stock_id)}</td><td>{_name_with_data_status(r)}</td><td>{_esc(r.industry)}</td>"
             f"<td>{_flag_html(r)}</td>"
             f"{_price_level_cells(r)}"
             f"<td>{_q(r.layer2['q7'])}</td><td>{_q(r.layer2['q8'])}</td>"
@@ -144,7 +152,7 @@ def _val_tbl(rows: list[ScreenResult]) -> str:
         peg_s = _fv(m.get("peg"), "", 2) + (" ⚠" if (low and m.get("peg") is not None) else "")
         cov_s = "—" if cov is None else (f"{cov} ⚠低覆蓋" if low else str(cov))
         body.append(
-            f"<tr><td>{_esc(r.stock_id)}</td><td>{_esc(r.name)}</td><td>{mkt}</td>"
+            f"<tr><td>{_esc(r.stock_id)}</td><td>{_name_with_data_status(r)}</td><td>{mkt}</td>"
             f"<td>{_flag_html(r)}</td>"
             f"{_price_level_cells(r)}"
             f"<td class='num'>{_fv(m.get('forward_pe'), 'x')}</td>"
@@ -277,14 +285,24 @@ def build_screener_page(results, funnel, cfg, generated: str) -> str:
     if show:
         pending = sum(r.metrics.get("pe_reason") == "financial_report_not_yet_available"
                       for r in show)
+        financial_source_missing = sum(
+            r.metrics.get("pe_reason") == "financial_eps_source_unavailable" for r in show)
         non_positive = sum(r.metrics.get("pe_reason") == "current_trailing_pe_unavailable"
                            for r in show)
+        protected = sum(bool(r.metrics.get("source_cache_regressed")) for r in show)
         if pending:
             w(_note(f"<b>{pending} 檔</b>因最新法定申報期限已到、但快取尚未取得該季 EPS，"
                     "收盤價照常顯示，trailing PE／P50／P90 誠實標為 N/M；每日補抓後恢復。"))
+        if financial_source_missing:
+            w(_note(f"<b>{financial_source_missing} 檔金融股</b>的 FinMind 季資料未提供應有 EPS；"
+                    "收盤價照常顯示，trailing PE／P50／P90 標為 N/M。系統每 7 天重試，"
+                    "不以淨利或股數自行推估 EPS。"))
         if non_positive:
             w(_note(f"另有 <b>{non_positive} 檔</b>已取得最新 EPS，但近四季 EPS 合計非正或無法形成正值 trailing PE，"
                     "因此 trailing PE／P50／P90 顯示 N/M；這不是抓取缺漏。"))
+        if protected:
+            w(_note(f"<b>{protected} 檔</b>原始 cache 覆蓋較前次縮減，估值暫沿用已驗證 snapshot；"
+                    "P10/P50/P90 與門檻價仍可使用，但百分位暫不顯示，待 cache 恢復後自動解除。"))
         w(_val_tbl(show))
         reds = [r for r in show if r.metrics.get("flag") == "red"]
         if reds:

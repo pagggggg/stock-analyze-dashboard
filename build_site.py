@@ -27,6 +27,7 @@ import yaml
 from src.ai_chain import build_ai_chain_data, load_ai_chain_config
 from src.ai_chain_html import build_ai_chain_page
 from src.analysis import analyze_stock, analyze_us_record
+from src.models import PEBand
 from src.scan_state import (Event, append_signal_log, compute_signals, load_signal_log,
                             load_state, save_state)
 from src.screener import load_config as load_screener_config, load_records, screen_all
@@ -91,6 +92,32 @@ def load_universe_stocks() -> list[dict]:
         if (record.get("detail") or {}).get("schema_version") == US_DETAIL_SCHEMA_VERSION:
             us.append({"stock_id": sid, "name": s.get("name", sid), "market": "us"})
     return tw + us
+
+
+def _apply_screener_pe_snapshot(analysis, result, record: dict) -> None:
+    """Make detail-page labels and river legend use the screener's persisted PE snapshot."""
+    metrics = result.metrics
+    ph = record.get("pe_hist") or {}
+    analysis.trailing_pe = metrics.get("trailing_pe")
+    analysis.pe_median = metrics.get("pe_median")
+    analysis.pe_p90 = metrics.get("pe_p90")
+    analysis.pe_percentile = metrics.get("pe_pct")
+    analysis.pe_source_cache_regressed = bool(ph.get("source_cache_regressed"))
+    analysis.valuation_flag = metrics.get("flag") or "na"
+    snapshot_ok = (ph.get("status") == "ok" and all(ph.get(key) is not None
+                   for key in ("p10", "median", "p90", "current_trailing_pe")))
+    if snapshot_ok:
+        analysis.pe_band = PEBand(
+            pe_low=float(ph["p10"]), pe_mid=float(ph["median"]),
+            pe_high=float(ph["p90"]),
+            years_covered=f"{ph.get('window_start')}–{ph.get('as_of')},rolling {ph.get('years')} 年",
+            source="persisted screener PE snapshot")
+    if analysis.river is not None and snapshot_ok:
+        analysis.river.pe_low = float(ph["p10"])
+        analysis.river.pe_mid = float(ph["median"])
+        analysis.river.pe_high = float(ph["p90"])
+        analysis.river.current_pe = float(ph["current_trailing_pe"])
+        analysis.river.source += "；目前 P10/P50/P90 與 trailing PE 採 persisted screener snapshot"
 
 
 def run(args) -> None:
@@ -203,15 +230,12 @@ def run(args) -> None:
             scfg = load_screener_config(ROOT / "config/screener.yaml")
             sres, sfun = screen_all(recs, scfg)
             by_id = {r.stock_id: r for r in sres}
+            record_by_id = {str(rec["stock_id"]): rec for rec in recs}
             for a in analyses:
                 r = by_id.get(a.stock_id)
                 if not r:
                     continue
-                a.trailing_pe = r.metrics.get("trailing_pe")
-                a.pe_median = r.metrics.get("pe_median")
-                a.pe_p90 = r.metrics.get("pe_p90")
-                a.pe_percentile = r.metrics.get("pe_pct")
-                a.valuation_flag = r.metrics.get("flag") or "na"
+                _apply_screener_pe_snapshot(a, r, record_by_id.get(a.stock_id) or {})
             generated = build_now.strftime("%Y-%m-%d %H:%M") + " (台北時間)"
             screener_html = build_screener_page(sres, sfun, scfg, generated)
             screener_info = {"layer1_pass": sfun["layer1_pass"], "both_pass": sfun["both_pass"]}

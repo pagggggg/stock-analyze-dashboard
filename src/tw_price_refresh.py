@@ -454,6 +454,8 @@ def _updated_record(record: dict, rows: list[dict], recent_rows: list[dict],
         rows, income, fallback_ok, latest["close"], latest["date"], financial)
     expected = _expected_income_period(date.fromisoformat(latest["date"]), financial)
     reason = ("unsupported_foreign_issuer_filing_deadline" if not fallback_ok else
+              "financial_eps_source_unavailable"
+              if financial and expected and not _has_finite_eps(income, expected) else
               "financial_report_not_yet_available"
               if expected and not _has_finite_eps(income, expected) else
               "current_trailing_pe_unavailable" if current_pe is None else None)
@@ -546,6 +548,44 @@ def _record_payload(record: dict) -> dict:
     comparable = dict(record)
     comparable.pop("price_updated_at", None)
     return comparable
+
+
+def _rotated_missing_income_ids(root: Path, ids: list[str], records: dict[str, dict],
+                                merged_by_id: dict[str, list[dict]]) -> tuple[
+                                    list[str], int, dict, set[str]]:
+    """Prioritize stocks missing the legally due EPS quarter, with a persisted cursor."""
+    missing = []
+    for sid in ids:
+        record = records[sid]
+        if not supports_tw_filing_fallback(record.get("name") or sid):
+            continue
+        financial = is_financial_company(sid, record.get("industry", ""), "twse")
+        expected = _expected_income_period(
+            date.fromisoformat(merged_by_id[sid][-1]["date"]), financial)
+        try:
+            income = _load_cache_data(f"finmind_fs_long_{sid}", "財報")
+        except RuntimeError:
+            missing.append(sid)
+            continue
+        if not isinstance(income, dict) or (expected and not _has_finite_eps(income, expected)):
+            missing.append(sid)
+    state_path = root / "cache/tw-income-refresh-state.json"
+    try:
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        cursor = int(state.get("cursor", 0))
+    except (OSError, ValueError, TypeError):
+        state = {}
+        cursor = 0
+    all_missing = set(missing)
+    retry_after = state.get("retry_after") or {}
+    today = date.today().isoformat()
+    missing = [sid for sid in missing if str(retry_after.get(sid) or "") <= today]
+    if not missing:
+        return [], cursor, state, all_missing
+    start = cursor % len(ids)
+    stable_order = ids[start:] + ids[:start]
+    missing_set = set(missing)
+    return [sid for sid in stable_order if sid in missing_set], start, state, all_missing
 
 
 def refresh_tw_prices(root: str | Path, screener_cfg: dict, chain_cfg: dict,
@@ -664,13 +704,24 @@ def refresh_tw_prices(root: str | Path, screener_cfg: dict, chain_cfg: dict,
     other_rotation = (day_number * other_slots) % max(1, len(other_ids))
     rotated_core = core_ids[core_rotation:] + core_ids[:core_rotation]
     rotated_others = other_ids[other_rotation:] + other_ids[:other_rotation]
-    # 核心標的每日最多使用 5 個補抓名額，其餘名額輪替全母體，避免失敗前綴飢餓。
-    ordered_universe_ids = rotated_core[:core_slots] + rotated_others + rotated_core[core_slots:]
+    missing_income_ids, missing_cursor, income_refresh_state, all_missing_income_ids = (
+        _rotated_missing_income_ids(
+        root, universe_ids, existing_records, merged_by_id)
+    )
+    missing_set = set(missing_income_ids)
+    fallback_order = rotated_core[:core_slots] + rotated_others + rotated_core[core_slots:]
+    # 所有 record 每次都要同步價格；只有不在退避期的缺季標的可以使用補抓名額。
+    ordered_universe_ids = missing_income_ids + [sid for sid in fallback_order
+                                                 if sid not in missing_set]
     support_core_slots = min(5, support_limit)
     supporting_ids = set(
         rotated_core[:support_core_slots]
         + rotated_others[:max(0, support_limit - support_core_slots)])
     # 上櫃 AI 成員沒有 universe record，但其估值 cache 也必須隨官方行情補 EPS。
+    missing_refresh_attempts = 0
+    last_missing_attempt_sid = None
+    missing_refresh_successes = set()
+    missing_refresh_failures = set()
     for sid in sorted(tpex_ids):
         income, refreshed, attempted = _income_for_price_date(
             loader, sid,
@@ -689,9 +740,13 @@ def refresh_tw_prices(root: str | Path, screener_cfg: dict, chain_cfg: dict,
         record = existing_records[sid]
         income, refreshed, attempted = _income_for_price_date(
             loader, sid, record, merged_by_id[sid][-1]["date"], financial_start,
-            allow_refresh=refresh_attempts < refresh_limit)
+            allow_refresh=(sid in missing_set and refresh_attempts < refresh_limit))
         if attempted:
             refresh_attempts += 1
+            if sid in missing_set:
+                missing_refresh_attempts += 1
+                last_missing_attempt_sid = sid
+                (missing_refresh_successes if refreshed else missing_refresh_failures).add(sid)
             if sleep_s > 0 and refresh_attempts < refresh_limit:
                 time.sleep(sleep_s)
         if refreshed:
@@ -755,6 +810,22 @@ def refresh_tw_prices(root: str | Path, screener_cfg: dict, chain_cfg: dict,
         cache_set(f"finmind_fs_long_{sid}", income, **metadata)
         if sid in tpex_ids:
             (root / f"cache/ai_chain_tpex_record_v2_{sid}.json").unlink(missing_ok=True)
+    if missing_income_ids and missing_refresh_attempts and last_missing_attempt_sid:
+        state_path = root / "cache/tw-income-refresh-state.json"
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+        retry_after = dict(income_refresh_state.get("retry_after") or {})
+        for sid in missing_refresh_successes:
+            retry_after.pop(sid, None)
+        for sid in missing_refresh_failures:
+            days = 7 if is_financial_company(
+                sid, existing_records[sid].get("industry", ""), "twse") else 1
+            retry_after[sid] = (date.today() + timedelta(days=days)).isoformat()
+        state_path.write_text(
+            json.dumps({"cursor": (universe_ids.index(last_missing_attempt_sid) + 1)
+                                  % len(universe_ids),
+                        "retry_after": retry_after,
+                        "updated_at": end.isoformat()}),
+            encoding="utf-8")
     if artifact_changed:
         _publish_records(root, records, snapshot)
     return {"records": len(records), "quotes": len(quotes),

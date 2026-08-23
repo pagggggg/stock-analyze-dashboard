@@ -120,6 +120,7 @@ def pe_history_is_compatible(ph: dict, market: str, price_date: str | None,
                 and all(ph.get(k) is not None for k in ("p10", "median", "p90")))
     return (reason in {"no_positive_pe_history", "financials_not_fetched",
                        "unsupported_foreign_issuer_filing_deadline",
+                       "financial_eps_source_unavailable",
                        "financial_report_not_yet_available",
                        "current_trailing_pe_unavailable"}
             or reason == f"history_span_under_{years}_years"

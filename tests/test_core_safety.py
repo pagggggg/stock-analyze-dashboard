@@ -17,6 +17,10 @@ from src.river import _filing_available_date, current_trailing_pe
 from src.universe_builder import (_fetch_mops_year, evaluate as evaluate_universe,
                                   fetch_meeting_ids_tw)
 from src.valuation_flag import pe_history_is_compatible, pe_history_stats
+from src.analysis import StockAnalysis, analyze_us_record
+from src.river import RiverSeries
+from src.screener import ScreenResult
+from build_site import _apply_screener_pe_snapshot
 
 
 class UniverseSafetyTests(unittest.TestCase):
@@ -128,6 +132,43 @@ class UniverseSafetyTests(unittest.TestCase):
 
 
 class DataSafetyTests(unittest.TestCase):
+    def test_detail_river_uses_persisted_screener_pe_snapshot(self):
+        analysis = StockAnalysis(stock_id="TEST", name="Test")
+        analysis.river = RiverSeries(
+            dates=["2026-07-31"], price_dates=["2026-08-21"], price=[100.0],
+            band_low=[80.0], band_mid=[100.0], band_high=[120.0],
+            pe_low=9.0, pe_mid=14.0, pe_high=19.0,
+            current_date="2026-08-21", current_price=100.0, current_pe=21.0)
+        result = ScreenResult(stock_id="TEST", name="Test", industry="")
+        result.metrics = {
+            "trailing_pe": 22.0, "pe_median": 15.0, "pe_p90": 20.0,
+            "pe_pct": None, "flag": "red",
+        }
+        record = {"pe_hist": {
+            "status": "ok", "p10": 10.0, "median": 15.0, "p90": 20.0,
+            "current_trailing_pe": 22.0, "window_start": "2021-08-21",
+            "as_of": "2026-08-21", "years": 5, "source_cache_regressed": True,
+        }}
+
+        _apply_screener_pe_snapshot(analysis, result, record)
+
+        self.assertEqual(analysis.pe_band.pe_high, 20.0)
+        self.assertEqual(analysis.river.pe_high, 20.0)
+        self.assertEqual(analysis.river.current_pe, 22.0)
+        self.assertTrue(analysis.pe_source_cache_regressed)
+
+    def test_us_partial_update_errors_reach_detail_analysis(self):
+        record = {
+            "stock_id": "TEST", "name": "Test", "market": "us",
+            "price_last": 100.0, "price_date": "2026-08-21",
+            "partial_update": True,
+            "errors": ["本次抓取缺漏,沿用前次資料:annual_ocf"],
+            "detail": {},
+        }
+
+        analysis = analyze_us_record(record)
+
+        self.assertIn("本次抓取缺漏", analysis.errors[0])
     def test_full_fetch_preserves_official_price_verification_metadata(self):
         import fetch_universe
 

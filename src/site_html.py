@@ -695,6 +695,15 @@ def build_detail_html(a, generated: str, momentum_min_pct: float = 0.5) -> str:
         f'百分位 <b>{pct_txt}</b>'
         '</div>'
     )
+    river_snapshot_attrs = (
+        f'data-pe-current="{float(a.trailing_pe):.1f}" '
+        f'data-pe-p50="{float(a.pe_median):.1f}" '
+        f'data-pe-p90="{float(a.pe_p90):.1f}" '
+        f'data-pe-source-cache-regressed="{str(bool(getattr(a, "pe_source_cache_regressed", False))).lower()}"'
+    ) if all(value is not None for value in (a.trailing_pe, a.pe_median, a.pe_p90)) else (
+        'data-pe-current="" data-pe-p50="" data-pe-p90="" '
+        f'data-pe-source-cache-regressed="{str(bool(getattr(a, "pe_source_cache_regressed", False))).lower()}"'
+    )
     momentum_dir, momentum_pct = __import__("src.scan_state", fromlist=["revision_momentum"]).revision_momentum(
         a.consensus_history or [], min_pct=momentum_min_pct)
     momentum_txt = {"up": "共識上修", "down": "共識下修", "flat": "共識持平", "na": "共識資料不足"}.get(
@@ -706,7 +715,9 @@ def build_detail_html(a, generated: str, momentum_min_pct: float = 0.5) -> str:
         lights = [s.light for s in a.fcf.signals]
         quality_txt = ("FCF 有紅燈" if "red" in lights else "FCF 有黃燈" if "yellow" in lights
                        else "FCF 品質正常" if lights else quality_txt)
-    if not a.errors and a.dashboard and a.river and a.trailing_pe is not None:
+    if getattr(a, "pe_source_cache_regressed", False):
+        confidence = "估值沿用已驗證快照，等待原始快取恢復"
+    elif not a.errors and a.dashboard and a.river and a.trailing_pe is not None:
         confidence = "主要估值資料完整"
     elif a.price is not None and a.price_date:
         confidence = "收盤價完整，部分估值資料不足"
@@ -739,6 +750,10 @@ def build_detail_html(a, generated: str, momentum_min_pct: float = 0.5) -> str:
     if a.errors:
         err = ('<div class="warn">部分資料抓取失敗(該區塊以「資料不足」顯示):'
                + _esc("；".join(a.errors)) + "</div>")
+    if getattr(a, "pe_source_cache_regressed", False):
+        err += ('<div class="warn"><b>估值資料保護中:</b>本次原始 cache 覆蓋較前次縮減；'
+                '目前 trailing PE、P10/P50/P90、圖例與門檻價沿用已驗證 snapshot，'
+                '歷史月頻河道仍由現有 cache 繪製，百分位暫不顯示；待 cache 恢復後自動解除。</div>')
 
     body = f"""
 <div class="wrap">
@@ -760,7 +775,7 @@ def build_detail_html(a, generated: str, momentum_min_pct: float = 0.5) -> str:
     {_note('前瞻PE只顯示藍色參考值;PEG/FCF Yield/EV·EBITDA 依各自同口徑門檻著色。單一指標不下結論。')}
   </section>
 
-  <section>
+  <section {river_snapshot_attrs}>
     <h2>本益比河流圖</h2>
     {position}
     {river_div}

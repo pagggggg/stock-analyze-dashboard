@@ -46,10 +46,10 @@ jobs:
     timeout-minutes: 120
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: "pip"
@@ -57,12 +57,12 @@ jobs:
       # 快取 FinMind/TWSE/yfinance 的原始資料:沒有它,每次都要重抓全部財報,
       # 會直接撞爆 FinMind 每小時上限(財報快取 TTL 已設 30 天,所以跨日仍有效)
       - name: Restore data cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: cache
-          key: apicache-${{ github.run_id }}
+          key: apicache-v2-${{ github.run_id }}
           restore-keys: |
-            apicache-
+            apicache-v2-
 
       - name: Install dependencies
         run: |
@@ -185,19 +185,21 @@ jobs:
         id: sanity
         run: |
           python - <<'PY'
-          import glob, json, math, os, yaml
+          import glob, json, math, os, subprocess, yaml
           from src.valuation_flag import pe_history_is_compatible
           doc = yaml.safe_load(open("config/universe.yaml", encoding="utf-8")) or {}
           expected = {str(x["stock_id"]) for k in ("twse", "us") for x in (doc.get(k) or [])}
           actual = set()
           years = (yaml.safe_load(open("config/screener.yaml", encoding="utf-8"))
                    ["valuation_flag"]["pe_history_years"])
-          tot = ok = partial = pe_schema_ok = pe_current_ok = pe_waiting = 0
-          for p in glob.glob("data/universe/*.json"):
+          universe_paths = glob.glob("data/universe/*.json")
+          tot = ok = partial = pe_schema_ok = pe_current_ok = pe_waiting = pe_source_missing = regressed = 0
+          for p in universe_paths:
               d = json.load(open(p)); tot += 1; actual.add(str(d.get("stock_id")))
               if d.get("annual"): ok += 1
               if d.get("partial_update"): partial += 1
               ph = d.get("pe_hist") or {}
+              if ph.get("source_cache_regressed"): regressed += 1
               if (not d.get("pe_refresh_error")
                       and pe_history_is_compatible(ph, d.get("market", "twse"),
                                                    d.get("price_date"), years)):
@@ -206,17 +208,30 @@ jobs:
                       pe_current_ok += 1
                   if ph.get("reason") == "financial_report_not_yet_available":
                       pe_waiting += 1
+                  if ph.get("reason") == "financial_eps_source_unavailable":
+                      pe_source_missing += 1
           pct = ok / tot * 100 if tot else 0
           same_set = expected == actual
-          print(f"共 {tot} 檔｜有財報 {ok} ({pct:.1f}%)｜PE schema {pe_schema_ok}/{tot}｜可用 current PE {pe_current_ok}/{tot}｜待補最新 EPS {pe_waiting}｜本次沿用舊資料 {partial}｜母體集合一致 {same_set}")
+          def committed(path):
+              try:
+                  return json.loads(subprocess.check_output(
+                      ["git", "show", f"HEAD:{path}"], text=True))
+              except (subprocess.CalledProcessError, json.JSONDecodeError):
+                  return {}
+          baseline = [committed(path) for path in universe_paths]
+          baseline_partial = sum(bool(d.get("partial_update")) for d in baseline)
+          baseline_regressed = sum(bool((d.get("pe_hist") or {}).get("source_cache_regressed"))
+                                   for d in baseline)
+          protection_ok = partial <= baseline_partial and regressed <= baseline_regressed
+          print(f"共 {tot} 檔｜有財報 {ok} ({pct:.1f}%)｜PE schema {pe_schema_ok}/{tot}｜可用 current PE {pe_current_ok}/{tot}｜待補最新 EPS {pe_waiting}｜金融 EPS 來源缺漏 {pe_source_missing}｜cache 保護 {regressed}/{baseline_regressed}｜部分沿用 {partial}/{baseline_partial}｜母體集合一致 {same_set}")
           if not same_set:
               print(f"缺少:{sorted(expected-actual)}｜多餘:{sorted(actual-expected)}")
           pe_floor = max(1, math.ceil(tot * 0.60))
           healthy = (pct >= 90 and same_set and pe_schema_ok == tot
-                     and pe_current_ok >= pe_floor)
+                     and pe_current_ok >= pe_floor and protection_ok)
           with open(os.environ["GITHUB_OUTPUT"], "a") as f:
               f.write(f"healthy={'true' if healthy else 'false'}\n")
-              f.write(f"summary={tot} 檔, 財報 {ok}, current PE {pe_current_ok}, 待補 EPS {pe_waiting}, 沿用舊值 {partial}, 集合一致 {same_set}\n")
+              f.write(f"summary={tot} 檔, 財報 {ok}, current PE {pe_current_ok}, 待補 EPS {pe_waiting}, 金融 EPS 來源缺漏 {pe_source_missing}, cache 保護 {regressed}/{baseline_regressed}, 部分沿用 {partial}/{baseline_partial}, 集合一致 {same_set}\n")
           PY
 
       - name: Warn if data unhealthy
@@ -246,7 +261,7 @@ jobs:
           DATA_HEALTHY: ${{ steps.sanity.outputs.healthy }}
         run: |
           python - <<'PY'
-          import glob, json, math, os, re, struct, yaml, zlib
+          import glob, json, math, os, re, struct, subprocess, yaml, zlib
           from datetime import date
           from src.ai_chain import build_output_side, load_ai_chain_config
           from src.ai_quotes import expected_quote_tickers, load_quote_snapshot
@@ -274,11 +289,13 @@ jobs:
           floor = max(1, expected_tw - 20)
           scfg = yaml.safe_load(open("config/screener.yaml", encoding="utf-8")) or {}
           years = scfg["valuation_flag"]["pe_history_years"]
-          pe_schema_ok = pe_current_ok = 0
+          pe_schema_ok = pe_current_ok = regressed = partial = 0
           actual_ids = set()
           for path in universe_paths:
               d = json.load(open(path, encoding="utf-8"))
               actual_ids.add(str(d.get("stock_id")))
+              if d.get("partial_update"): partial += 1
+              if (d.get("pe_hist") or {}).get("source_cache_regressed"): regressed += 1
               if (not d.get("pe_refresh_error")
                       and pe_history_is_compatible(d.get("pe_hist") or {}, d.get("market", "twse"),
                                                    d.get("price_date"), years)):
@@ -290,9 +307,21 @@ jobs:
                      or os.environ.get("DATA_HEALTHY") == "true")
           if data_ok and not actual_ids == expected_ids:
               data_ok = False
+          def committed(path):
+              try:
+                  return json.loads(subprocess.check_output(
+                      ["git", "show", f"HEAD:{path}"], text=True))
+              except (subprocess.CalledProcessError, json.JSONDecodeError):
+                  return {}
+          baseline = [committed(path) for path in universe_paths]
+          baseline_partial = sum(bool(d.get("partial_update")) for d in baseline)
+          baseline_regressed = sum(bool((d.get("pe_hist") or {}).get("source_cache_regressed"))
+                                   for d in baseline)
+          protection_ok = partial <= baseline_partial and regressed <= baseline_regressed
           pe_current_floor = max(1, math.ceil(n_universe * 0.60))
           ok = (data_ok and actual_ids == expected_ids and linked >= floor
-                and pe_schema_ok == n_universe and pe_current_ok >= pe_current_floor)
+                and pe_schema_ok == n_universe and pe_current_ok >= pe_current_floor
+                and protection_ok)
           ux_ok = all(os.path.exists(path) for path in ux_pages)
           price_levels_ok = os.path.exists("public/screener.html")
           if ux_ok:
@@ -358,6 +387,25 @@ jobs:
                   and screener.count("價格推算警語") == screener.count('class="tbl price-level-table"')
                   and screener.count("N/M") >= 5
                   and "約 US$" in screener)
+              detail_snapshot_ok = True
+              partial_markers_ok = True
+              for rec in records:
+                  sid = str(rec["stock_id"])
+                  page_path = f"public/stock_{sid}.html"
+                  ph = rec.get("pe_hist") or {}
+                  if os.path.exists(page_path) and ph.get("status") == "ok":
+                      page = open(page_path, encoding="utf-8").read()
+                      detail_snapshot_ok = (detail_snapshot_ok
+                          and f'data-pe-current="{float(ph["current_trailing_pe"]):.1f}"' in page
+                          and f'data-pe-p50="{float(ph["median"]):.1f}"' in page
+                          and f'data-pe-p90="{float(ph["p90"]):.1f}"' in page
+                          and (not ph.get("source_cache_regressed")
+                               or "估值資料保護中" in page))
+                  if rec.get("partial_update"):
+                      rows = re.findall(
+                          rf"<tr><td>{re.escape(sid)}</td>.*?</tr>", screener, re.S)
+                      partial_markers_ok = partial_markers_ok and any("部分沿用" in row for row in rows)
+              price_levels_ok = price_levels_ok and detail_snapshot_ok and partial_markers_ok
           ok = ok and price_levels_ok
           us_river_ok = required_us <= expected_ids
           for sid in required_us:
@@ -542,6 +590,7 @@ jobs:
           print(f"資料健康閘門:{data_ok};母體集合一致:{actual_ids == expected_ids}")
           print(f"PE schema/date 完整:{pe_schema_ok}/{n_universe}")
           print(f"可用 current PE:{pe_current_ok}/{n_universe}（最低 {pe_current_floor}；其餘誠實顯示 N/M）")
+          print(f"cache 保護:{regressed}/{baseline_regressed};部分沿用:{partial}/{baseline_partial};未增加:{protection_ok}")
           print(f"AI 產業鏈頁完整:{ai_ok}")
           print(f"2330 Thesis 完整:{thesis_ok}")
           print(f"美股河流圖完整:{us_river_ok}")
@@ -617,6 +666,7 @@ jobs:
           seed_files=(finmind_fs_long_*.json finmind_bs_*.json finmind_cf_*.json
                       finmind_mrev_*.json finmind_price_*.json finmind_pxv_*.json
                       yf_metrics_*.json twse_market_close_*.json tpex_market_close_*.json
+                      tw-income-refresh-state.json
                       ai_chain_tpex_record_v2_*.json
                       ai_chain_us_record_v2_*.json ai_chain_us_quarterly_v2_*.json)
           n=${#seed_files[@]}
@@ -625,7 +675,15 @@ jobs:
             exit 0
           fi
           printf '%s\n' "${seed_files[@]}" > /tmp/seed.txt
-          tar -czf /tmp/fincache.tar.gz -T /tmp/seed.txt
+          python - <<'PY'
+          import tarfile
+          from pathlib import Path
+          names = [line.strip() for line in Path("/tmp/seed.txt").read_text().splitlines()
+                   if line.strip()]
+          with tarfile.open("/tmp/fincache.tar.gz", "w:gz") as archive:
+              for name in names:
+                  archive.add(name, arcname=name, recursive=False)
+          PY
           cd ..
           gh release upload cache-seed /tmp/fincache.tar.gz --clobber -R "$GITHUB_REPOSITORY"
           echo "種子已更新:$n 檔,$(du -h /tmp/fincache.tar.gz | cut -f1)"

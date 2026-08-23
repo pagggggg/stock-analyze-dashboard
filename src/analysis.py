@@ -71,6 +71,7 @@ class StockAnalysis:
     pe_median: float | None = None
     pe_p90: float | None = None
     pe_percentile: float | None = None
+    pe_source_cache_regressed: bool = False
     valuation_flag: str = "na"
     fcf: FcfQualityResult | None = None
     quarters: list[QuarterFinancials] = field(default_factory=list)  # 近8季實際
@@ -295,6 +296,9 @@ def analyze_us_record(record: dict, pe_years: int = 5) -> StockAnalysis:
                       market="us", currency=str(record.get("currency") or "USD"),
                       track_signals=False, industry=str(record.get("industry") or ""))
     a.is_financial = is_financial_company(sid, a.industry, a.market)
+    a.errors.extend(str(error) for error in (record.get("errors") or []))
+    if record.get("partial_update") and not a.errors:
+        a.errors.append("本次美股資料部分沿用前次有效區塊")
     a.price = record.get("price_last")
     a.price_date = str(record.get("price_date") or "")
     detail = record.get("detail") or {}
