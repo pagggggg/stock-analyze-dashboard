@@ -32,6 +32,12 @@ on:
         default: "prices"
         type: choice
         options: [none, prices, all]
+      scope:
+        description: "prices 的更新範圍；all 模式固定更新全部"
+        required: false
+        default: "all"
+        type: choice
+        options: [all, tw, us]
 
 permissions:
   contents: write             # 需要寫入:把更新後的 data/ commit 回 main
@@ -56,13 +62,16 @@ jobs:
 
       # 快取 FinMind/TWSE/yfinance 的原始資料:沒有它,每次都要重抓全部財報,
       # 會直接撞爆 FinMind 每小時上限(財報快取 TTL 已設 30 天,所以跨日仍有效)
+      # 拆開 restore/save：品質不足的執行不得在 post step 回存 cache，
+      # 否則一次 Yahoo/FinMind 暫時失敗會污染後續每次排程。
       - name: Restore data cache
-        uses: actions/cache@v6
+        id: data-cache
+        uses: actions/cache/restore@v6
         with:
           path: cache
-          key: apicache-v2-${{ github.run_id }}
+          key: apicache-v3-${{ github.run_id }}
           restore-keys: |
-            apicache-v2-
+            apicache-v3-
 
       - name: Install dependencies
         run: |
@@ -112,8 +121,10 @@ jobs:
             echo "refresh=${{ inputs.refresh }}" >> $GITHUB_OUTPUT
             if [ "${{ inputs.refresh }}" = "none" ]; then
               echo "scope=none" >> $GITHUB_OUTPUT
-            else
+            elif [ "${{ inputs.refresh }}" = "all" ]; then
               echo "scope=all" >> $GITHUB_OUTPUT
+            else
+              echo "scope=${{ inputs.scope }}" >> $GITHUB_OUTPUT
             fi
           elif [ "${{ github.event.schedule }}" = "17 22 * * 1-5" ]; then
             echo "refresh=prices" >> $GITHUB_OUTPUT
@@ -146,7 +157,7 @@ jobs:
           PY
           )
           test -n "$ids"
-          python fetch_universe.py --from-universe --stock-ids "$ids" --refresh prices
+          python fetch_universe.py --from-universe --stock-ids "$ids" --refresh ${{ steps.mode.outputs.refresh }}
 
       - name: Update AI US quotes
         if: steps.mode.outputs.scope == 'us' || steps.mode.outputs.scope == 'all'
@@ -687,3 +698,11 @@ jobs:
           cd ..
           gh release upload cache-seed /tmp/fincache.tar.gz --clobber -R "$GITHUB_REPOSITORY"
           echo "種子已更新:$n 檔,$(du -h /tmp/fincache.tar.gz | cut -f1)"
+
+      # 只有通過產物品質檢查的 cache 才能成為下一次排程的起點。
+      - name: Save verified data cache
+        if: steps.quality.outputs.ok == 'true' && success()
+        uses: actions/cache/save@v6
+        with:
+          path: cache
+          key: ${{ steps.data-cache.outputs.cache-primary-key }}
