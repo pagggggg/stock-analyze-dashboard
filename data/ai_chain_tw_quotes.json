@@ -1,160 +1,160 @@
 {
   "schema_version": 1,
   "source": "TWSE/TPEx official daily close",
-  "updated_at": "2026-08-24T08:04:44+00:00",
+  "updated_at": "2026-08-26T15:05:36+00:00",
   "quotes": {
-    "2404": {
+    "2344": {
       "currency": "TWD",
-      "close": 1065.0,
-      "close_date": "2026-08-24",
-      "previous_close": 1060.0,
-      "previous_date": "2026-08-21",
-      "change": 5.0,
-      "change_pct": 0.4716981132075472
+      "close": 181.5,
+      "close_date": "2026-08-26",
+      "previous_close": 179.0,
+      "previous_date": "2026-08-25",
+      "change": 2.5,
+      "change_pct": 1.3966480446927374
     },
-    "6488": {
+    "2408": {
       "currency": "TWD",
-      "close": 1010.0,
-      "close_date": "2026-08-24",
-      "previous_close": 941.0,
-      "previous_date": "2026-08-21",
-      "change": 69.0,
-      "change_pct": 7.332624867162593
+      "close": 517.0,
+      "close_date": "2026-08-26",
+      "previous_close": 510.0,
+      "previous_date": "2026-08-25",
+      "change": 7.0,
+      "change_pct": 1.3725490196078431
     },
-    "3661": {
+    "6196": {
       "currency": "TWD",
-      "close": 3735.0,
-      "close_date": "2026-08-24",
-      "previous_close": 3700.0,
-      "previous_date": "2026-08-21",
-      "change": 35.0,
-      "change_pct": 0.945945945945946
-    },
-    "2330": {
-      "currency": "TWD",
-      "close": 2375.0,
-      "close_date": "2026-08-24",
-      "previous_close": 2410.0,
-      "previous_date": "2026-08-21",
-      "change": -35.0,
-      "change_pct": -1.4522821576763485
+      "close": 500.0,
+      "close_date": "2026-08-26",
+      "previous_close": 477.0,
+      "previous_date": "2026-08-25",
+      "change": 23.0,
+      "change_pct": 4.821802935010482
     },
     "2383": {
       "currency": "TWD",
-      "close": 5430.0,
-      "close_date": "2026-08-24",
-      "previous_close": 5680.0,
-      "previous_date": "2026-08-21",
-      "change": -250.0,
-      "change_pct": -4.401408450704225
+      "close": 5895.0,
+      "close_date": "2026-08-26",
+      "previous_close": 5595.0,
+      "previous_date": "2026-08-25",
+      "change": 300.0,
+      "change_pct": 5.361930294906166
     },
-    "3324": {
+    "3017": {
       "currency": "TWD",
-      "close": 1015.0,
-      "close_date": "2026-08-24",
-      "previous_close": 969.0,
-      "previous_date": "2026-08-21",
-      "change": 46.0,
-      "change_pct": 4.747162022703819
+      "close": 3155.0,
+      "close_date": "2026-08-26",
+      "previous_close": 2950.0,
+      "previous_date": "2026-08-25",
+      "change": 205.0,
+      "change_pct": 6.9491525423728815
     },
     "2368": {
       "currency": "TWD",
-      "close": 948.0,
-      "close_date": "2026-08-24",
-      "previous_close": 965.0,
-      "previous_date": "2026-08-21",
-      "change": -17.0,
-      "change_pct": -1.7616580310880827
+      "close": 1040.0,
+      "close_date": "2026-08-26",
+      "previous_close": 971.0,
+      "previous_date": "2026-08-25",
+      "change": 69.0,
+      "change_pct": 7.106076210092688
+    },
+    "2330": {
+      "currency": "TWD",
+      "close": 2415.0,
+      "close_date": "2026-08-26",
+      "previous_close": 2400.0,
+      "previous_date": "2026-08-25",
+      "change": 15.0,
+      "change_pct": 0.625
+    },
+    "3661": {
+      "currency": "TWD",
+      "close": 3960.0,
+      "close_date": "2026-08-26",
+      "previous_close": 3865.0,
+      "previous_date": "2026-08-25",
+      "change": 95.0,
+      "change_pct": 2.457956015523933
+    },
+    "3037": {
+      "currency": "TWD",
+      "close": 1160.0,
+      "close_date": "2026-08-26",
+      "previous_close": 1095.0,
+      "previous_date": "2026-08-25",
+      "change": 65.0,
+      "change_pct": 5.93607305936073
+    },
+    "3324": {
+      "currency": "TWD",
+      "close": 1075.0,
+      "close_date": "2026-08-26",
+      "previous_close": 1065.0,
+      "previous_date": "2026-08-25",
+      "change": 10.0,
+      "change_pct": 0.9389671361502347
+    },
+    "2404": {
+      "currency": "TWD",
+      "close": 1080.0,
+      "close_date": "2026-08-26",
+      "previous_close": 1070.0,
+      "previous_date": "2026-08-25",
+      "change": 10.0,
+      "change_pct": 0.9345794392523363
+    },
+    "6488": {
+      "currency": "TWD",
+      "close": 949.0,
+      "close_date": "2026-08-26",
+      "previous_close": 980.0,
+      "previous_date": "2026-08-25",
+      "change": -31.0,
+      "change_pct": -3.1632653061224487
     },
     "3711": {
       "currency": "TWD",
       "close": 592.0,
-      "close_date": "2026-08-24",
-      "previous_close": 587.0,
-      "previous_date": "2026-08-21",
-      "change": 5.0,
-      "change_pct": 0.8517887563884157
-    },
-    "6196": {
-      "currency": "TWD",
-      "close": 493.0,
-      "close_date": "2026-08-24",
-      "previous_close": 490.5,
-      "previous_date": "2026-08-21",
-      "change": 2.5,
-      "change_pct": 0.509683995922528
-    },
-    "6139": {
-      "currency": "TWD",
-      "close": 758.0,
-      "close_date": "2026-08-24",
-      "previous_close": 762.0,
-      "previous_date": "2026-08-21",
-      "change": -4.0,
-      "change_pct": -0.5249343832020997
-    },
-    "2344": {
-      "currency": "TWD",
-      "close": 177.0,
-      "close_date": "2026-08-24",
-      "previous_close": 181.0,
-      "previous_date": "2026-08-21",
-      "change": -4.0,
-      "change_pct": -2.209944751381215
-    },
-    "2308": {
-      "currency": "TWD",
-      "close": 1735.0,
-      "close_date": "2026-08-24",
-      "previous_close": 1750.0,
-      "previous_date": "2026-08-21",
-      "change": -15.0,
-      "change_pct": -0.8571428571428572
-    },
-    "3037": {
-      "currency": "TWD",
-      "close": 1075.0,
-      "close_date": "2026-08-24",
-      "previous_close": 1085.0,
-      "previous_date": "2026-08-21",
-      "change": -10.0,
-      "change_pct": -0.9216589861751152
-    },
-    "3017": {
-      "currency": "TWD",
-      "close": 2855.0,
-      "close_date": "2026-08-24",
-      "previous_close": 2865.0,
-      "previous_date": "2026-08-21",
-      "change": -10.0,
-      "change_pct": -0.34904013961605584
-    },
-    "3443": {
-      "currency": "TWD",
-      "close": 5365.0,
-      "close_date": "2026-08-24",
-      "previous_close": 5600.0,
-      "previous_date": "2026-08-21",
-      "change": -235.0,
-      "change_pct": -4.196428571428571
-    },
-    "2408": {
-      "currency": "TWD",
-      "close": 501.0,
-      "close_date": "2026-08-24",
-      "previous_close": 528.0,
-      "previous_date": "2026-08-21",
-      "change": -27.0,
-      "change_pct": -5.113636363636364
+      "close_date": "2026-08-26",
+      "previous_close": 591.0,
+      "previous_date": "2026-08-25",
+      "change": 1.0,
+      "change_pct": 0.1692047377326565
     },
     "1519": {
       "currency": "TWD",
-      "close": 712.0,
-      "close_date": "2026-08-24",
-      "previous_close": 723.0,
-      "previous_date": "2026-08-21",
-      "change": -11.0,
-      "change_pct": -1.5214384508990317
+      "close": 717.0,
+      "close_date": "2026-08-26",
+      "previous_close": 717.0,
+      "previous_date": "2026-08-25",
+      "change": 0.0,
+      "change_pct": 0.0
+    },
+    "3443": {
+      "currency": "TWD",
+      "close": 6125.0,
+      "close_date": "2026-08-26",
+      "previous_close": 5570.0,
+      "previous_date": "2026-08-25",
+      "change": 555.0,
+      "change_pct": 9.964093357271095
+    },
+    "2308": {
+      "currency": "TWD",
+      "close": 1750.0,
+      "close_date": "2026-08-26",
+      "previous_close": 1710.0,
+      "previous_date": "2026-08-25",
+      "change": 40.0,
+      "change_pct": 2.3391812865497075
+    },
+    "6139": {
+      "currency": "TWD",
+      "close": 800.0,
+      "close_date": "2026-08-26",
+      "previous_close": 768.0,
+      "previous_date": "2026-08-25",
+      "change": 32.0,
+      "change_pct": 4.166666666666666
     }
   }
 }
