@@ -117,10 +117,12 @@ open public/index.html            # 本機預覽
 
 ### 每日自動更新 + 部署 GitHub Pages
 
-`.github/workflows/daily.yml` 已設定好：平日台灣 15:10（交易所收盤檔發布後）更新台股、週二至週六約 06:17 更新美股盤後行情與四檔美股河流圖；每次 push / 手動執行也會重建並部署 `public/`。美股早晨建站使用 `--no-record`，不重複寫入台股共識與訊號。
+`.github/workflows/daily.yml` 已設定好：平日台灣 15:10（交易所收盤檔發布後）更新台股、週二至週六約 06:17 以價格專用流程更新美股盤後行情與四檔美股河流圖、週日 03:47 完整更新美股財報與共識；每次 push / 手動執行也會重建並部署 `public/`。美股早晨建站使用 `--no-record`，不重複寫入台股共識與訊號。
 
 台股盤後由 `update_tw_prices.py` 使用同一批 TWSE／TPEx 全市場日資料，同步更新全母體的收盤日期、trailing PE/P50/P90 推算與 AI 產業鏈行情；品質閘門禁止兩頁價格不同步。
 FinMind 只以每日小批次輪替補最新損益表、資產負債、現金流與月營收，避免撞到逐檔 API 額度；yfinance 共識仍每日輪詢全母體，維持修正訊號時效。
+
+美股日更只抓完成交易日與 Yahoo Reported EPS 事件，不重抓年度損益、資產負債或現金流；既有財報區塊與 GOOGL／ASML 的部分沿用狀態原樣保留。任一標的無法完成同日 PE snapshot，或發現前次收盤後有新拆股時，整批不落盤，由週日完整美股更新補財報、每股數據與共識。台股財報仍維持每日分批輪替，不在週日一次強制打滿 FinMind 額度。
 
 - **選填**:設 GitHub Secret `FINMIND_TOKEN`(至 finmindtrade.com 免費註冊)可提高抓取額度;本機可放 `.env`(已 gitignore)。
 

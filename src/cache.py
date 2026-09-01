@@ -23,9 +23,13 @@ from pathlib import Path
 CACHE_DIR = Path(__file__).resolve().parent.parent / "cache"
 
 
-def _path(key: str) -> Path:
+def cache_path(key: str) -> Path:
     safe = key.replace("/", "_").replace("\\", "_")
     return CACHE_DIR / f"{safe}.json"
+
+
+def _path(key: str) -> Path:
+    return cache_path(key)
 
 
 def cache_get(key: str, ttl_seconds: float | None = None) -> dict | None:
@@ -47,14 +51,19 @@ def cache_get(key: str, ttl_seconds: float | None = None) -> dict | None:
     return obj
 
 
-def cache_set(key: str, data, **metadata) -> dict:
-    """寫快取,回傳寫入的物件(含 fetched_date 供標註來源用)。"""
-    CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    obj = {
+def cache_entry(data, **metadata) -> dict:
+    """Build a cache wrapper without writing it, for transactional publishers."""
+    return {
         "fetched_at": time.time(),
         "fetched_date": time.strftime("%Y-%m-%d"),
         "data": data,
         **metadata,
     }
-    _path(key).write_text(json.dumps(obj, ensure_ascii=False), encoding="utf-8")
+
+
+def cache_set(key: str, data, **metadata) -> dict:
+    """寫快取,回傳寫入的物件(含 fetched_date 供標註來源用)。"""
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    obj = cache_entry(data, **metadata)
+    cache_path(key).write_text(json.dumps(obj, ensure_ascii=False), encoding="utf-8")
     return obj

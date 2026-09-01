@@ -8,6 +8,7 @@
 # 三種觸發、做的事不同:
 #   schedule(平日 台灣 15:10) 更新台股 + 重算指標 + 記錄訊號 + 部署
 #   schedule(週二~六 06:17)  美股盤後更新 16 檔行情 + 4 檔河流圖 + 部署
+#   schedule(週日 03:47)     完整更新美股財報/共識與 AI 額外節點
 #   push                         只重建 + 部署；手動可選 none/prices/all
 #
 # ★ 單一 writer 原則:本 workflow 是 data/main/gh-pages 的唯一寫入者。
@@ -22,6 +23,7 @@ on:
   schedule:
     - cron: "10 7 * * 1-5"    # 台灣 15:10(週一~週五,交易所收盤檔發布後)
     - cron: "17 22 * * 1-5"   # 台灣 週二~週六 06:17；美股正常收盤後
+    - cron: "47 19 * * 6"     # 台灣 週日 03:47；完整更新財報與共識
   push:
     branches: [main]          # 你 push 程式碼時重建部署(資料 commit 帶 [skip ci] 不會觸發)
   workflow_dispatch:
@@ -41,6 +43,7 @@ on:
 
 permissions:
   contents: write             # 需要寫入:把更新後的 data/ commit 回 main
+  pages: read                 # 健康監控需讀取目前公開 Pages 網址
 
 concurrency:
   group: daily-update
@@ -50,6 +53,9 @@ jobs:
   update:
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    outputs:
+      health_alert: ${{ steps.deployment_health.outputs.alert }}
+      health_alert_text: ${{ steps.deployment_health.outputs.alert_text }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -115,40 +121,54 @@ jobs:
         id: mode
         run: |
           if [ "${{ github.event_name }}" = "push" ]; then
-            echo "refresh=none" >> $GITHUB_OUTPUT
-            echo "scope=none" >> $GITHUB_OUTPUT
+            echo "refresh=none" >> "$GITHUB_OUTPUT"
+            echo "scope=none" >> "$GITHUB_OUTPUT"
           elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "refresh=${{ inputs.refresh }}" >> $GITHUB_OUTPUT
+            echo "refresh=${{ inputs.refresh }}" >> "$GITHUB_OUTPUT"
             if [ "${{ inputs.refresh }}" = "none" ]; then
-              echo "scope=none" >> $GITHUB_OUTPUT
+              echo "scope=none" >> "$GITHUB_OUTPUT"
             elif [ "${{ inputs.refresh }}" = "all" ]; then
-              echo "scope=all" >> $GITHUB_OUTPUT
+              echo "scope=all" >> "$GITHUB_OUTPUT"
             else
-              echo "scope=${{ inputs.scope }}" >> $GITHUB_OUTPUT
+              echo "scope=${{ inputs.scope }}" >> "$GITHUB_OUTPUT"
             fi
+          elif [ "${{ github.event.schedule }}" = "47 19 * * 6" ]; then
+            echo "refresh=all" >> "$GITHUB_OUTPUT"
+            echo "scope=us" >> "$GITHUB_OUTPUT"
           elif [ "${{ github.event.schedule }}" = "17 22 * * 1-5" ]; then
-            echo "refresh=prices" >> $GITHUB_OUTPUT
-            echo "scope=us" >> $GITHUB_OUTPUT
+            echo "refresh=prices" >> "$GITHUB_OUTPUT"
+            echo "scope=us" >> "$GITHUB_OUTPUT"
           else
-            echo "refresh=prices" >> $GITHUB_OUTPUT
-            echo "scope=tw" >> $GITHUB_OUTPUT
+            echo "refresh=prices" >> "$GITHUB_OUTPUT"
+            echo "scope=tw" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Synchronize Taiwan prices
-        if: steps.mode.outputs.scope == 'tw'
+        if: steps.mode.outputs.scope == 'tw' || (steps.mode.outputs.scope == 'all' && steps.mode.outputs.refresh == 'prices')
         env:
           FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
         run: python update_tw_prices.py
 
       - name: Fetch all market data
-        if: steps.mode.outputs.scope == 'all'
+        if: steps.mode.outputs.scope == 'all' && steps.mode.outputs.refresh == 'all'
         env:
           FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
         run: |
+          python - <<'PY'
+          from pathlib import Path
+          for pattern in ("ai_chain_us_record_v2_*.json",
+                          "ai_chain_us_quarterly_v2_*.json"):
+              for path in Path("cache").glob(pattern):
+                  path.unlink()
+          PY
           python fetch_universe.py --from-universe --refresh ${{ steps.mode.outputs.refresh }}
 
       - name: Synchronize persisted US records
-        if: steps.mode.outputs.scope == 'us'
+        if: (steps.mode.outputs.scope == 'us' && steps.mode.outputs.refresh == 'prices') || (steps.mode.outputs.scope == 'all' && steps.mode.outputs.refresh == 'prices')
+        run: python update_us_prices.py
+
+      - name: Refresh US financial records
+        if: steps.mode.outputs.scope == 'us' && steps.mode.outputs.refresh == 'all'
         run: |
           ids=$(python - <<'PY'
           import yaml
@@ -157,14 +177,21 @@ jobs:
           PY
           )
           test -n "$ids"
-          python fetch_universe.py --from-universe --stock-ids "$ids" --refresh ${{ steps.mode.outputs.refresh }}
+          python - <<'PY'
+          from pathlib import Path
+          for pattern in ("ai_chain_us_record_v2_*.json",
+                          "ai_chain_us_quarterly_v2_*.json"):
+              for path in Path("cache").glob(pattern):
+                  path.unlink()
+          PY
+          python fetch_universe.py --from-universe --stock-ids "$ids" --refresh all
 
       - name: Update AI US quotes
-        if: steps.mode.outputs.scope == 'us' || steps.mode.outputs.scope == 'all'
+        if: steps.mode.outputs.refresh == 'all' && (steps.mode.outputs.scope == 'us' || steps.mode.outputs.scope == 'all')
         run: python update_ai_quotes.py
 
       - name: Update AI Taiwan quotes
-        if: steps.mode.outputs.scope == 'all'
+        if: steps.mode.outputs.scope == 'all' && steps.mode.outputs.refresh == 'all'
         env:
           FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
         run: python update_tw_prices.py
@@ -182,7 +209,7 @@ jobs:
         run: |
           if [ "${{ steps.mode.outputs.scope }}" = "none" ] || [ "${{ steps.mode.outputs.scope }}" = "us" ]; then
             ALLOW_STALE_CACHE=1 python build_site.py --from-universe --no-record --out public
-          elif [ "${{ steps.mode.outputs.scope }}" = "tw" ]; then
+          elif [ "${{ steps.mode.outputs.scope }}" = "tw" ] || [ "${{ steps.mode.outputs.refresh }}" = "prices" ]; then
             ALLOW_STALE_CACHE=1 python build_site.py --from-universe --out public
           else
             python build_site.py --from-universe --out public
@@ -204,9 +231,11 @@ jobs:
           years = (yaml.safe_load(open("config/screener.yaml", encoding="utf-8"))
                    ["valuation_flag"]["pe_history_years"])
           universe_paths = glob.glob("data/universe/*.json")
+          current_records = []
           tot = ok = partial = pe_schema_ok = pe_current_ok = pe_waiting = pe_source_missing = regressed = 0
           for p in universe_paths:
-              d = json.load(open(p)); tot += 1; actual.add(str(d.get("stock_id")))
+              d = json.load(open(p)); current_records.append(d)
+              tot += 1; actual.add(str(d.get("stock_id")))
               if d.get("annual"): ok += 1
               if d.get("partial_update"): partial += 1
               ph = d.get("pe_hist") or {}
@@ -231,25 +260,39 @@ jobs:
                   return {}
           baseline = [committed(path) for path in universe_paths]
           baseline_partial = sum(bool(d.get("partial_update")) for d in baseline)
-          baseline_regressed = sum(bool((d.get("pe_hist") or {}).get("source_cache_regressed"))
-                                   for d in baseline)
-          protection_ok = partial <= baseline_partial and regressed <= baseline_regressed
+          baseline_partial_ids = {str(d.get("stock_id")) for d in baseline if d.get("partial_update")}
+          current_partial_ids = {str(d.get("stock_id")) for d in current_records if d.get("partial_update")}
+          new_partial_ids = sorted(current_partial_ids - baseline_partial_ids)
+          baseline_regressed_ids = {
+              str(d.get("stock_id")) for d in baseline
+              if (d.get("pe_hist") or {}).get("source_cache_regressed")}
+          current_regressed_ids = {
+              str(d.get("stock_id")) for d in current_records
+              if (d.get("pe_hist") or {}).get("source_cache_regressed")}
+          baseline_regressed = len(baseline_regressed_ids)
+          new_regressed_ids = sorted(current_regressed_ids - baseline_regressed_ids)
+          protection_ok = (current_partial_ids <= baseline_partial_ids
+                           and current_regressed_ids <= baseline_regressed_ids)
           print(f"共 {tot} 檔｜有財報 {ok} ({pct:.1f}%)｜PE schema {pe_schema_ok}/{tot}｜可用 current PE {pe_current_ok}/{tot}｜待補最新 EPS {pe_waiting}｜金融 EPS 來源缺漏 {pe_source_missing}｜cache 保護 {regressed}/{baseline_regressed}｜部分沿用 {partial}/{baseline_partial}｜母體集合一致 {same_set}")
           if not same_set:
               print(f"缺少:{sorted(expected-actual)}｜多餘:{sorted(actual-expected)}")
+          if new_partial_ids:
+              print(f"新增部分沿用:{new_partial_ids}")
+          if new_regressed_ids:
+              print(f"新增 cache regression:{new_regressed_ids}")
           pe_floor = max(1, math.ceil(tot * 0.60))
           healthy = (pct >= 90 and same_set and pe_schema_ok == tot
                      and pe_current_ok >= pe_floor and protection_ok)
           with open(os.environ["GITHUB_OUTPUT"], "a") as f:
               f.write(f"healthy={'true' if healthy else 'false'}\n")
-              f.write(f"summary={tot} 檔, 財報 {ok}, current PE {pe_current_ok}, 待補 EPS {pe_waiting}, 金融 EPS 來源缺漏 {pe_source_missing}, cache 保護 {regressed}/{baseline_regressed}, 部分沿用 {partial}/{baseline_partial}, 集合一致 {same_set}\n")
+              f.write(f"summary={tot} 檔, 財報 {ok}, current PE {pe_current_ok}, 待補 EPS {pe_waiting}, 金融 EPS 來源缺漏 {pe_source_missing}, cache 保護 {regressed}/{baseline_regressed}, 部分沿用 {partial}/{baseline_partial}, 新增 partial {','.join(new_partial_ids) or '無'}, 新增 regression {','.join(new_regressed_ids) or '無'}, 集合一致 {same_set}\n")
           PY
 
       - name: Warn if data unhealthy
         if: steps.mode.outputs.scope != 'none' && steps.sanity.outputs.healthy != 'true'
         run: |
           echo "::warning::資料完整度不足(${{ steps.sanity.outputs.summary }}),已略過 commit 與部署。"
-          echo "多半是撞到 FinMind 每小時上限;快取會保留,下次排程會自動補齊。"
+          echo "可能是 FinMind/Yahoo 暫時缺漏；舊正式資料與已驗證 cache 會保留。"
 
       # ★ 部署前品質把關(對「所有」觸發模式都執行)
       # 踩過的坑:CI 首次執行沒有 API 快取,build_site 要為 239 檔重抓財報,
@@ -301,12 +344,18 @@ jobs:
           scfg = yaml.safe_load(open("config/screener.yaml", encoding="utf-8")) or {}
           years = scfg["valuation_flag"]["pe_history_years"]
           pe_schema_ok = pe_current_ok = regressed = partial = 0
+          partial_ids = set()
+          regressed_ids = set()
           actual_ids = set()
           for path in universe_paths:
               d = json.load(open(path, encoding="utf-8"))
               actual_ids.add(str(d.get("stock_id")))
-              if d.get("partial_update"): partial += 1
-              if (d.get("pe_hist") or {}).get("source_cache_regressed"): regressed += 1
+              if d.get("partial_update"):
+                  partial += 1
+                  partial_ids.add(str(d.get("stock_id")))
+              if (d.get("pe_hist") or {}).get("source_cache_regressed"):
+                  regressed += 1
+                  regressed_ids.add(str(d.get("stock_id")))
               if (not d.get("pe_refresh_error")
                       and pe_history_is_compatible(d.get("pe_hist") or {}, d.get("market", "twse"),
                                                    d.get("price_date"), years)):
@@ -326,9 +375,16 @@ jobs:
                   return {}
           baseline = [committed(path) for path in universe_paths]
           baseline_partial = sum(bool(d.get("partial_update")) for d in baseline)
-          baseline_regressed = sum(bool((d.get("pe_hist") or {}).get("source_cache_regressed"))
-                                   for d in baseline)
-          protection_ok = partial <= baseline_partial and regressed <= baseline_regressed
+          baseline_partial_ids = {
+              str(d.get("stock_id")) for d in baseline if d.get("partial_update")}
+          baseline_regressed_ids = {
+              str(d.get("stock_id")) for d in baseline
+              if (d.get("pe_hist") or {}).get("source_cache_regressed")}
+          baseline_regressed = len(baseline_regressed_ids)
+          new_partial_ids = sorted(partial_ids - baseline_partial_ids)
+          new_regressed_ids = sorted(regressed_ids - baseline_regressed_ids)
+          protection_ok = (partial_ids <= baseline_partial_ids
+                           and regressed_ids <= baseline_regressed_ids)
           pe_current_floor = max(1, math.ceil(n_universe * 0.60))
           ok = (data_ok and actual_ids == expected_ids and linked >= floor
                 and pe_schema_ok == n_universe and pe_current_ok >= pe_current_floor
@@ -602,6 +658,8 @@ jobs:
           print(f"PE schema/date 完整:{pe_schema_ok}/{n_universe}")
           print(f"可用 current PE:{pe_current_ok}/{n_universe}（最低 {pe_current_floor}；其餘誠實顯示 N/M）")
           print(f"cache 保護:{regressed}/{baseline_regressed};部分沿用:{partial}/{baseline_partial};未增加:{protection_ok}")
+          if new_partial_ids: print(f"新增部分沿用:{new_partial_ids}")
+          if new_regressed_ids: print(f"新增 cache regression:{new_regressed_ids}")
           print(f"AI 產業鏈頁完整:{ai_ok}")
           print(f"2330 Thesis 完整:{thesis_ok}")
           print(f"美股河流圖完整:{us_river_ok}")
@@ -660,7 +718,7 @@ jobs:
       # 只在整個流程都成功後才更新 —— 否則會把限流當下殘缺的快取存成種子,
       # 之後每次執行都從壞種子開始,越用越糟。
       - name: Refresh cache seed
-        if: (steps.mode.outputs.scope == 'tw' || steps.mode.outputs.scope == 'all') && steps.sanity.outputs.healthy == 'true' && steps.quality.outputs.ok == 'true'
+        if: (steps.mode.outputs.scope == 'tw' || steps.mode.outputs.scope == 'all' || (steps.mode.outputs.scope == 'us' && steps.mode.outputs.refresh == 'all')) && steps.sanity.outputs.healthy == 'true' && steps.quality.outputs.ok == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -677,8 +735,9 @@ jobs:
           seed_files=(finmind_fs_long_*.json finmind_bs_*.json finmind_cf_*.json
                       finmind_mrev_*.json finmind_price_*.json finmind_pxv_*.json
                       yf_metrics_*.json twse_market_close_*.json tpex_market_close_*.json
-                      tw-income-refresh-state.json
-                      ai_chain_tpex_record_v2_*.json
+                       tw-income-refresh-state.json
+                       us_reported_eps_events_v1_*.json
+                       ai_chain_tpex_record_v2_*.json
                       ai_chain_us_record_v2_*.json ai_chain_us_quarterly_v2_*.json)
           n=${#seed_files[@]}
           if [ "$n" -lt 800 ]; then
@@ -706,3 +765,89 @@ jobs:
         with:
           path: cache
           key: ${{ steps.data-cache.outputs.cache-primary-key }}
+
+      # Release asset 是跨 run 的小型狀態，不受 Actions cache 淘汰或品質失敗影響。
+      - name: Evaluate deployment health
+        id: deployment_health
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          QUALITY_OK: ${{ steps.quality.outputs.ok }}
+        run: |
+          site_url=$(gh api "repos/$GITHUB_REPOSITORY/pages" --jq '.html_url')
+          deployed_matches=false
+          deployed_fetched=false
+          for attempt in {1..18}; do
+            if curl -fsSL --retry 3 --retry-all-errors \
+                "${site_url%/}/ai-chain.html?health=${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${attempt}" \
+                -o /tmp/deployed-ai-chain.html; then
+              deployed_fetched=true
+              if [ "$QUALITY_OK" != true ] || python - <<'PY'
+          from pathlib import Path
+          from scripts.deployment_health import deployed_market_dates
+          deployed = deployed_market_dates(Path("/tmp/deployed-ai-chain.html").read_text())
+          candidate = deployed_market_dates(Path("public/ai-chain.html").read_text())
+          raise SystemExit(0 if deployed == candidate else 1)
+          PY
+              then
+                deployed_matches=true
+                break
+              fi
+            fi
+            sleep 10
+          done
+          test "$deployed_fetched" = true
+          if [ "$QUALITY_OK" = true ] && [ "$deployed_matches" != true ]; then
+            echo "::warning::Pages 尚未顯示本次產物；健康檢查以目前公開版本計算落後交易日。"
+          fi
+          state=/tmp/deployment-health-state.json
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/cache-seed" --jq '
+            [.assets[] | select(.name | startswith("deployment-health-state-"))]
+            | map(select(.state == "uploaded" and .size > 0))
+            | sort_by(.created_at) | reverse | .[].name' > /tmp/health-state-candidates
+          mapfile -t candidates < /tmp/health-state-candidates
+          valid_state=false
+          for previous in "${candidates[@]}"; do
+            rm -f "$state"
+            if gh release download cache-seed -p "$previous" -O "$state" -R "$GITHUB_REPOSITORY" \
+                && python -c 'import json,sys; d=json.load(open(sys.argv[1])); assert d.get("schema_version") == 1' "$state"; then
+              valid_state=true
+              break
+            fi
+          done
+          if [ "$valid_state" != true ]; then
+            if [ "${#candidates[@]}" -gt 0 ]; then
+              echo "::warning::最近的部署健康狀態檔皆無效，改以空狀態重新建立。"
+            fi
+            rm -f "$state"
+          fi
+          python scripts/deployment_health.py \
+            --state "$state" \
+            --html /tmp/deployed-ai-chain.html \
+            --quality-ok "$QUALITY_OK"
+          asset="/tmp/deployment-health-state-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.json"
+          cp "$state" "$asset"
+          gh release upload cache-seed "$asset" -R "$GITHUB_REPOSITORY"
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/cache-seed" --jq '
+            [.assets[] | select(.name | startswith("deployment-health-state-"))]
+            | sort_by(.created_at) | reverse | .[2:] | .[].id' > /tmp/obsolete-health-states
+          mapfile -t obsolete < /tmp/obsolete-health-states
+          for id in "${obsolete[@]}"; do
+            gh api --method DELETE "repos/$GITHUB_REPOSITORY/releases/assets/$id"
+          done
+
+  deployment-health-alert:
+    needs: update
+    if: >-
+      needs.update.result == 'success' &&
+      needs.update.outputs.health_alert == 'true'
+    permissions: {}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deployment health alert
+        env:
+          ALERT: ${{ needs.update.outputs.health_alert_text }}
+        run: |
+          echo "::error title=Deployment health alert::$ALERT"
+          printf '## Deployment health alert\n\n%s\n' "$ALERT" >> "$GITHUB_STEP_SUMMARY"
+          exit 1

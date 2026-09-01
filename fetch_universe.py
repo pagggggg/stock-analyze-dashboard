@@ -463,6 +463,8 @@ def run(args) -> None:
             print(f"  [{j}/{len(us)}] {ticker}（{rec.get('industry','')}）"
                   + (f"　前瞻PE {val:.0f}x" if val else "")
                   + (f"　! {len(rec['errors'])} err" if rec["errors"] else ""))
+            for error in rec.get("errors") or []:
+                print(f"      ! {error}")
             time.sleep(sleep_s)
 
     # 完整母體執行才同步刪除舊檔。先抓後刪，避免抓取中斷時先破壞既有資料。

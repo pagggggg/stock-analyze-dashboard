@@ -112,13 +112,13 @@ def _fx_history(pair: str, start: date, end: date) -> list[tuple[date, float]]:
     return rows
 
 
-def _normalized_eps_events(earnings_dates, quote_currency: str,
-                           financial_currency: str, as_of: date,
-                           release_time_aware: bool = False) -> tuple[
-                               list[tuple[date, float]], list[tuple[date, float]] | None, str, float]:
-    from .valuation_flag import _us_reported_eps_events
-
-    events = _us_reported_eps_events(earnings_dates, release_time_aware)
+def _normalize_reported_eps_events(
+    events: list[tuple[date, float]],
+    quote_currency: str,
+    financial_currency: str,
+    as_of: date,
+) -> tuple[list[tuple[date, float]], list[tuple[date, float]] | None, str, float]:
+    """Normalize already validated Reported EPS events to the quote currency."""
     if not events or financial_currency == quote_currency:
         return events, None, "", 1.0
     if financial_currency != "EUR" or quote_currency != "USD":
@@ -134,6 +134,24 @@ def _normalized_eps_events(earnings_dates, quote_currency: str,
     return (events, fx,
             f"ASML ADR 的 EUR Reported EPS 依各交易日當時 Yahoo EUR/USD 換算為 USD；"
             f"目前值採股價日可得的 {fx[latest_i][0]} 匯率 {latest_rate:.4f}", latest_rate)
+
+
+def _reported_eps_events_regressed(
+    old: list[tuple[date, float]], new: list[tuple[date, float]],
+) -> bool:
+    """Reject a shorter or older Yahoo event response before replacing cache."""
+    return bool(old and (len(new) < len(old) or not new or new[-1][0] < old[-1][0]))
+
+
+def _normalized_eps_events(earnings_dates, quote_currency: str,
+                           financial_currency: str, as_of: date,
+                           release_time_aware: bool = False) -> tuple[
+                               list[tuple[date, float]], list[tuple[date, float]] | None, str, float]:
+    from .valuation_flag import _us_reported_eps_events
+
+    return _normalize_reported_eps_events(
+        _us_reported_eps_events(earnings_dates, release_time_aware),
+        quote_currency, financial_currency, as_of)
 
 
 def _quarterly_eps_rows(qi, earnings_dates, latest_fx: float = 1.0) -> list[dict]:
@@ -208,6 +226,7 @@ def build_us_record(ticker: str, name: str, cfg: dict) -> dict:
         hist = None
     earnings_dates = None
     earnings_error = None
+    reported_events = []
     for _ in range(3):
         try:
             # Recreate Ticker so yfinance does not retain a failed scraper/session state.
@@ -217,6 +236,11 @@ def build_us_record(ticker: str, name: str, cfg: dict) -> dict:
             earnings_error = e
     if earnings_dates is None and earnings_error is not None:
         err.append(f"earnings_dates:{earnings_error}")
+    elif earnings_dates is not None:
+        from .valuation_flag import _us_reported_eps_events
+
+        reported_events = _us_reported_eps_events(
+            earnings_dates, ticker in US_RIVER_TICKERS)
     estimate_currency = None
     try:
         estimates = t.earnings_estimate
@@ -393,6 +417,23 @@ def build_us_record(ticker: str, name: str, cfg: dict) -> dict:
             rec["pe_hist"] = new_pe_hist
             if detail is not None:
                 rec["detail"] = detail
+            if reported_events:
+                from .cache import cache_get, cache_set
+
+                key = f"us_reported_eps_events_v1_{ticker}"
+                cached = cache_get(key, ttl_seconds=None)
+                old_events = []
+                try:
+                    old_events = [(date.fromisoformat(str(row[0])), float(row[1]))
+                                  for row in (cached or {}).get("data") or []]
+                except (IndexError, TypeError, ValueError):
+                    old_events = []
+                if not _reported_eps_events_regressed(old_events, reported_events):
+                    cache_set(
+                        key,
+                        [[event_date.isoformat(), eps]
+                         for event_date, eps in reported_events],
+                    )
         except Exception as e:  # noqa: BLE001 - _save preserves the prior complete snapshot
             rec["pe_refresh_error"] = f"calculation_error:{type(e).__name__}"
             err.append(f"pe_hist/detail:{e}")

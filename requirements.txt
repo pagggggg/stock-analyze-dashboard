@@ -8,6 +8,8 @@ FinMind>=2.0
 requests>=2.28
 # FinMind / 資料處理相依
 pandas>=2.0
+# 部署健康監控:依台灣/美國實際交易日判斷網站行情是否落後
+exchange-calendars>=4.13
 # lxml:FinMind 需要 <5。用版本標記分流,避免 CI 解析衝突:
 #   - Python < 3.14(如 CI 的 3.12):裝 lxml<5,和 FinMind 相容,pip 可正常解析。
 #   - Python >= 3.14:沒有 <5 的 wheel,需 lxml>=6;此時 FinMind 請用 --no-deps 安裝(見末段)。
