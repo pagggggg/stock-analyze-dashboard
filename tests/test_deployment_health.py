@@ -42,10 +42,14 @@ class DeploymentHealthTests(unittest.TestCase):
         now = datetime(2026, 9, 1, 3, tzinfo=timezone.utc)
         deployed = {"tw": "2026-08-31", "us": "2026-08-31"}
 
-        first, new, _ = evaluate_health({}, False, deployed, now)
-        second, second_new, _ = evaluate_health(first, False, deployed, now)
-        third, third_new, _ = evaluate_health(second, False, deployed, now)
-        recovered, _, resolved = evaluate_health(third, True, deployed, now)
+        first, new, _ = evaluate_health(
+            {}, False, deployed, now, run_id="run-1")
+        second, second_new, _ = evaluate_health(
+            first, False, deployed, now, run_id="run-2")
+        third, third_new, _ = evaluate_health(
+            second, False, deployed, now, run_id="run-3")
+        recovered, _, resolved = evaluate_health(
+            third, True, deployed, now, run_id="run-4")
 
         self.assertEqual(new, set())
         self.assertEqual(second_new, {"quality-gate"})
