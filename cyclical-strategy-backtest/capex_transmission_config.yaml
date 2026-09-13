@@ -1,0 +1,375 @@
+# CAPEX-to-revenue transmission study preregistration.
+# This file contains fixed research inputs only. It contains no company guidance data.
+schema_version: 1
+
+preregistration:
+  study_id: capex_transmission_20260807
+  registered_on: "2026-08-07"
+  title: Cloud CAPEX to semiconductor supply-chain revenue transmission
+  scope: independent_research_not_trading_strategy
+  locked: true
+  guidance_data: prohibited
+  no_imputation: true
+
+vintage_policy:
+  basis: historical_actual_research_not_point_in_time_trading
+  selection_order:
+    - earliest_effective_filing_availability
+    - configured_source_priority
+    - configured_tag_priority
+    - reported_quarter_over_derived_tie_breaker
+  later_comparative_disclosures: allowed_only_when_no_earlier_standalone_quarter_candidate_exists
+  filing_date_policy: expose_selected_and_component_filing_dates
+
+periods:
+  fetch_start: 2013Q1
+  output_start: 2014Q1
+  full:
+    start: 2014Q1
+    end: analysis_endpoint
+  early:
+    start: 2014Q1
+    end: 2019Q4
+  late:
+    start: 2020Q1
+    end: analysis_endpoint
+  analysis_endpoint:
+    rule: latest_completed_calendar_quarter_capped_by_last_quarter_with_all_four_capex_totals
+  latest_completed_quarter_rule: quarter_must_have_ended_before_runtime_date
+
+fixed_fx:
+  period: 2014Q1
+  policy: fixed_for_every_quarter
+  twd_per_usd:
+    value: 30.2796721311
+    fred_series: DEXTAUS
+    definition: Taiwan dollars per U.S. dollar
+    aggregation: mean_of_nonmissing_daily_observations
+    observations: 61
+    source_url: https://fred.stlouisfed.org/series/DEXTAUS
+  usd_per_eur:
+    value: 1.3705049180
+    fred_series: DEXUSEU
+    definition: U.S. dollars per euro
+    aggregation: mean_of_nonmissing_daily_observations
+    observations: 61
+    source_url: https://fred.stlouisfed.org/series/DEXUSEU
+
+capex:
+  currency: USD
+  frozen_companies: [MSFT, GOOGL, AMZN, META]
+  definition:
+    default_total: MSFT and GOOGL PPE cash CAPEX
+    amazon_total: Amazon gross productive-assets cash purchases, including PP&E, internal-use software, and other intangibles
+    meta_total: PPE cash CAPEX plus financing-lease principal, only when both components exist
+    missing_meta_lease: missing, never zero
+    standalone_quarters: reported quarter or mechanically derived from adjacent YTD/FY facts
+    sign_policy: absolute cash-outflow magnitude
+  companies:
+    MSFT:
+      name: Microsoft
+      ppe_sources:
+        - cik: "0000789019"
+          entity: Microsoft Corporation
+          taxonomy: us-gaap
+          unit: USD
+          priority: 0
+          tags:
+            - PaymentsToAcquirePropertyPlantAndEquipment
+            - CapitalExpenditures
+          source_url: https://data.sec.gov/api/xbrl/companyfacts/CIK0000789019.json
+      calendar_note: Fiscal quarters are assigned to calendar quarters by the midpoint of the reported period.
+    GOOGL:
+      name: Alphabet
+      continuity: Google Inc to Alphabet Inc
+      ppe_sources:
+        - cik: "0001288776"
+          entity: Google Inc
+          taxonomy: us-gaap
+          unit: USD
+          priority: 0
+          tags:
+            - PaymentsToAcquirePropertyPlantAndEquipment
+            - CapitalExpenditures
+          source_url: https://data.sec.gov/api/xbrl/companyfacts/CIK0001288776.json
+        - cik: "0001652044"
+          entity: Alphabet Inc
+          taxonomy: us-gaap
+          unit: USD
+          priority: 1
+          tags:
+            - PaymentsToAcquirePropertyPlantAndEquipment
+            - CapitalExpenditures
+          source_url: https://data.sec.gov/api/xbrl/companyfacts/CIK0001652044.json
+    AMZN:
+      name: Amazon
+      metric_label: Amazon gross productive-assets cash purchases, including PP&E, internal-use software, and other intangibles
+      first_standalone_quarter: 2017Q3
+      ppe_sources:
+        - cik: "0001018724"
+          entity: Amazon.com Inc
+          taxonomy: us-gaap
+          unit: USD
+          priority: 0
+          tags:
+            - PaymentsToAcquireProductiveAssets
+          source_url: https://data.sec.gov/api/xbrl/companyfacts/CIK0001018724.json
+      excluded_legacy_tags:
+        - PaymentsToAcquirePropertyPlantAndEquipment
+        - PaymentsForProceedsFromProductiveAssets
+        - CapitalExpenditures
+      excluded_legacy_reason: Semantically different legacy, net, and generic CAPEX tags are excluded; they are not coalesced with, used to reconstruct, or substituted for PaymentsToAcquireProductiveAssets.
+    META:
+      name: Meta Platforms
+      ppe_sources:
+        - cik: "0001326801"
+          entity: Meta Platforms Inc
+          taxonomy: us-gaap
+          unit: USD
+          priority: 0
+          tags:
+            - PaymentsToAcquirePropertyPlantAndEquipment
+            - CapitalExpenditures
+          source_url: https://data.sec.gov/api/xbrl/companyfacts/CIK0001326801.json
+      finance_lease_sources:
+        - cik: "0001326801"
+          entity: Meta Platforms Inc
+          taxonomy: us-gaap
+          unit: USD
+          priority: 0
+          tags:
+            - RepaymentsOfLongTermCapitalLeaseObligations
+            - FinanceLeasePrincipalPayments
+          source_url: https://data.sec.gov/api/xbrl/companyfacts/CIK0001326801.json
+
+revenue:
+  metric: quarterly_revenue
+  sec_issuers:
+    NVDA:
+      name: NVIDIA
+      currency: USD
+      sources:
+        - cik: "0001045810"
+          entity: NVIDIA Corporation
+          taxonomy: us-gaap
+          unit: USD
+          priority: 0
+          tags: [RevenueFromContractWithCustomerExcludingAssessedTax, Revenues, SalesRevenueNet]
+          source_url: https://data.sec.gov/api/xbrl/companyfacts/CIK0001045810.json
+    AMD:
+      name: Advanced Micro Devices
+      currency: USD
+      sources:
+        - cik: "0000002488"
+          entity: Advanced Micro Devices Inc
+          taxonomy: us-gaap
+          unit: USD
+          priority: 0
+          tags: [RevenueFromContractWithCustomerExcludingAssessedTax, SalesRevenueNet, Revenues]
+          source_url: https://data.sec.gov/api/xbrl/companyfacts/CIK0000002488.json
+    AVGO:
+      name: Broadcom
+      currency: USD
+      continuity: Avago Technologies to Broadcom Ltd/Pte to Broadcom Inc
+      sources:
+        - cik: "0001441634"
+          entity: Avago Technologies Limited
+          taxonomy: us-gaap
+          unit: USD
+          priority: 0
+          tags: [Revenues, SalesRevenueNet, RevenueFromContractWithCustomerExcludingAssessedTax]
+          source_url: https://data.sec.gov/api/xbrl/companyfacts/CIK0001441634.json
+        - cik: "0001649338"
+          entity: Broadcom Limited/Pte Ltd
+          taxonomy: us-gaap
+          unit: USD
+          priority: 1
+          tags: [RevenueFromContractWithCustomerExcludingAssessedTax, Revenues, SalesRevenueNet]
+          source_url: https://data.sec.gov/api/xbrl/companyfacts/CIK0001649338.json
+        - cik: "0001730168"
+          entity: Broadcom Inc
+          taxonomy: us-gaap
+          unit: USD
+          priority: 2
+          tags: [RevenueFromContractWithCustomerExcludingAssessedTax, Revenues, SalesRevenueNet]
+          source_url: https://data.sec.gov/api/xbrl/companyfacts/CIK0001730168.json
+    MU:
+      name: Micron Technology
+      currency: USD
+      sources:
+        - cik: "0000723125"
+          entity: Micron Technology Inc
+          taxonomy: us-gaap
+          unit: USD
+          priority: 0
+          tags: [RevenueFromContractWithCustomerExcludingAssessedTax, Revenues, SalesRevenueNet]
+          source_url: https://data.sec.gov/api/xbrl/companyfacts/CIK0000723125.json
+    AMAT:
+      name: Applied Materials
+      currency: USD
+      sources:
+        - cik: "0000006951"
+          entity: Applied Materials Inc
+          taxonomy: us-gaap
+          unit: USD
+          priority: 0
+          tags: [RevenueFromContractWithCustomerExcludingAssessedTax, SalesRevenueNet, Revenues]
+          source_url: https://data.sec.gov/api/xbrl/companyfacts/CIK0000006951.json
+    LRCX:
+      name: Lam Research
+      currency: USD
+      sources:
+        - cik: "0000707549"
+          entity: Lam Research Corporation
+          taxonomy: us-gaap
+          unit: USD
+          priority: 0
+          tags: [RevenueFromContractWithCustomerExcludingAssessedTax, Revenues, SalesRevenueNet]
+          source_url: https://data.sec.gov/api/xbrl/companyfacts/CIK0000707549.json
+    KLAC:
+      name: KLA
+      currency: USD
+      sources:
+        - cik: "0000319201"
+          entity: KLA Corporation
+          taxonomy: us-gaap
+          unit: USD
+          priority: 0
+          tags: [RevenueFromContractWithCustomerExcludingAssessedTax, SalesRevenueNet, Revenues]
+          source_url: https://data.sec.gov/api/xbrl/companyfacts/CIK0000319201.json
+  asml:
+    ASML:
+      name: ASML Holding
+      currency: EUR
+      function: fetch_asml_quarterly_revenue
+      cik: "0000937966"
+      tags: [Total net sales]
+      source_urls:
+        - https://data.sec.gov/submissions/CIK0000937966.json
+        - https://www.sec.gov/Archives/edgar/data/937966/
+  taiwan:
+    function: fetch_financials
+    field: revenue
+    currency: TWD
+    source_url: https://api.finmindtrade.com/api/v4/data
+    members:
+      "2330": {name: 台積電}
+      "3711": {name: 日月光投控}
+      "2408": {name: 南亞科}
+      "6488": {name: 環球晶}
+      "2308": {name: 台達電}
+      "3017": {name: 奇鋐}
+      "6139": {name: 亞翔}
+      "6196": {name: 帆宣}
+    requested_id_correction:
+      rejected: "3416"
+      used: "6196"
+      note: 3416 was erroneous; the preregistered facilities member is 6196.
+    known_non_standalone_revenue_exclusions:
+      "3711":
+        2018Q2: FinMind selected six-month cumulative value
+      "6488":
+        2014Q2: H1 cumulative
+        2014Q4: H2 aggregate
+
+layers:
+  - id: chip_design
+    name: 晶片設計
+    members: [NVDA, AMD, AVGO]
+    control: false
+  - id: foundry
+    name: 晶圓代工/台積電對照
+    members: ["2330"]
+    control: true
+  - id: packaging
+    name: 封測
+    members: ["3711"]
+    control: false
+  - id: memory
+    name: 記憶體
+    members: [MU, "2408"]
+    control: false
+  - id: equipment
+    name: 設備
+    members: [ASML, AMAT, LRCX, KLAC]
+    control: false
+  - id: materials
+    name: 材料
+    members: ["6488"]
+    control: false
+  - id: power_cooling
+    name: 電源散熱
+    members: ["2308", "3017"]
+    control: false
+  - id: facilities
+    name: 廠務
+    members: ["6139", "6196"]
+    control: false
+
+statistics:
+  lag_orientation: CAPEX(t) versus revenue(t+lag)
+  lags:
+    minimum: 0
+    maximum: 8
+    values: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+  raw_confirmatory_family:
+    windows: [full]
+    layers: 8
+    lags_per_layer: 9
+    family_size: 72
+    correction: Holm
+  split_diagnostics:
+    windows: [early, late]
+    bootstrap_draws: 0
+    correction_family: none
+    exact_lag_match_required: true
+  detrended_confirmatory_family:
+    windows: [full]
+    layers: 8
+    lags_per_layer: 9
+    family_size: 72
+    correction: Holm
+    break_quarter: 2020Q1
+    terms: [intercept, linear_quarter_index, post_level, post_slope]
+    exact_raw_supported_lag_required: true
+  bootstrap:
+    method: circular_stationary
+    draws: 99999
+    seed: 20260807
+    expected_block_length_quarters: 8
+    null_paths: independent_x_and_y
+    confidence_interval_paths: paired
+  minimum_n:
+    descriptive: 12
+    inferential: 32
+  alpha: 0.05
+  effective_sample_size_max_lag: 8
+  cycles:
+    smoothing_quarters: 4
+    extrema_radius: 2
+    minimum_phase_quarters: 4
+    minimum_cycle_quarters: 8
+    minimum_for_nonexploratory_classification: 4
+    design_period_episodes:
+      - 2018-2019 downcycle
+      - 2020-2021 pandemic cycle
+      - 2024-2026 AI expansion
+    note: These three named episodes are a qualitative design warning, not mechanically complete independent cycles.
+
+criteria:
+  all_must_pass: true
+  minimum_supported_noncontrol_layers: 3
+  exact_early_late_peak_match_to_full_supported_lag: true
+  exact_lag_detrended_positive_holm_significant: true
+  tsmc_control_layer: foundry
+  tsmc_control_must_have_no_positive_holm_significant_lag: true
+  phase_2_forbidden_unless_all_pass: true
+
+# Append-only. Never edit or reorder prior entries.
+changelog:
+  - date: "2026-08-07"
+    by: preregistration
+    note: Initial locked CAPEX transmission study specification; no result-dependent settings and no guidance data.
+  - date: "2026-08-07"
+    by: independent_review_correction
+    note: Independent-review corrections lock source-semantic exclusions, historical-vintage handling, and gap-aware audit disclosure; they are not outcome-driven.

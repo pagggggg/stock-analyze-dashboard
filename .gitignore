@@ -15,6 +15,9 @@ credentials.*
 
 # API 快取(FinMind / TWSE),可安全刪除,刪了下次會重抓
 cache/
+# SEC companyfacts/filing raw cache can exceed 100 MB; generated reports stay tracked.
+cyclical-strategy-backtest/data/raw/sec-v*_raw_*.json
+cyclical-strategy-backtest/data/raw/sec-v*_asml_quarterly_revenue.json
 
 # 注意:data/universe/(全市場選股資料)刻意「不」忽略,讓 GitHub Actions 也能重建
 #   screener.html。全市場放大(約 2,300 檔)後若不想版控大量檔案,可改成只留精華或
